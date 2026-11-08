@@ -46,6 +46,10 @@ The **Sample Edit** button opens the stock Polyend sample editor on the current 
 
 The effects work on a 16-bit copy of the sample; Apply converts the result back to 8 bit and writes it into the song's sample slot, so every Apply or Undo requantises. Effect time constants (delay time, chorus rate and so on) assume 44.1 kHz, not the 16.5 kHz a sample plays at for C-3. A result longer than 65534 bytes is refused.
 
+## Sample parameters
+
+The **Sample Play** button opens the sample header: Sample (which of the 31), Volume (0-64), Finetune (-8..7), Loop (1-Shot or Forward, the only two modes ProTracker has), Loop start, Loop end and Length, all in bytes. The waveform shows the loop markers. Select a field with its button or Left/Right, change it with the encoder or Up/Down (Shift: coarse steps), Delete resets Volume, Finetune or the loop. Positions move one word (2 bytes) at a time. The pads play the sample with its loop at their pitch. Shortening the length keeps the loop inside the sample.
+
 ## Files
 
 Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing name becomes `name-N.mod`. Samples are 8-bit, at most 65534 bytes each, 31 per song; a module holds up to 128 orders of 64 rows.
