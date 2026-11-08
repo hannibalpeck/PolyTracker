@@ -8,7 +8,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 
 ## What it does
 
-* Boots directly into ProTracker mode. Songs live in `/mods` on the SD card; saving never overwrites an existing file (`name-N.mod`).
+* Boots directly into ProTracker mode. Songs live in `/Mod` on the SD card; saving never overwrites an existing file (`name-N.mod`).
 * Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
 * Reads `M.K.`, `M!K!`, `FLT4`, `4CHN` and `N.T.` modules (6 and 8 channel modules are refused). Writes `M.K.` (or `M!K!` above 64 patterns).
 * ProTracker is the main screen: the firmware starts in it, and the **Pattern** button returns to it from every other screen.
