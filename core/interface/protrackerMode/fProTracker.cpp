@@ -1840,9 +1840,17 @@ static void functMuteTrack(uint8_t button, uint8_t state)
 
 static void moveCursor(int dTrack, int dStep)
 {
-    // while the song plays in green mode the cursor follows the playhead
+    // while the song plays in green mode the cursor follows the playhead vertically, but it can
+    // still move between the tracks
     if (PT->replayer.isPlaying() && !PT->editMode)
+    {
+        if (dTrack != 0)
+        {
+            PT->moveTrack(dTrack);
+            PT->refreshPattern();
+        }
         return;
+    }
 
     const bool shift = PT->isShiftPressed();
     if (shift)

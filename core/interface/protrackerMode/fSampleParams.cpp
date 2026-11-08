@@ -8,6 +8,7 @@
 #include "Platform.h"
 #include "core/graphicProcessing.h"
 #include "core/interfaceDefs.h"
+#include "core/interfacePopups.h"
 #include "core/titleBar.h"
 #include "protrackerMode/protrackerMode.h"
 #include "util_math.h"
@@ -41,6 +42,7 @@ static const char* const kTitles[cProTrackerSampleParams::kParamCount] = {
 };
 
 static void functSwitchModule(uint8_t button);
+static void functInstrument(uint8_t state);
 static void functUp();
 static void functDown();
 static void functLeft();
@@ -127,6 +129,7 @@ void cProTrackerSampleParams::bindButtons()
     ip->setPotObj(interfacePot0, functEncoder);
     ip->setPadsGlobal(functPads);
 
+    ip->setButtonObj(interfaceButtonInstr, functInstrument);
     ip->setButtonObj(interfaceButtonFile, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonPattern, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonSong, buttonPress, functSwitchModule);
@@ -417,6 +420,31 @@ static void functSwitchModule(uint8_t button)
     if (button == interfaceButtonSamplePlay)
         return;
     SP->eventFunct(eventSwitchModule, SP, &button, 0);
+}
+
+// Instr held: the sample list, the encoder picks, releasing Instr selects that sample
+static void functInstrument(uint8_t state)
+{
+    if (state == buttonPress)
+    {
+        if (mtPopups.getStepPopupState() != stepPopupNone)
+            return;
+        PT->stopPreview();
+        display.setControlHide(SP->spectrum);
+        display.setControlHide(SP->points);
+        display.setControlHide(SP->frameControl);
+        mtPopups.showStepPopup(stepPopupInstr, (int8_t)(PT->sample - 1));
+    }
+    else if (state == buttonRelease)
+    {
+        if (mtPopups.getStepPopupState() == stepPopupNone)
+            return;
+        const int value = mtPopups.getStepPopupValue();
+        mtPopups.hideStepPopups();
+        if (value >= 0 && value < protracker::kSampleCount)
+            PT->sample = value + 1;
+        SP->start(0);
+    }
 }
 
 static void functUp()

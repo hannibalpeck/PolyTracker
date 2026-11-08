@@ -42,6 +42,7 @@ static const uint16_t paramsScreenFramePlaces[6][4] = {
 
 // ACTION FUNCTIONS DECLARATIONS
 static void functSwitchModule(uint8_t button);
+static void functInstrument(uint8_t state);
 static void functPads(uint8_t pad, uint8_t state, int16_t velo);
 
 static void functMainScreenLeft();
@@ -316,6 +317,7 @@ void cSampleEditor::setCommonFunctions()
     ip->setButtonObj(interfaceButtonSampleLoad, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonSong, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonPattern, buttonPress, functSwitchModule);
+    ip->setButtonObj(interfaceButtonInstr, functInstrument);
 
     if (!editorInstrument->isActive)
         return;
@@ -1079,6 +1081,29 @@ static void functSwitchModule(uint8_t button)
     }
     stopAudition();
     SE->eventFunct(eventSwitchModule, SE, &button, 0);
+}
+
+// Instr held: the sample list, the encoder picks, releasing Instr loads that sample
+static void functInstrument(uint8_t state)
+{
+    if (state == buttonPress)
+    {
+        if (mtPopups.getStepPopupState() != stepPopupNone)
+            return;
+        stopAudition();
+        SE->hideUselessControls();
+        mtPopups.showStepPopup(stepPopupInstr, (int8_t)(SE->slot - 1));
+    }
+    else if (state == buttonRelease)
+    {
+        if (mtPopups.getStepPopupState() == stepPopupNone)
+            return;
+        const int value = mtPopups.getStepPopupValue();
+        mtPopups.hideStepPopups();
+        if (value >= 0 && value < protracker::kSampleCount)
+            PT->sample = value + 1;
+        SE->start(0);
+    }
 }
 
 static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
