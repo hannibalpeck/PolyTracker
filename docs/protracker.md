@@ -60,4 +60,4 @@ Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing 
 
 ## Settings, restart and credits
 
-The **Config** screen has no MIDI section. **Info → About** lists the sources this firmware is built on: Polyend Tracker CE and the ProTracker 2.3D replayer as implemented in pt2-clone. The last song that was opened or saved is loaded again after a restart (its path is kept in `/Mod/.lastsong`); unsaved changes are not. The **File** button works from the Song screen too.
+The **Config** screen has no MIDI section. **Info → About** lists the sources this firmware is built on: Polyend Tracker CE and the ProTracker 2.3D replayer as implemented in pt2-clone. The song is loaded again after a restart. When the unit is shut down with the power button, the current song, unsaved changes included, is written to `/Mod/.lastsong` (with `/Mod/.lastinfo` holding its file name and whether it has unsaved changes) and loaded again at the next start. After a power cut without the shutdown sequence, the last song that was opened or saved is loaded instead. The **File** button works from the Song screen too.

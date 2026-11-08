@@ -1347,41 +1347,88 @@ void cProTrackerMode::newSong()
     s_undoMeta[0].count = s_undoMeta[1].count = 0;
 }
 
-// The last song that was loaded or saved is opened again after a restart.
+// After a restart the last song is opened again. /Mod/.lastinfo says how: "P" + dirty + path points
+// to the .mod that was last loaded or saved; "S" + dirty + path means a snapshot of the song as it
+// was at shutdown (with its unsaved changes) is in /Mod/.lastsong.
 static const char* kLastSongFile = "/Mod/.lastsong";
+static const char* kLastInfoFile = "/Mod/.lastinfo";
+
+static void writeLastInfo(FileSystem* fs, char mode, bool dirty, const char* path)
+{
+    if (!fs->exists("/Mod"))
+        fs->mkdir(0, "/Mod");
+    auto [ok, handle] = fs->openFile(kLastInfoFile, FileSystem::kWriteCreateNew);
+    if (!ok)
+        return;
+    char text[112];
+    snprintf(text, sizeof(text), "%c%c%s", mode, dirty ? '1' : '0', path);
+    fs->writeFile(text, strlen(text), handle);
+    fs->closeFile(handle);
+}
 
 static void rememberSong(const char* path)
 {
     FileSystem* fs = protrackerMode.platform_fs();
-    if (!fs->exists("/Mod"))
-        fs->mkdir(0, "/Mod");
-    auto [ok, handle] = fs->openFile(kLastSongFile, FileSystem::kWriteCreateNew);
-    if (!ok)
-        return;
-    fs->writeFile(path, strlen(path), handle);
-    fs->closeFile(handle);
+    if (fs->exists(kLastSongFile))
+        fs->remove(kLastSongFile); // an older snapshot must not win over this song
+    writeLastInfo(fs, 'P', false, path);
 }
 
 void cProTrackerMode::loadLastSong()
 {
     FileSystem* fs = platform->getFileSystem();
-    if (!fs->exists(kLastSongFile))
+    if (!fs->exists(kLastInfoFile))
         return;
 
-    auto [ok, handle] = fs->openFile(kLastSongFile, FileSystem::kRead);
+    auto [ok, handle] = fs->openFile(kLastInfoFile, FileSystem::kRead);
     if (!ok)
         return;
-    char path[sizeof(filePath)] = {};
-    const int32_t got = fs->readFile(path, sizeof(path) - 1, handle);
+    char info[112] = {};
+    const int32_t got = fs->readFile(info, sizeof(info) - 1, handle);
     fs->closeFile(handle);
-    if (got <= 0 || !fs->exists(path))
+    if (got < 2)
         return;
 
+    const char* path = info + 2;
     const char* error = nullptr;
-    loadFile(path, &error);
+    if (info[0] == 'S' && fs->exists(kLastSongFile))
+    {
+        if (loadModule(kLastSongFile, &error, false))
+        {
+            snprintf(filePath, sizeof(filePath), "%s", path);
+            dirty = info[1] == '1';
+        }
+    }
+    else if (info[0] == 'P' && path[0] != '\0' && fs->exists(path))
+    {
+        loadFile(path, &error);
+    }
+}
+
+// Called while the unit shuts down: the song, with its unsaved changes, goes to /Mod/.lastsong.
+bool cProTrackerMode::saveSnapshot()
+{
+    if (!initialised)
+        return true;
+
+    FileSystem* fs = platform->getFileSystem();
+    if (!fs->exists("/Mod"))
+        fs->mkdir(0, "/Mod");
+
+    const char* error = nullptr;
+    if (!writeModule(kLastSongFile, &error))
+        return false;
+
+    writeLastInfo(fs, 'S', dirty, filePath);
+    return true;
 }
 
 bool cProTrackerMode::loadFile(const char* path, const char** error)
+{
+    return loadModule(path, error, true);
+}
+
+bool cProTrackerMode::loadModule(const char* path, const char** error, bool remember)
 {
     FileSystem* fs = platform->getFileSystem();
 
@@ -1423,7 +1470,8 @@ bool cProTrackerMode::loadFile(const char* path, const char** error)
     }
 
     snprintf(filePath, sizeof(filePath), "%s", path);
-    rememberSong(filePath);
+    if (remember)
+        rememberSong(filePath);
     return true;
 }
 
@@ -1596,7 +1644,8 @@ int cProTrackerMode::exportStep(uint32_t budgetMs, const char** error)
     return 1;
 }
 
-bool cProTrackerMode::saveFile(const char* path, const char** error)
+// writes the module as a .mod file, without touching the file name or the dirty flag
+bool cProTrackerMode::writeModule(const char* path, const char** error)
 {
     FileSystem* fs = platform->getFileSystem();
 
@@ -1620,11 +1669,24 @@ bool cProTrackerMode::saveFile(const char* path, const char** error)
         *error = protracker::resultText(result);
         return false;
     }
+    return true;
+}
+
+bool cProTrackerMode::saveFile(const char* path, const char** error)
+{
+    if (!writeModule(path, error))
+        return false;
 
     snprintf(filePath, sizeof(filePath), "%s", path);
     dirty = false;
     rememberSong(filePath);
     return true;
+}
+
+// the shutdown sequence of the interface calls this
+bool protrackerSaveOnShutdown()
+{
+    return protrackerMode.saveSnapshot();
 }
 
 // ---------------------------------------------------------------------------------------------

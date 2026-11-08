@@ -102,6 +102,9 @@ class cProTrackerMode : public ModuleBase
 
     // ---- files
     bool loadFile(const char* path, const char** error); // error: text when it returns false
+    bool loadModule(const char* path, const char** error, bool remember);
+    bool writeModule(const char* path, const char** error);
+    bool saveSnapshot();
     bool saveFile(const char* path, const char** error);
     bool exportBegin(char* outPath, size_t outSize, const char** error);
     int exportStep(uint32_t budgetMs, const char** error); // 0 running, 1 done, -1 error
@@ -179,6 +182,7 @@ extern cProTrackerMode protrackerMode;
 // used by the stock popups (interfacePopups.cpp)
 const char* protrackerSampleName(int index);
 void protrackerPopupPad(uint8_t pad, uint8_t pressed);
+bool protrackerSaveOnShutdown();
 
 #endif // PLATFORM_IMX
 

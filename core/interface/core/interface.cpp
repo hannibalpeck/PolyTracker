@@ -285,7 +285,7 @@ void Interface::processPowerOffSequence()
         if (shutdownSaveFlag == 0 && lowPower.getShutdownProgress() > 10 &&
             lowPower.getShutdownProgress() < 70)
         {
-            if (newFileManager.saveProjectToWorkspace())
+            if (protrackerSaveOnShutdown())
             {
                 shutdownSaveFlag = 1;
             }
