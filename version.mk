@@ -4,10 +4,10 @@ EDITION_NAME := CE
 VER_ROOT_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 BUILD_TAG    ?= $(shell git -C "$(VER_ROOT_DIR)" rev-parse --short=7 HEAD 2>/dev/null || date +"%Y%m%d")
 
-PLUS_VER_MAJOR     := 1
-PLUS_VER_MINOR     := 0
+PLUS_VER_MAJOR     := 0
+PLUS_VER_MINOR     := 9
 PLUS_VER_PATCH     := 0
-PLUS_VER_BETA      := 255
+PLUS_VER_BETA      := 1
 
 FW_VER_1    := $(PLUS_VER_MAJOR)
 FW_VER_2    := $(PLUS_VER_MINOR)
