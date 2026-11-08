@@ -64,17 +64,16 @@ const hModule Interface::modules[modulesCount] = {
     &sampleRecorder,   // 8
     nullptr,           // 9  (performance mode, removed)
     nullptr,           // 10 (image viewer, removed)
-    &protrackerMode,   // 11 (Game button)
+    &protrackerMode,   // 11 (main screen, Pattern button)
     &masterParams,     // 12
 };
 
-const uint8_t Interface::modulesButtonsCount = 6;
+const uint8_t Interface::modulesButtonsCount = 5;
 const uint32_t Interface::modulesButtons[][3] = {
     { interfaceButtonMaster, 12, 0 },
     { interfaceButtonSampleRec, 8, 0 },
     { interfaceButtonSampleLoad, 1, 0 },
     { interfaceButtonConfig, 7, 0 },
-    { interfaceButtonGame, 11, 0 },
     { interfaceButtonPattern, 11, 0 },
 };
 

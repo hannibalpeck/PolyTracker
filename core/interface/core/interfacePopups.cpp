@@ -7,6 +7,7 @@
 #include "mtPadsBacklight.h"
 
 #include "mtSequencer.h"
+#include "protrackerMode/protrackerMode.h"
 #include "padToBeatNoteConverter.h"
 
 #ifdef GUI_HANDLE_SYNTH
@@ -425,12 +426,7 @@ int InterfacePopups::convertInstrumentIdxToPopupListPos(enumStepPopups stepPopup
 
     if (stepPopupType == stepPopupInstr)
     {
-#if GUI_HANDLE_SYNTH
-        listPos = instrIdx < SYNTH_INSTRUMENTS_START_IDX ? instrIdx + kSynthInstrumentsCount
-                                                         : instrIdx - SYNTH_INSTRUMENTS_START_IDX;
-#else
         listPos = instrIdx;
-#endif
     }
 #if GUI_HANDLE_SYNTH
     else if (stepPopupType == stepPopupOnlyMidiInstr)
@@ -680,20 +676,9 @@ void InterfacePopups::setStepPopupValue(int16_t value)
         }
         case stepPopupInstr:
         {
-            value = clamp<int8_t>(value, 0, kTotalInstrumentsCount - 1);
+            value = clamp<int8_t>(value, 0, protracker::kSampleCount - 1);
             selectedActualItem = value;
-#if GUI_HANDLE_SYNTH
-            if (value < kSynthInstrumentsCount)
-            {
-                mtProject.values.lastUsedInstrument = SYNTH_INSTRUMENTS_START_IDX + value;
-            }
-            else
-            {
-                mtProject.values.lastUsedInstrument = value - kSynthInstrumentsCount;
-            }
-#else
             mtProject.values.lastUsedInstrument = value;
-#endif
 
             display.setControlValue(popupListControl, selectedActualItem);
             display.refreshControl(popupListControl);
@@ -809,21 +794,8 @@ void InterfacePopups::changeStepPopupValue(int16_t value, InterfacePopups::Popup
         case stepPopupInstr:
         {
             selectedActualItem =
-              clamp<int8_t>(selectedActualItem + value, 0, kTotalInstrumentsCount - 1);
-
-#if GUI_HANDLE_SYNTH
-            if (selectedActualItem < kSynthInstrumentsCount)
-            {
-                mtProject.values.lastUsedInstrument =
-                  SYNTH_INSTRUMENTS_START_IDX + selectedActualItem;
-            }
-            else
-            {
-                mtProject.values.lastUsedInstrument = selectedActualItem - kSynthInstrumentsCount;
-            }
-#else
+              clamp<int8_t>(selectedActualItem + value, 0, protracker::kSampleCount - 1);
             mtProject.values.lastUsedInstrument = selectedActualItem;
-#endif
 
             display.setControlValue(popupListControl, selectedActualItem);
             display.refreshControl(popupListControl);
@@ -961,6 +933,20 @@ void InterfacePopups::showActualInstrument()
 
 int InterfacePopups::listInstruments(enumStepPopups mode)
 {
+    if (mode == stepPopupInstr)
+    {
+        for (uint8_t i = 0; i < protracker::kSampleCount; i++)
+        {
+            snprintf(&interfaceGlobals.intrumentsNames[i][0],
+                     SAMPLE_NAME_SIZE + 6,
+                     "%02d. %s",
+                     i + 1,
+                     protrackerSampleName(i));
+            interfaceGlobals.ptrIntrumentsNames[i] = &interfaceGlobals.intrumentsNames[i][0];
+        }
+        return protracker::kSampleCount;
+    }
+
     int instrIdx = 0;
 
 #if GUI_HANDLE_SYNTH
@@ -1163,60 +1149,12 @@ static void functPadsPopup(uint8_t pad, uint8_t state, int16_t)
     {
         padsBacklight.setFrontLayer(1, mtConfig.values.padsLightBack, pad);
         mtPopups.setStepPopupValue(pad);
-
-        switch (POP->getStepPopupState())
-        {
-            case stepPopupNote:
-            {
-                uint8_t noteFromPad = mtPadBoard.getNoteFromPad(pad);
-                sequencer.handleNoteOn(Sequencer::GRID_OUTSIDE_PATTERN, noteFromPad, -1, pad);
-                break;
-            }
-            case stepPopupInstr:
-            {
-                int8_t noteToPlay = Sequencer::STEP_NOTE_DEFAULT;
-                if (mtInterface.isPatternScreenActive())
-                {
-                    int instrumentToSet =
-                      false
-                        ? MIDI_INSTRUMENTS_START_IDX + (pad % kMidiInstrumentsCount)
-                        : pad;
-
-                    sendSelection();
-                    noteToPlay = sequencer.getSelectionFirstNote();
-                }
-                sequencer.handleNoteOn(Sequencer::GRID_OUTSIDE_PATTERN, noteToPlay, -1, pad);
-                break;
-            }
-            default: break;
-        }
+        protrackerPopupPad(pad, 1);
     }
     else if (state == buttonRelease)
     {
         padsBacklight.setFrontLayer(0, 0, pad);
-
-        enumStepPopups popupState = POP->getStepPopupState();
-        switch (popupState)
-        {
-            case stepPopupNote:
-            {
-                uint8_t noteFromPad = mtPadBoard.getNoteFromPad(pad);
-                sequencer.handleNoteOff(Sequencer::GRID_OUTSIDE_PATTERN, noteFromPad, 0, pad);
-                break;
-            }
-            case stepPopupInstr:
-            {
-                int8_t noteToPlay = Sequencer::STEP_NOTE_DEFAULT;
-                if (mtInterface.isPatternScreenActive())
-                {
-                    sendSelection();
-                    noteToPlay = sequencer.getSelectionFirstNote();
-                }
-                sequencer.handleNoteOff(Sequencer::GRID_OUTSIDE_PATTERN, noteToPlay, 0, pad);
-                break;
-            }
-            default: break;
-        }
+        protrackerPopupPad(pad, 0);
     }
 }
 

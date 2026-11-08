@@ -5,13 +5,19 @@ The firmware boots into a ProTracker 2.3D style editor. The code is split in two
 * `core/protracker/` is a self-contained C++ library with no hardware dependencies. `ptModule` holds the song and reads/writes `.mod` files, `ptReplayer` is the Paula-style replayer ported from pt2-clone, `ptAudioStream` feeds it into the Teensy-style audio graph (mixer input `FinalMixInputs::kProTracker`).
 * `core/interface/protrackerMode/` is the screen (`cProTrackerMode`), including the file list.
 
-## Controls
+## Controls (Pattern screen)
 
-* **Pads** play the current sample with the stock pad layout (looping samples sustain while held). By default they only play; nothing is written to the song.
-* **Rec** toggles recording. With Rec on, pads write notes at the cursor (on the sample and effect columns the first 16 pads enter hex digits). The info line shows PLAY, REC or NOTE.
-* **Note** jumps to the note column and turns on note entry until pressed again: pads write notes, and the encoder changes the note under the cursor (Shift: octave).
-* **Instr** opens the instrument selector, a list of the 31 samples. Pads (pad 1 is sample 1), the encoder and Up/Down choose the sample; Instr, Enter or Done closes it.
-* **Pattern** returns to the main ProTracker screen from any other screen, and closes the selector or file list. **Game** opens ProTracker as well.
+The screen is the stock Polyend pattern editor: four tracks of note, instrument and effect, 15 visible rows with the cursor in the middle, eight bottom buttons with two pages ("More" switches).
+
+* **Rec** switches between green (pads only play, cursor follows playback) and red (pads write).
+* **Note / Instr / Fx1 / Fx2** tap to choose the column. Holding Note or Instr opens the stock popup (pads or encoder choose, release applies in red mode). A step has one effect, so Fx1 and Fx2 both select it; Fx1/Fx2 held + encoder or pad changes the effect command, otherwise the value.
+* **Pads** use the stock layout. Red: note, instrument (pad 1 = sample 1) or effect value is written and the cursor moves by the step jump. Green: preview only.
+* **Bottom buttons, page 1:** Pattern, Position, Step jump (hold + arrows, encoder or pads), Preview, Undo, Redo. **Page 2:** Duplicate Pattern, Copy Pattern, Paste Pattern.
+* **Pattern** (held) + arrows or encoder picks the pattern of the current position; pressing it on another screen returns here.
+* **Play** loops the current pattern, Shift+Play starts at the cursor. **Shift** + bottom buttons 1-4 mutes tracks. Shift+arrows select a block; Copy copies, Shift+Copy pastes; Delete clears, Shift+Delete is backspace; Insert inserts a row, Shift+Insert goes to the first row.
+* **File** opens the song list (Load, Save, New, Cancel).
+
+Limits follow the .mod format: 4 tracks, 64 rows, 31 samples, patterns 0-99, ProTracker effects 0-F.
 
 ## Files
 
