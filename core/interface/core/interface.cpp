@@ -276,7 +276,13 @@ void Interface::processStartScreen()
 #ifdef TRACKER_MINI
             initSpecialMiniTrackerButtons();
 #endif
+#if defined(PLATFORM_IMX) && !defined(PROTRACKER_NO_AUTOBOOT)
+            // Tracker+ boots straight into ProTracker mode. Build with -DPROTRACKER_NO_AUTOBOOT to
+            // start in the stock Pattern editor again; every other screen is still one button away.
+            activateModule(&protrackerMode, 0);
+#else
             activateModule(&patternEditor, 0);
+#endif
             unmuteAudioOutByKey();
 
 #ifdef TRACKER_MINI
