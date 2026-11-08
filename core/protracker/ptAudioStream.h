@@ -35,6 +35,8 @@ class ProTrackerStream : public AudioStream
     // audition 8 bit data outside the song (sample editor), see Replayer::previewStartData
     void requestPreviewData(const int8_t* data, uint32_t length, uint16_t period, uint8_t volume);
     // how far the preview has played, 0..1000 (0 when it isn't playing)
+    uint32_t previewPosition() const { return replayer_ != nullptr ? replayer_->previewPosition() : 0; }
+    uint32_t previewLength() const { return replayer_ != nullptr ? replayer_->previewLength() : 0; }
     bool isPreviewing() const { return replayer_ != nullptr && replayer_->isPreviewing(); }
 
     // Ask the audio update to leave the module alone, and wait (briefly) until it has. Needed

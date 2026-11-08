@@ -52,6 +52,9 @@ class cProTrackerSampleParams : public ModuleBase
     hControl frameControl = -1;
     hControl spectrum = -1;
     hControl points = -1;
+    hControl playhead = -1;
+    elapsedMillis playheadTimer;
+    bool playheadShown = false;
 
     strFrameData frameData;
     strTrackerPoints pointsData;

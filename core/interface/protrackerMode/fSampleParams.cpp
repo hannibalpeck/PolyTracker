@@ -94,6 +94,7 @@ void cProTrackerSampleParams::initDisplayControls()
     spectrumProperties.y = 75 + ((300 - (MAX_16BIT / 300)) / 2);
     spectrumProperties.w = 600;
     spectrumProperties.h = MAX_16BIT / 300;
+    playhead = display.createControl<cProgressCursor>(&spectrumProperties);
     pointsData = { 0, 0, 600, 0, 0, 0 };
     spectrumProperties.data = &pointsData;
     points = display.createControl<cPoints>(&spectrumProperties);
@@ -165,6 +166,8 @@ void cProTrackerSampleParams::start(uint32_t)
     display.refreshControl(bgLabel);
     display.setControlShow(spectrum);
     display.setControlShow(points);
+    display.setControlHide(playhead);
+    playheadShown = false;
     display.setControlShow(frameControl);
 
     refreshAll();
@@ -182,6 +185,27 @@ void cProTrackerSampleParams::update()
     {
         needRefreshWave = false;
         refreshWave();
+    }
+
+    // the line shows where the sample that is heard is
+    if (playheadTimer < 20)
+        return;
+    playheadTimer = 0;
+
+    const uint32_t length = PT->stream->previewLength();
+    if (PT->stream->isPreviewing() && length > 0)
+    {
+        const uint32_t pos = PT->stream->previewPosition();
+        display.setControlValue(playhead, (int)(((uint64_t)(pos < length ? pos : length - 1) * 599) / length));
+        display.setControlShow(playhead);
+        display.refreshControl(playhead);
+        playheadShown = true;
+    }
+    else if (playheadShown)
+    {
+        playheadShown = false;
+        display.setControlHide(playhead);
+        display.refreshControl(playhead);
     }
 }
 
@@ -265,9 +289,12 @@ void cProTrackerSampleParams::refreshTexts()
     {
         display.setControlText(label[i], kTitles[i]);
         display.setControlText2(label[i], s_text2[i]);
+        // loop start / end mean nothing for a 1-Shot sample
+        const bool inactive = (s.length == 0 && i >= kLoop) ||
+                              (!looping && (i == kLoopStart || i == kLoopEnd));
         display.setControlColors(label[i],
-                                 (s.length == 0 && i >= kLoop) ? display.getTheme().inactiveLabelsColors
-                                                               : display.getTheme().activeLabelsColors);
+                                 inactive ? display.getTheme().inactiveLabelsColors
+                                          : display.getTheme().activeLabelsColors);
         display.refreshControl(label[i]);
     }
 
@@ -432,6 +459,7 @@ static void functInstrument(uint8_t state)
         PT->stopPreview();
         display.setControlHide(SP->spectrum);
         display.setControlHide(SP->points);
+        display.setControlHide(SP->playhead);
         display.setControlHide(SP->frameControl);
         mtPopups.showStepPopup(stepPopupInstr, (int8_t)(PT->sample - 1));
     }

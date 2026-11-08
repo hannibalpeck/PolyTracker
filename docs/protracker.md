@@ -48,7 +48,7 @@ The effects work on a 16-bit copy of the sample; Apply converts the result back 
 
 ## Sample parameters
 
-The **Sample Play** button opens the sample header: Sample (which of the 31), Volume (0-64), Finetune (-8..7), Loop (1-Shot or Forward, the only two modes ProTracker has), Loop start, Loop end and Length, all in bytes. The waveform shows the loop markers. Select a field with its button or Left/Right, change it with the encoder or Up/Down (Shift: coarse steps), Delete resets Volume, Finetune or the loop. Positions move one word (2 bytes) at a time. The pads play the sample with its loop at their pitch. Shortening the length keeps the loop inside the sample.
+The **Sample Play** button opens the sample header: Sample (which of the 31), Volume (0-64), Finetune (-8..7), Loop (1-Shot or Forward, the only two modes ProTracker has), Loop start, Loop end and Length, all in bytes. The waveform shows the loop markers. Select a field with its button or Left/Right, change it with the encoder or Up/Down (Shift: coarse steps), Delete resets Volume, Finetune or the loop. Positions move one word (2 bytes) at a time. The pads play the sample with its loop at their pitch. Shortening the length keeps the loop inside the sample. Loop start and Loop end are greyed out while the sample is 1-Shot. A line on the waveform shows the playing position of a pad, and loop points, length and volume changed while a pad is held are heard immediately.
 
 In both the sample editor and the sample parameters screen, hold **Instr** and turn the encoder to pick another sample from the list; releasing Instr loads it. While a pattern is playing in green mode, Left/Right still move the cursor between the tracks.
 

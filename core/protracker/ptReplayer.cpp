@@ -175,6 +175,7 @@ void Replayer::previewStartData(const int8_t* data, uint32_t length, uint16_t pe
     if (data == nullptr || length < 2 || period == 0)
         return;
 
+    previewSample_ = -1;
     previewPtr_ = data;
     previewLen_ = length;
     previewVolume_ = volume > 64 ? 64 : volume;
@@ -198,6 +199,7 @@ void Replayer::previewStart(int sampleIndex, uint16_t period)
     if (smp.length < 2 || period == 0)
         return;
 
+    previewSample_ = sampleIndex;
     previewPtr_ = mod_->sampleData(sampleIndex);
     previewLen_ = smp.length;
     previewVolume_ = smp.volume > 64 ? 64 : smp.volume;
@@ -222,6 +224,25 @@ int32_t Replayer::nextPreviewSample()
     int32_t out = 0;
     if (previewActive_)
     {
+        if (previewSample_ >= 0 && mod_ != nullptr)
+        {
+            // loop points and length may be edited while the sample is heard
+            const Sample& live = mod_->samples[previewSample_];
+            previewLen_ = live.length;
+            previewVolume_ = live.volume > 64 ? 64 : live.volume;
+            if (live.loopLength > 2 && live.loopStart + live.loopLength <= live.length)
+            {
+                previewLoopStart_ = live.loopStart;
+                previewLoopEnd_ = live.loopStart + live.loopLength;
+            }
+            else
+            {
+                previewLoopStart_ = 0;
+                previewLoopEnd_ = 0;
+            }
+            if (previewPos_ >= kSampleSlotBytes)
+                previewPos_ = 0;
+        }
         out = (int32_t)previewPtr_[previewPos_] * previewVolume_;
 
         previewFrac_ += previewDelta_;

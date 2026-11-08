@@ -45,6 +45,9 @@ class Replayer
     void previewStartData(const int8_t* data, uint32_t length, uint16_t period, uint8_t volume);
     void previewStop() { previewActive_ = false; }
     bool isPreviewing() const { return previewActive_; }
+    // where the preview voice is (bytes into the sample) and how long the sample is
+    uint32_t previewPosition() const { return previewPos_; }
+    uint32_t previewLength() const { return previewLen_; }
 
     // Mixes `frames` stereo samples into left/right (overwrites the buffers).
     void render(int16_t* left, int16_t* right, uint32_t frames);
@@ -209,6 +212,7 @@ class Replayer
     uint32_t previewDelta_ = 0;
     uint8_t previewVolume_ = 0;
     volatile bool previewActive_ = false;
+    int previewSample_ = -1; // song sample being auditioned: its loop is followed live while it plays
 
     // "LED" filter (E0x): 2-pole Butterworth low-pass
     bool ledFilter_ = false;
