@@ -2,6 +2,7 @@
 #define AUDIOENGINE_AUDIOOUTPUT_H_
 
 #include "Audio.h"
+#include "ptAudioStream.h"
 
 class AudioOutput
 {
@@ -20,7 +21,12 @@ class AudioOutput
         kTestWaveform = 4,
         kMetronomeTick = 5,
         kNesEmulatorSound = 6,
+#ifdef PLATFORM_IMX
+        kProTracker = 7,
         kFinalMixerSize
+#else
+        kFinalMixerSize
+#endif
     };
 
     AudioOutput();
@@ -33,6 +39,9 @@ class AudioOutput
     AudioEffectLimiter* getLimiter(OutputChannels channel);
     AudioMixer<FinalMixInputs::kFinalMixerSize>* getFinalMixer(OutputChannels channel);
     AudioOutputStream* getStream();
+#ifdef PLATFORM_IMX
+    ProTrackerStream* getProTrackerStream() { return &proTrackerStream; }
+#endif
 
   private:
 #ifndef PLATFORM_IMX
@@ -43,6 +52,9 @@ class AudioOutput
 #endif
     AudioEffectLimiter limiter[OutputChannels::kChannelsCount];
     AudioOutputStream outputStream;
+#ifdef PLATFORM_IMX
+    ProTrackerStream proTrackerStream;
+#endif
     AudioMixer<FinalMixInputs::kFinalMixerSize> finalMixer[OutputChannels::kChannelsCount];
     std::vector<AudioConnection*> connections;
 };

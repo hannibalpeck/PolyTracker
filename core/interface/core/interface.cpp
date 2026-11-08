@@ -15,6 +15,7 @@
 #include "patternEditor/patternEditor.h"
 #include "performanceMode/performanceMode.h"
 #include "projectEditor/projectEditor.h"
+#include "protrackerMode/protrackerMode.h"
 #include "sampleEditor/sampleEditor.h"
 #include "sampleImporter/sampleImporter.h"
 #include "samplePlayback/samplePlayback.h"
@@ -66,12 +67,20 @@ const hModule Interface::modules[modulesCount] = {
     &sampleRecorder,   // 8
     &performanceMode,  // 9
     &imageViewer,      // 10
+#ifdef PLATFORM_IMX
+    &protrackerMode,   // 11 (Game button)
+#else
     nullptr,           // 11
+#endif
     &masterParams,     // 12
 };
 
+#ifdef PLATFORM_IMX
+const uint8_t Interface::modulesButtonsCount = 12;
+#else
 const uint8_t Interface::modulesButtonsCount = 11;
-const uint32_t Interface::modulesButtons[modulesButtonsCount][3] = {
+#endif
+const uint32_t Interface::modulesButtons[][3] = {
     { interfaceButtonPerformance, 9, 0 },
     { interfaceButtonMaster, 12, 0 },
     { interfaceButtonParams, 5, mtInstEditModeParams },
@@ -83,6 +92,9 @@ const uint32_t Interface::modulesButtons[modulesButtonsCount][3] = {
     { interfaceButtonSampleLoad, 1, 0 },
     { interfaceButtonSong, 4, 0 },
     { interfaceButtonConfig, 7, 0 },
+#ifdef PLATFORM_IMX
+    { interfaceButtonGame, 11, 0 },
+#endif
 };
 
 //=======================================================================

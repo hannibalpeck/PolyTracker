@@ -32,6 +32,14 @@ AudioOutput::AudioOutput()
       &finalMixer[OutputChannels::kRight], 0, &outputStream, OutputChannels::kRight));
 
 #ifdef PLATFORM_IMX
+    // ProTracker mode: the replayer's stereo output joins the final mix (and therefore the USB master)
+    connections.push_back(new AudioConnection(
+      &proTrackerStream, 0, &finalMixer[OutputChannels::kLeft], FinalMixInputs::kProTracker));
+    connections.push_back(new AudioConnection(
+      &proTrackerStream, 1, &finalMixer[OutputChannels::kRight], FinalMixInputs::kProTracker));
+    finalMixer[OutputChannels::kLeft].gain(FinalMixInputs::kProTracker, 1.0f);
+    finalMixer[OutputChannels::kRight].gain(FinalMixInputs::kProTracker, 1.0f);
+
     constexpr int kMasterLeftUsbStreamIdx =
       UsbOutputStream::AudioSource::kMaster * UsbOutputStream::SourceChannel::kChannelsCount;
     constexpr int kMasterRightUsbStreamIdx = kMasterLeftUsbStreamIdx + 1;
