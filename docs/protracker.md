@@ -19,6 +19,18 @@ The screen is the stock Polyend pattern editor: four tracks of note, instrument 
 
 Limits follow the .mod format: 4 tracks, 64 rows, 31 samples, patterns 0-99, ProTracker effects 0-F.
 
+## Controls (Song screen)
+
+The **Song** button opens the arrangement view, built from the stock Polyend song screen: the playlist on the right (slot number and pattern, play icon at the playing slot), a block matrix with the four tracks of every pattern (filled when the track has notes) and the tempo bar. The playlist is the order list of the .mod file: up to 128 slots, patterns 0-99.
+
+* **Encoder / Up / Down** move through the slots. **Shift + encoder**, **Left / Right** and the **Pattern -/+** buttons (Shift: 10 steps) change the pattern of the slot.
+* **Add Slot** inserts a copy of the slot after it, **Shift + Add Slot** inserts a new empty pattern. **Delete Slot** removes the slot (at least one stays). **Undo** steps back through the last 16 changes.
+* **Play Pattern** loops the pattern of the slot, **Play Song** plays from the slot (while playing: Loop Pattern / Continue Song / Stop).
+* **Tempo** held + encoder or Up/Down (Shift: 10) edits the first tempo command (Fxx, 32 and up) of the song, or writes one on the first free effect of row 1 when there is none. A .mod has no separate tempo field.
+* **Pattern** goes back to the pattern screen on the selected slot.
+
+Playback stops when you change screens.
+
 ## Files
 
 Songs are stored in `/ProTracker` on the SD card. Saving never overwrites: an existing name becomes `name-N.mod`. Samples are 8-bit, at most 65534 bytes each, 31 per song; a module holds up to 128 orders of 64 rows.
