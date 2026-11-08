@@ -34,6 +34,7 @@ static void functNew();
 static void functOpen();
 static void functSave();
 static void functSaveAs();
+static void functExportWav();
 static void functEnter();
 static void functCancel();
 static void functBrowserAccept();
@@ -171,8 +172,10 @@ void cProTrackerFile::showMain()
     display.setControlText(label[1], "Open");
     display.setControlText(label[3], "Save");
     display.setControlText(label[4], "Save As");
+    display.setControlText(label[6], "Export");
+    display.setControlText2(label[6], "WAV");
     for (uint8_t i = 0; i < 8; i++)
-        display.setControlValue(label[i], i == 0 || i == 1 || i == 3 || i == 4 ? 1 : 0);
+        display.setControlValue(label[i], i == 0 || i == 1 || i == 3 || i == 4 || i == 6 ? 1 : 0);
     refreshLabelsNow();
 
     display.setControlValue(bgLabel, 255);
@@ -337,6 +340,7 @@ void cProTrackerFile::bindMain()
     ip->setButtonObj(interfaceButton1, buttonPress, functOpen);
     ip->setButtonObj(interfaceButton3, buttonPress, functSave);
     ip->setButtonObj(interfaceButton4, buttonPress, functSaveAs);
+    ip->setButtonObj(interfaceButton6, buttonPress, functExportWav);
     bindModuleButtons();
 }
 
@@ -748,6 +752,22 @@ static void functOpen()
 static void functSave()
 {
     F->actSave();
+}
+
+void cProTrackerFile::actExportWav()
+{
+    message("Rendering WAV...");
+    static char path[kMaxFilePathLen + 1];
+    const char* error = nullptr;
+    if (PT->exportWav(path, sizeof(path), &error))
+        message("WAV exported to /ProTracker/Export");
+    else
+        message(error != nullptr ? error : "Cannot export the WAV file");
+}
+
+static void functExportWav()
+{
+    F->actExportWav();
 }
 
 static void functSaveAs()

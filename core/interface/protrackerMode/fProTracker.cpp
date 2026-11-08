@@ -224,7 +224,7 @@ void protrackerPopupPad(uint8_t pad, uint8_t pressed)
     }
     else if (mtPopups.getStepPopupState() == stepPopupInstr)
     {
-        PT->previewPeriod(pad + 1, protracker::kPeriodTable[12]); // C-2
+        PT->previewPeriod(pad + 1, protracker::kPeriodTable[24]); // C-3
     }
 }
 
@@ -298,9 +298,7 @@ void cProTrackerMode::stop()
 
     if (stream != nullptr)
     {
-        stream->requestPreviewStop();
-        stream->requestStop();
-        stream->setEnabled(false);
+        stream->requestPreviewStop(); // a running song keeps playing on the other screens
     }
 
     mtPopups.hideStepPopups();
@@ -340,6 +338,13 @@ void cProTrackerMode::update()
     static bool wasPlaying = false;
 
     bool changed = false;
+    if (playing && !replayer.isPatternMode() && replayer.position() != editPos)
+    {
+        // a song that is playing (started on the song screen) shows the pattern it is in
+        editPos = replayer.position();
+        lastRow = -1;
+        changed = true;
+    }
     if (playing)
     {
         const int row = replayer.row();
@@ -514,7 +519,7 @@ void cProTrackerMode::refreshLabels()
                 colors = (copy || editMode) ? display.getTheme().activeButtonLabelsColors
                                             : display.getTheme().inactiveButtonLabelsColors;
                 data = &labelDataRed;
-                value = 0;
+                value = 1; // the second line (Track / Pattern) is only drawn with a value
             }
             else if (i == 7)
             {
@@ -535,7 +540,7 @@ void cProTrackerMode::refreshLabels()
                 colors = editMode ? display.getTheme().activeButtonLabelsColors
                                   : display.getTheme().inactiveButtonLabelsColors;
                 data = &labelDataRed;
-                value = 0;
+                value = (i == 3) ? 1 : 0;
             }
             if (i == 7)
             {
@@ -1006,9 +1011,8 @@ void cProTrackerMode::clearSelection()
         for (int r = r0; r <= r1; r++)
         {
             protracker::Note* n = cell(t, r);
-            if (trackerPattern.selectState == 2)
-                n->set(0, 0, 0, 0); // a selected block is cleared completely
-            else if (editParam == kParamNote)
+            // only the lane under the cursor is cleared, also in a selected block
+            if (editParam == kParamNote)
                 n->set(0, 0, n->command(), n->param());
             else if (editParam == kParamInstr)
                 n->set(0, n->period(), n->command(), n->param());
@@ -1383,6 +1387,117 @@ bool cProTrackerMode::loadFile(const char* path, const char** error)
     }
 
     snprintf(filePath, sizeof(filePath), "%s", path);
+    return true;
+}
+
+// Renders the whole song (until it reaches its end and starts over, at most 15 minutes) to a 16 bit
+// stereo WAV file with the replayer, faster than real time. outPath gets the file that was written.
+bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** error)
+{
+    FileSystem* fs = platform->getFileSystem();
+
+    const char* folder = "/ProTracker/Export";
+    if (!fs->exists(folder))
+        fs->mkdir(0, folder);
+
+    // name: the song's file name, a number is added when it exists already
+    char base[48] = "song";
+    if (filePath[0] != '\0')
+    {
+        const char* slash = strrchr(filePath, '/');
+        snprintf(base, sizeof(base), "%s", slash != nullptr ? slash + 1 : filePath);
+        const size_t len = strlen(base);
+        if (len > 4 && strcasecmp(base + len - 4, ".mod") == 0)
+            base[len - 4] = '\0';
+    }
+    snprintf(outPath, outSize, "%s/%s.wav", folder, base);
+    for (int n = 2; fs->exists(outPath) && n < 1000; n++)
+        snprintf(outPath, outSize, "%s/%s_%d.wav", folder, base, n);
+
+    auto [ok, handle] = fs->openFile(outPath, FileSystem::kWriteCreateNew);
+    if (!ok)
+    {
+        *error = "Cannot create file";
+        return false;
+    }
+
+    constexpr uint32_t kRate = 44100;
+    constexpr uint32_t kBlock = 256;
+    constexpr uint32_t kMaxFrames = kRate * 60 * 15;
+
+    auto put32 = [](uint8_t* d, uint32_t v) {
+        d[0] = (uint8_t)v;
+        d[1] = (uint8_t)(v >> 8);
+        d[2] = (uint8_t)(v >> 16);
+        d[3] = (uint8_t)(v >> 24);
+    };
+    auto header = [&](uint8_t* h, uint32_t dataBytes) {
+        memcpy(h, "RIFF", 4);
+        put32(h + 4, 36 + dataBytes);
+        memcpy(h + 8, "WAVEfmt ", 8);
+        put32(h + 16, 16);
+        h[20] = 1; // PCM
+        h[21] = 0;
+        h[22] = 2; // stereo
+        h[23] = 0;
+        put32(h + 24, kRate);
+        put32(h + 28, kRate * 4);
+        h[32] = 4;
+        h[33] = 0;
+        h[34] = 16;
+        h[35] = 0;
+        memcpy(h + 36, "data", 4);
+        put32(h + 40, dataBytes);
+    };
+
+    uint8_t head[44];
+    header(head, 0);
+    bool good = fs->writeFile(head, sizeof(head), handle) == (int32_t)sizeof(head);
+
+    stream->pause();
+    replayer.stop();
+    bool muted[kTracks];
+    for (int t = 0; t < kTracks; t++)
+    {
+        muted[t] = replayer.isMuted(t);
+        replayer.setMuted(t, false); // the export is the whole song
+    }
+
+    static int16_t left[kBlock];
+    static int16_t right[kBlock];
+    static int16_t out[kBlock * 2];
+
+    uint32_t frames = 0;
+    replayer.play(0, 0);
+    while (good && replayer.isPlaying() && replayer.songLoops() == 0 && frames < kMaxFrames)
+    {
+        replayer.render(left, right, kBlock);
+        for (uint32_t i = 0; i < kBlock; i++)
+        {
+            out[i * 2] = left[i];
+            out[i * 2 + 1] = right[i];
+        }
+        good = fs->writeFile(out, sizeof(out), handle) == (int32_t)sizeof(out);
+        frames += kBlock;
+    }
+
+    replayer.stop();
+    for (int t = 0; t < kTracks; t++)
+        replayer.setMuted(t, muted[t]);
+    stream->resume();
+
+    if (good)
+    {
+        header(head, frames * 4);
+        good = fs->seekFile(0, handle) && fs->writeFile(head, sizeof(head), handle) == (int32_t)sizeof(head);
+    }
+    fs->closeFile(handle);
+
+    if (!good)
+    {
+        *error = "Cannot write the WAV file";
+        return false;
+    }
     return true;
 }
 
@@ -1872,7 +1987,8 @@ static void functActionButton(uint8_t button, uint8_t state)
             {
                 const protracker::Note& n =
                   *PT->cell(PT->trackerPattern.actualTrack, PT->trackerPattern.actualStep);
-                PT->previewPeriod(n.sample() != 0 ? n.sample() : PT->sample, n.period());
+                PT->previewPeriod(n.sample() != 0 ? n.sample() : PT->sample,
+                                 n.period() != 0 ? n.period() : protracker::kPeriodTable[24]); // C-3 when empty
                 break;
             }
             case 1:
@@ -1951,7 +2067,7 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
         if (pad < protracker::kSampleCount)
         {
             PT->sample = pad + 1;
-            PT->previewPeriod(PT->sample, protracker::kPeriodTable[12]);
+            PT->previewPeriod(PT->sample, protracker::kPeriodTable[24]);
             if (PT->editMode)
             {
                 PT->writeInstrument(PT->sample);

@@ -104,6 +104,7 @@ class cProTrackerMode : public ModuleBase
     // ---- files
     bool loadFile(const char* path, const char** error); // error: text when it returns false
     bool saveFile(const char* path, const char** error);
+    bool exportWav(char* outPath, size_t outSize, const char** error);
     void newSong();
 
     // ---- screen

@@ -40,6 +40,7 @@ static SongSnapshot s_undo[cProTrackerSong::kUndoDepth];
 static int s_undoCount = 0;
 
 static void functSwitchModule(uint8_t button);
+static void functPlayButton();
 static void functActionButton(uint8_t button, uint8_t state);
 static void functUp();
 static void functDown();
@@ -279,10 +280,7 @@ void cProTrackerSong::stop()
 {
     moduleRefresh = 0;
 
-    PT->stream->requestPreviewStop();
-    PT->stream->requestStop();
-    PT->stream->setEnabled(false);
-    playMode = 0;
+    PT->stream->requestPreviewStop(); // the song keeps playing on the other screens
 
     display.setControlHide(frameControl);
     display.setControlHide(barControl);
@@ -507,6 +505,7 @@ void cProTrackerSong::bindButtons()
     for (uint8_t b = interfaceButton0; b <= interfaceButton7; b++)
         ip->setButtonObj(b, functActionButton);
 
+    ip->setButtonObj(interfaceButtonPlay, buttonPress, functPlayButton);
     ip->setButtonObj(interfaceButtonShift, functShift);
     ip->setButtonObj(interfaceButtonUp, buttonPress, functUp);
     ip->setButtonObj(interfaceButtonDown, buttonPress, functDown);
@@ -522,6 +521,15 @@ void cProTrackerSong::bindButtons()
     ip->setButtonObj(interfaceButtonSampleRec, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonSampleLoad, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonParams, buttonPress, functSwitchModule);
+}
+
+// Play starts the song at the selected position, or stops it
+static void functPlayButton()
+{
+    if (SE->playMode != 0 || PT->replayer.isPlaying())
+        SE->stopPlaying();
+    else
+        SE->playSong();
 }
 
 static void functSwitchModule(uint8_t button)

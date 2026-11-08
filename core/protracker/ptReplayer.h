@@ -34,6 +34,7 @@ class Replayer
     void playPattern(int pattern, int row);
     void stop();
     bool isPlaying() const { return playing_; }
+    bool isPatternMode() const { return patternMode_; }
 
     // Audition a sample outside the song, like pressing a key in the editor. Only sounds while the
     // song is not playing; starting playback ends it. A looping sample sustains until

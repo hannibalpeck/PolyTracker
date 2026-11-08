@@ -71,6 +71,7 @@ class cProTrackerFile : public ModuleBase
     void actOpen();
     void actSave();
     void actSaveAs();
+    void actExportWav();
     void actLoadSelected();
     void actDeleteSelected();
     void actKeyboardConfirm();
