@@ -814,6 +814,16 @@ static void testPreview()
     c.rep.play(0, 0);
     CHECK(!c.rep.isPreviewing());
 
+    // clearing the song keeps the samples
+    Fixture e(rate);
+    e.makeSquare(0);
+    e.note(0, 0, 0, 1, 428);
+    e.mod.order[3] = 5;
+    e.mod.songLength = 4;
+    e.mod.clearSong();
+    CHECK(e.mod.pattern(0)[0].period() == 0 && e.mod.order[3] == 0 && e.mod.songLength == 1);
+    CHECK(e.mod.samples[0].length == 64 && e.mod.sampleData(0)[2] == 100);
+
     // a preview started while the song runs is heard on top of it
     Fixture d(rate);
     d.makeSquare(0);

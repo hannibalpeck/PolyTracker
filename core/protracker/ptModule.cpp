@@ -119,6 +119,17 @@ void Module::clear()
     initialTempo = 125;
 }
 
+void Module::clearSong()
+{
+    if (pool_ != nullptr)
+        memset(pool_, 0, (size_t)kMaxPatterns * kPatternBytes);
+
+    memset(title, 0, sizeof(title));
+    memset(order, 0, sizeof(order));
+    songLength = 1;
+    initialTempo = 125;
+}
+
 int Module::patternCountInOrderList() const
 {
     int highest = 0;

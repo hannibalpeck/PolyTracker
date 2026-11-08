@@ -31,6 +31,7 @@ static cProTrackerFile::Screen s_returnTo = cProTrackerFile::kScreenMain;
 
 static void functSwitchModule(uint8_t button);
 static void functNew();
+static void functClearSong();
 static void functOpen();
 static void functSave();
 static void functSaveAs();
@@ -170,12 +171,14 @@ void cProTrackerFile::showMain()
     display.setControlText(label[0], "New");
     display.setControlText2(label[0], "Song");
     display.setControlText(label[1], "Open");
+    display.setControlText(label[2], "Clear");
+    display.setControlText2(label[2], "Song");
     display.setControlText(label[3], "Save");
     display.setControlText(label[4], "Save As");
     display.setControlText(label[6], "Export");
     display.setControlText2(label[6], "WAV");
     for (uint8_t i = 0; i < 8; i++)
-        display.setControlValue(label[i], i == 0 || i == 1 || i == 3 || i == 4 || i == 6 ? 1 : 0);
+        display.setControlValue(label[i], i == 0 || i == 1 || i == 2 || i == 3 || i == 4 || i == 6 ? 1 : 0);
     refreshLabelsNow();
 
     display.setControlValue(bgLabel, 255);
@@ -338,6 +341,7 @@ void cProTrackerFile::bindMain()
 
     ip->setButtonObj(interfaceButton0, buttonPress, functNew);
     ip->setButtonObj(interfaceButton1, buttonPress, functOpen);
+    ip->setButtonObj(interfaceButton2, buttonPress, functClearSong);
     ip->setButtonObj(interfaceButton3, buttonPress, functSave);
     ip->setButtonObj(interfaceButton4, buttonPress, functSaveAs);
     ip->setButtonObj(interfaceButton6, buttonPress, functExportWav);
@@ -546,6 +550,14 @@ void cProTrackerFile::actNew()
     doNewSong();
 }
 
+// Clear Song: patterns and order list go, the samples stay
+void cProTrackerFile::actClearSong()
+{
+    pending = kClearSong;
+    showConfirm("Clear all patterns and the order list?", "The samples are kept.", "Clear", false);
+    bindConfirm();
+}
+
 void cProTrackerFile::actOpen()
 {
     openBrowser(kScreenOpen);
@@ -676,6 +688,15 @@ void cProTrackerFile::actConfirmYes()
             break;
         }
 
+        case kClearSong:
+            mtPopups.hideInfoPopup();
+            pending = kNothing;
+            PT->clearSong();
+            message("Song cleared, samples kept");
+            showMain();
+            bindMain();
+            break;
+
         case kNewSong:
         case kLoadFile:
         {
@@ -739,6 +760,11 @@ static void functSwitchModule(uint8_t button)
     F->eventFunct(eventSwitchModule, F, &button, 0);
 }
 
+static void functClearSong()
+{
+    F->actClearSong();
+}
+
 static void functNew()
 {
     F->actNew();
@@ -754,12 +780,32 @@ static void functSave()
     F->actSave();
 }
 
+// the screen is redrawn from inside the render loop: percentage on the button and in the title
+static void exportProgress(int percent)
+{
+    static char title[40];
+    static char text[8];
+    snprintf(title, sizeof(title), "File - Rendering WAV %d%%", percent);
+    snprintf(text, sizeof(text), "%d%%", percent);
+    F->titleBar->setTitle(title);
+    display.setControlText(F->label[6], "Rendering");
+    display.setControlText2(F->label[6], text);
+    display.refreshControl(F->label[6]);
+    display.synchronizeRefresh();
+}
+
 void cProTrackerFile::actExportWav()
 {
-    message("Rendering WAV...");
     static char path[kMaxFilePathLen + 1];
     const char* error = nullptr;
-    if (PT->exportWav(path, sizeof(path), &error))
+    exportProgress(0);
+    const bool done = PT->exportWav(path, sizeof(path), &error, exportProgress);
+    setSongNameOnTitle();
+    display.setControlText(label[6], "Export");
+    display.setControlText2(label[6], "WAV");
+    display.refreshControl(label[6]);
+    display.synchronizeRefresh();
+    if (done)
         message("WAV exported to /ProTracker/Export");
     else
         message(error != nullptr ? error : "Cannot export the WAV file");

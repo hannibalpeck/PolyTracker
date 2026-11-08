@@ -222,7 +222,9 @@ int32_t Replayer::nextPreviewSample()
             }
         }
     }
-    return out;
+    // a song voice is spread 60/40 over the two sides, so a centred preview needs half the level to
+    // be as loud as the same sample played by the song
+    return out / 2;
 }
 
 void Replayer::mixPreview(int16_t* left, int16_t* right, uint32_t frames)

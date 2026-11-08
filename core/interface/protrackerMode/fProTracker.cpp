@@ -490,8 +490,8 @@ void cProTrackerMode::refreshLabels()
     static const char* const kPage0[8] = { "Pattern", "Position", "Step jump", "Copy",
                                            "Paste",   "Copy",     "Paste",     "More" };
     static const char* const kPage0b[8] = { "", "", "", "Track", "Track", "Pattern", "Pattern", "" };
-    static const char* const kPage1[8] = { "Preview", "Undo", "Redo", "Duplicate", "", "", "", "More" };
-    static const char* const kPage1b[8] = { "", "", "", "Pattern", "", "", "", "" };
+    static const char* const kPage1[8] = { "Preview", "Undo", "Redo", "", "", "", "", "More" };
+    static const char* const kPage1b[8] = { "", "", "", "", "", "", "", "" };
 
     if (shiftMuteView)
         return;
@@ -540,7 +540,7 @@ void cProTrackerMode::refreshLabels()
                 colors = editMode ? display.getTheme().activeButtonLabelsColors
                                   : display.getTheme().inactiveButtonLabelsColors;
                 data = &labelDataRed;
-                value = (i == 3) ? 1 : 0;
+                value = 0;
             }
             if (i == 7)
             {
@@ -1122,24 +1122,6 @@ void cProTrackerMode::pasteTrack()
         memcpy(cell(trackerPattern.actualTrack, r), s_trackClip + r * 4, 4);
 }
 
-// A copy of the current pattern goes to the first pattern number that isn't in use yet.
-void cProTrackerMode::duplicatePattern()
-{
-    int highest = 0;
-    for (int i = 0; i < protracker::kOrderCount; i++)
-    {
-        if (module.order[i] > highest)
-            highest = module.order[i];
-    }
-    if (highest + 1 >= protracker::kMaxPatterns)
-        return;
-
-    const int target = highest + 1;
-    memcpy(module.pattern(target), module.pattern(currentPattern()), protracker::kPatternBytes);
-    module.order[editPos] = (uint8_t)target;
-    dirty = true;
-}
-
 // ---------------------------------------------------------------------------------------------
 // held button parameters
 // ---------------------------------------------------------------------------------------------
@@ -1328,6 +1310,22 @@ void cProTrackerMode::applyPopup()
 // ---------------------------------------------------------------------------------------------
 // files
 // ---------------------------------------------------------------------------------------------
+// Clears the patterns and the order list, the samples stay.
+void cProTrackerMode::clearSong()
+{
+    stream->pause();
+    replayer.stop();
+    module.clearSong();
+    stream->resume();
+
+    editPos = 0;
+    trackerPattern.actualStep = 0;
+    trackerPattern.actualTrack = 0;
+    trackerPattern.selectState = 1;
+    dirty = true;
+    s_undoMeta[0].count = s_undoMeta[1].count = 0;
+}
+
 void cProTrackerMode::newSong()
 {
     stream->pause();
@@ -1392,7 +1390,7 @@ bool cProTrackerMode::loadFile(const char* path, const char** error)
 
 // Renders the whole song (until it reaches its end and starts over, at most 15 minutes) to a 16 bit
 // stereo WAV file with the replayer, faster than real time. outPath gets the file that was written.
-bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** error)
+bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** error, void (*progress)(int percent))
 {
     FileSystem* fs = platform->getFileSystem();
 
@@ -1468,9 +1466,22 @@ bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** erro
     static int16_t out[kBlock * 2];
 
     uint32_t frames = 0;
+    int shown = -1;
+    const int length = module.songLength > 0 ? module.songLength : 1;
     replayer.play(0, 0);
     while (good && replayer.isPlaying() && replayer.songLoops() == 0 && frames < kMaxFrames)
     {
+        if (progress != nullptr)
+        {
+            int percent = (replayer.position() * kRows + replayer.row()) * 100 / (length * kRows);
+            percent = percent > 99 ? 99 : percent;
+            if (percent != shown)
+            {
+                shown = percent;
+                progress(percent);
+            }
+        }
+
         replayer.render(left, right, kBlock);
         for (uint32_t i = 0; i < kBlock; i++)
         {
@@ -1999,10 +2010,6 @@ static void functActionButton(uint8_t button, uint8_t state)
                 if (PT->editMode)
                     PT->redo();
                 break;
-            case 3:
-                if (PT->editMode)
-                    PT->duplicatePattern();
-                break;
             default: break;
         }
     }
@@ -2068,7 +2075,11 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
         {
             PT->sample = pad + 1;
             PT->previewPeriod(PT->sample, protracker::kPeriodTable[24]);
-            if (PT->editMode)
+            if (PT->editMode && PT->isPlaying())
+            {
+                PT->recordNote(24); // recording: the sample and its C-3 note
+            }
+            else if (PT->editMode)
             {
                 PT->writeInstrument(PT->sample);
                 PT->moveCursorByStep();

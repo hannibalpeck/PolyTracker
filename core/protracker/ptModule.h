@@ -98,6 +98,7 @@ class Module
 
     // A fresh empty song: one empty pattern, no samples.
     void clear();
+    void clearSong(); // patterns, order list, title and tempo; the samples stay
 
     Note* pattern(int index) { return (Note*)(pool_ + (size_t)index * kPatternBytes); }
     const Note* pattern(int index) const

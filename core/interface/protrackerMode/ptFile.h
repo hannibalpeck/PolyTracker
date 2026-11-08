@@ -34,6 +34,7 @@ class cProTrackerFile : public ModuleBase
     {
         kNothing,
         kNewSong,
+        kClearSong,
         kOpenBrowser,
         kLoadFile,
         kOverwrite,
@@ -68,6 +69,7 @@ class cProTrackerFile : public ModuleBase
     void moveList(int delta);
     void goBackToMain();
     void actNew();
+    void actClearSong();
     void actOpen();
     void actSave();
     void actSaveAs();

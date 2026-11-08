@@ -70,7 +70,6 @@ class cProTrackerMode : public ModuleBase
     void pasteSelection();
     void copyPattern();
     void pastePattern();
-    void duplicatePattern();
     void copyTrack();
     void pasteTrack();
     void storeUndo();
@@ -104,8 +103,9 @@ class cProTrackerMode : public ModuleBase
     // ---- files
     bool loadFile(const char* path, const char** error); // error: text when it returns false
     bool saveFile(const char* path, const char** error);
-    bool exportWav(char* outPath, size_t outSize, const char** error);
+    bool exportWav(char* outPath, size_t outSize, const char** error, void (*progress)(int percent) = nullptr);
     void newSong();
+    void clearSong();
 
     // ---- screen
     void bindButtons();
