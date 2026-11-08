@@ -59,6 +59,10 @@ class mtEffect
     void switchToThisEffect(mtEffect* lastEffect);
     void setBaseSampleLength(uint32_t val);
     LoadingResult startLoad(uint8_t instr_idx);
+    // ProTracker: the song slot is 8 bit mono, at most 65534 bytes. It is copied (as 16 bit) into
+    // the edit buffer at once, and storeToMemory writes the current result back as 8 bit.
+    void loadFromMemory(const int8_t* src, uint32_t length);
+    uint32_t storeToMemory(int8_t* dst, uint32_t maxLength);
     bool getLoadingState();
     uint8_t getLoadingProgress();
     bool isDataLoaded();

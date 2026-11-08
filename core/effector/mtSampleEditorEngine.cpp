@@ -14,9 +14,6 @@
 #include "mtEffectNormalizer.h"
 #include "mtEffectOverdrive.h"
 #include "mtEffectReverse.h"
-#include "mtEffectTimestretch.h"
-#include "mtEffectWavetableSmoother.h"
-#include "mtEffectModular.h"
 
 mtEffect* sampleEditorEffect[editorEffectMax] = { &sampleEditorNormalizer,
                                                   &sampleEditorCut,
@@ -30,12 +27,8 @@ mtEffect* sampleEditorEffect[editorEffectMax] = { &sampleEditorNormalizer,
                                                   &sampleEditorEQ,
                                                   &sampleEditorLimiter,
                                                   &sampleEditorCompresor,
-                                                  &sampleEditorWavetableSmoother,
-                                                  &sampleEditorTimestretchBeat,
-                                                  &sampleEditorTimestretchNote,
                                                   &sampleEditorFadeIn,
-                                                  &sampleEditorFadeOut,
-                                                  &sampleEditorModular };
+                                                  &sampleEditorFadeOut };
 
 //******************************DELAY
 
@@ -83,30 +76,7 @@ const char* const afterValueText[2] = { nullptr, nullptr };
 const char displayType[2] = { 'f', 'd' };
 }
 
-namespace timestretchBeatParams
-{
-const char* const labelText[4] = { (const char* const)"Tempo",
-                                   (const char* const)"Steps",
-                                   (const char* const)"Micro-step",
-                                   (const char* const)"Granule" };
-float upConstrain[4] = { 800.0f, 64.0f, 1.0f, 10.0f };
-float downConstrain[4] = { 40.0f, 1.0f, 0.0f, 1.0f };
-float changeStep[4] = { 1.0f, 1.0f, 0.01f, 1.0f };
-float displayMult[4] = { 1.0f, 1.0f, 1.0f, 0.25f };
-const char* const afterValueText[4] = { " BPM", nullptr, nullptr, nullptr };
-const char displayType[4] = { 'd', 'd', 'f', 'f' };
-}
 
-namespace timestretchNoteParams
-{
-const char* const labelText[2] = { (const char* const)"Length", (const char* const)"Granule" };
-float upConstrain[2] = { 8.0f, 1000.0f };
-float downConstrain[2] = { 0.1f, 10.0f };
-float changeStep[2] = { 0.01f, 1.0f };
-float displayMult[2] = { 1.0f, 1.0f };
-const char* const afterValueText[2] = { " s", " ms" };
-const char displayType[2] = { 'f', 'd' };
-}
 
 namespace chorusParams
 {
@@ -194,19 +164,6 @@ const char* const afterValueText[4] = { (const char* const)" dB",
 const char displayType[4] = { 'd', 'f', 'f', 'd' };
 }
 
-namespace wavetableSmootherParams
-{
-const char* const labelText[2] = {
-    (const char* const)"Window Num",
-    (const char* const)"Window Len",
-};
-float upConstrain[2] = { 256.0f, 2048.0f };
-float downConstrain[2] = { 1.0f, 1.0f };
-float changeStep[2] = { 1.0f, 1.0f };
-float displayMult[2] = { 1.0f, 1.0f };
-const char* const afterValueText[2] = { nullptr, nullptr };
-const char displayType[2] = { 'd', 'd' };
-}
 
 namespace normalizerParams
 {

@@ -169,6 +169,25 @@ void Replayer::mix(int16_t* left, int16_t* right, uint32_t frames)
     }
 }
 
+void Replayer::previewStartData(const int8_t* data, uint32_t length, uint16_t period, uint8_t volume)
+{
+    previewActive_ = false;
+    if (data == nullptr || length < 2 || period == 0)
+        return;
+
+    previewPtr_ = data;
+    previewLen_ = length;
+    previewVolume_ = volume > 64 ? 64 : volume;
+    previewLoopStart_ = 0;
+    previewLoopEnd_ = 0;
+
+    uint32_t real = period < 113 ? 113 : period;
+    previewDelta_ = clockOverRateQ24_ / real;
+    previewPos_ = 0;
+    previewFrac_ = 0;
+    previewActive_ = true;
+}
+
 void Replayer::previewStart(int sampleIndex, uint16_t period)
 {
     previewActive_ = false;

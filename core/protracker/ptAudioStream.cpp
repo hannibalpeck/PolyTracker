@@ -35,6 +35,18 @@ void ProTrackerStream::requestPreviewStop()
     command_ = kPreviewStop;
 }
 
+void ProTrackerStream::requestPreviewData(const int8_t* data,
+                                          uint32_t length,
+                                          uint16_t period,
+                                          uint8_t volume)
+{
+    cmdPtr_ = data;
+    cmdArgA_ = (int)length;
+    cmdArgB_ = period;
+    cmdArgC_ = volume;
+    command_ = kPreviewData;
+}
+
 void ProTrackerStream::pause()
 {
     pauseRequested_ = true;
@@ -79,6 +91,9 @@ void ProTrackerStream::update(void)
                 break;
             case kPreview: replayer_->previewStart(cmdArgA_, (uint16_t)cmdArgB_); break;
             case kPreviewStop: replayer_->previewStop(); break;
+            case kPreviewData:
+                replayer_->previewStartData(cmdPtr_, (uint32_t)cmdArgA_, (uint16_t)cmdArgB_, (uint8_t)cmdArgC_);
+                break;
             default: break;
         }
     }

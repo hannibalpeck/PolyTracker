@@ -40,6 +40,9 @@ class Replayer
     // song is not playing; starting playback ends it. A looping sample sustains until
     // previewStop(), others play to their end. `period` is a ProTracker period value.
     void previewStart(int sampleIndex, uint16_t period);
+    // Audition 8 bit data that isn't a song sample (the sample editor's result). The data must stay
+    // valid while it plays.
+    void previewStartData(const int8_t* data, uint32_t length, uint16_t period, uint8_t volume);
     void previewStop() { previewActive_ = false; }
     bool isPreviewing() const { return previewActive_; }
 

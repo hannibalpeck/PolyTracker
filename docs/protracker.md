@@ -40,6 +40,12 @@ The **File** button opens a screen with the layout of the stock Polyend file scr
 
 The **Sample Load** screen (stock layout: file browser on the left, instrument list on the right) loads WAV files straight into the 31 sample slots of the song. Add and Add Next load the selected files from the selected slot on; Import loads the selected file into the selected slot. Samples are converted to 8-bit mono (channels averaged, not resampled) and cut at 65534 bytes. Delete, Delete Unused (samples no pattern uses), Copy/Paste (Shift+Copy) and Rename work on the slots.
 
+## Sample editor
+
+The **Sample Edit** button opens the stock Polyend sample editor on the current sample (the one selected on the pattern screen). Start, End and Zoom select the part to work on, the list on the right holds the effects: Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In and Fade Out. (WT Smoother, Timestretch and Modular were left out.) Effects with parameters open a parameter screen with Preview (auditions the result at C-3) and Apply; Crop, Reverse and the fades apply straight away. Undo takes back the last Apply (one level). The pads play the selection at their pitch.
+
+The effects work on a 16-bit copy of the sample; Apply converts the result back to 8 bit and writes it into the song's sample slot, so every Apply or Undo requantises. Effect time constants (delay time, chorus rate and so on) assume 44.1 kHz, not the 16.5 kHz a sample plays at for C-3. A result longer than 65534 bytes is refused.
+
 ## Files
 
 Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing name becomes `name-N.mod`. Samples are 8-bit, at most 65534 bytes each, 31 per song; a module holds up to 128 orders of 64 rows.
@@ -55,7 +61,6 @@ Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing 
 ## Known limits
 
 * Not tested on hardware yet.
-* Sample import/recording into the 31 slots is not wired up.
 * Some `#ifdef` code for other devices is still in the tree.
 
 ## Settings, restart and credits

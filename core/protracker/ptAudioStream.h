@@ -32,6 +32,10 @@ class ProTrackerStream : public AudioStream
     // audition a sample (0 based index) at a period, see Replayer::previewStart
     void requestPreview(int sampleIndex, uint16_t period);
     void requestPreviewStop();
+    // audition 8 bit data outside the song (sample editor), see Replayer::previewStartData
+    void requestPreviewData(const int8_t* data, uint32_t length, uint16_t period, uint8_t volume);
+    // how far the preview has played, 0..1000 (0 when it isn't playing)
+    bool isPreviewing() const { return replayer_ != nullptr && replayer_->isPreviewing(); }
 
     // Ask the audio update to leave the module alone, and wait (briefly) until it has. Needed
     // before replacing the module's contents (load / new). Call resume() when done.
@@ -47,6 +51,7 @@ class ProTrackerStream : public AudioStream
         kStop,
         kPreview,
         kPreviewStop,
+        kPreviewData,
     };
 
     virtual void update(void) override;
@@ -58,6 +63,8 @@ class ProTrackerStream : public AudioStream
 
     volatile int cmdArgA_ = 0;
     volatile int cmdArgB_ = 0;
+    volatile int cmdArgC_ = 0;
+    const int8_t* volatile cmdPtr_ = nullptr;
     volatile Command command_ = kNone;
 };
 

@@ -16,12 +16,8 @@ enum enSampleEditorEffect
     editorEffectEQ,
     editorEffectLimiter,
     editorEffectCompresor,
-    editorEffectWavetableSmoother,
-    editorEffectTimestretchBeat,
-    editorEffectTimestretchNote,
     editorEffectFadeIn,
     editorEffectFadeOut,
-    editorEffectModular,
 
     //**********************//
     editorEffectMax
@@ -72,27 +68,7 @@ extern const char* const afterValueText[2];
 extern const char displayType[2];
 }
 
-namespace timestretchBeatParams
-{
-extern const char* const labelText[4];
-extern float upConstrain[4];
-extern float downConstrain[4];
-extern float changeStep[4];
-extern float displayMult[4];
-extern const char* const afterValueText[4];
-extern const char displayType[4];
-}
 
-namespace timestretchNoteParams
-{
-extern const char* const labelText[2];
-extern float upConstrain[2];
-extern float downConstrain[2];
-extern float changeStep[2];
-extern float displayMult[2];
-extern const char* const afterValueText[2];
-extern const char displayType[2];
-}
 
 namespace chorusParams
 {
@@ -149,16 +125,6 @@ extern const char* const afterValueText[4];
 extern const char displayType[4];
 }
 
-namespace wavetableSmootherParams
-{
-extern const char* const labelText[2];
-extern float upConstrain[2];
-extern float downConstrain[2];
-extern float changeStep[2];
-extern float displayMult[2];
-extern const char* const afterValueText[2];
-extern const char displayType[2];
-}
 
 namespace normalizerParams
 {

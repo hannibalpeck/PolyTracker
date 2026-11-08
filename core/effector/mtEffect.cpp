@@ -41,6 +41,50 @@ void mtEffect::setBaseSampleLength(uint32_t val)
         confirmed[idx].selection.length = val;
     }
 }
+void mtEffect::loadFromMemory(const int8_t* src, uint32_t length)
+{
+    for (uint32_t idx = 0; idx < kChannels; idx++)
+    {
+        int16_t* confirmedBuffer = externalRamEffectsBuff + idx * EDIT_BUFF_SIZE;
+        int16_t* processedBuffer =
+          externalRamEffectsBuff + idx * EDIT_BUFF_SIZE + EDIT_BUFF_SIZE / 2;
+
+        for (uint32_t i = 0; i < length; i++)
+            confirmedBuffer[i] = (int16_t)(src[i] * 256);
+
+        confirmed[idx].area = { confirmedBuffer, length };
+        confirmed[idx].selection = { confirmedBuffer, length };
+        processed[idx].area = { processedBuffer, 0 };
+        processed[idx].selection = { processedBuffer, 0 };
+    }
+
+    operationType = OperationType::operationTypeIdle;
+    processing.isLoadedData = true;
+    processing.isApplyOnEnd = false;
+    processing.processParams.state = false;
+    loadingParams.preloadPoints.a = 0;
+    loadingParams.preloadPoints.b = 65535;
+    loadingParams.processingParams.state = false;
+    loadingParams.isAnyOtherProcessingOnFinish = false;
+    applyParams.isProcessedData = false;
+    undoParams.isEnable = false;
+}
+
+uint32_t mtEffect::storeToMemory(int8_t* dst, uint32_t maxLength)
+{
+    const int16_t* src = confirmed[0].area.addr;
+    uint32_t length = confirmed[0].area.length;
+    if (length > maxLength)
+        length = maxLength;
+
+    for (uint32_t i = 0; i < length; i++)
+    {
+        int32_t v = (src[i] + 128) >> 8;
+        dst[i] = (int8_t)(v > 127 ? 127 : (v < -128 ? -128 : v));
+    }
+    return length;
+}
+
 mtEffect::LoadingResult mtEffect::startLoad(uint8_t instr_idx)
 {
     if (mtProject.instrument[instr_idx].sample.length > EDIT_BUFF_SIZE / 2)
