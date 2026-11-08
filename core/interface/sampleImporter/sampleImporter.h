@@ -2,6 +2,7 @@
 #define INTERFACE_SAMPLEIMPORTER_H_
 
 #include "core/modulesBase.h"
+#include "ptModule.h"
 #include "mtKeyboardManager.h"
 #include "mtStructs.h"
 
@@ -143,7 +144,7 @@ class cSampleImporter : public ModuleBase
     void listInstrumentSlots();
     uint8_t selectedSlot = 0;
 
-    uint8_t instrUseMap[kSampleInstrumentsCount + 1];
+    uint8_t instrUseMap[protracker::kSampleCount + 1];
     bool stepDelete;
     void initDeleteUnusedInstruments();
     bool stepDeleteUnusedInstruments();

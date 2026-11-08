@@ -91,19 +91,6 @@ void cProTrackerMode::initDisplayControls()
     grid.value = 0; // 4 tracks with note, instrument and effect
     patternControl = display.createControl<cTracker>(&grid);
 
-    // the file list (shown instead of the grid while browsing)
-    strControlProperties box;
-    box.colors = display.getTheme().configItemEditorTextLabelColors;
-    box.text = nullptr;
-    box.data = nullptr;
-    box.style = controlStyleFont2; // hidden until needed
-    box.value = 4;
-    box.x = 20;
-    box.y = 58;
-    box.w = 760;
-    box.h = (kVisibleFileRows + 1) * 26;
-    listBox = display.createControl<cTextBox>(&box);
-
     // one line of text under the title bar for messages and the file list header
     strControlProperties info;
     info.colors = display.getTheme().activeLabelsColors;

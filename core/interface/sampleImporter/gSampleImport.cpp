@@ -1,3 +1,4 @@
+#include "protrackerMode/ptSlots.h"
 #include "ampLogarythmicValues.h"
 #include "core/interfacePopups.h"
 #include "math.h"
@@ -247,7 +248,7 @@ void cSampleImporter::showFilesTree()
 void cSampleImporter::showInstrumentsList()
 {
     instrumentList.start = selectedSlot;
-    instrumentList.length = kSampleInstrumentsCount;
+    instrumentList.length = protracker::kSampleCount;
     instrumentList.linesCount = 13;
     instrumentList.data = interfaceGlobals.ptrIntrumentsNames;
 
@@ -450,10 +451,10 @@ void cSampleImporter::showActualInstrument()
 
     uint8_t i = mtProject.values.lastUsedInstrument;
 
-    if (i < kSampleInstrumentsCount)
+    if (i < protracker::kSampleCount)
     {
         sprintf(actualInstrName, "%d.", i + 1);
-        strncat(actualInstrName, mtProject.instrument[i].sample.file_name, 25);
+        strncat(actualInstrName, ptName(i), 25);
     }
     else
     {
@@ -528,7 +529,7 @@ void cSampleImporter::previewColorControl()
     }
     else
     {
-        if (mtProject.instrument[selectedSlot].isActive != 1)
+        if (!ptActive(selectedSlot))
         {
             colors = display.getTheme().inactiveButtonLabelsColors;
         }
@@ -544,7 +545,7 @@ void cSampleImporter::renameColorControl()
 
     if (selectedPlace == 1)
     {
-        if (mtProject.instrument[selectedSlot].isActive == 1)
+        if (ptActive(selectedSlot))
         {
             colors = display.getTheme().activeButtonLabelsColors;
         }
@@ -582,7 +583,7 @@ void cSampleImporter::deleteColorControl()
         }
         else
         {
-            if (mtProject.instrument[selectedSlot].isActive != 1)
+            if (!ptActive(selectedSlot))
             {
                 colors = display.getTheme().inactiveButtonLabelsColors;
             }
@@ -994,31 +995,14 @@ void cSampleImporter::showImportApplyButtonStyle()
 
 void cSampleImporter::updateMemoryButtonLabel()
 {
-    if (selectedPlace == 1 && selectedSlot < kSampleInstrumentsCount &&
-        mtProject.instrument[selectedSlot].isActive)
+    if (selectedPlace == 1 && selectedSlot < protracker::kSampleCount &&
+        ptActive(selectedSlot))
     {
-        bool streamed = mtProject.sampleMemory[selectedSlot].isStreamed;
-        bool canStream = (mtProject.instrument[selectedSlot].sample.length > kStreamPreCacheFrames) &&
-                         isPlayModeStreamable(mtProject.instrument[selectedSlot].playMode);
-        display.setControlText(label[7], streamed ? "Mode: [S]" : "Mode: RAM");
-        display.setControlColors(
-          label[7],
-          (streamed || canStream) ? display.getTheme().activeButtonLabelsColors
-                                  : display.getTheme().inactiveButtonLabelsColors);
+        display.setControlText(label[7], "");
     }
     else
     {
-        const char* modeText = "Mem: RAM";
-        if (sampleLoadMode == enSampleLoadMode::kAuto)
-        {
-            modeText = "Mem: Auto";
-        }
-        else if (sampleLoadMode == enSampleLoadMode::kStream)
-        {
-            modeText = "Mem: [S]";
-        }
-        display.setControlText(label[7], modeText);
-        display.setControlColors(label[7], display.getTheme().activeButtonLabelsColors);
+        display.setControlText(label[7], "");
     }
     display.refreshControl(label[7]);
 }

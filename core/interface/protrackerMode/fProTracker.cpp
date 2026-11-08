@@ -46,14 +46,10 @@ static int s_clipRows = 0;
 __NOINIT(EXTERNAL_RAM) static uint8_t s_patternClip[protracker::kPatternBytes];
 static bool s_hasPatternClip = false;
 
-__NOINIT(EXTERNAL_RAM) static char s_list[(cProTrackerMode::kVisibleFileRows + 1) *
-                                          (cProTrackerMode::kFileNameLen + 8)];
-__NOINIT(EXTERNAL_RAM) static char s_fileNames[cProTrackerMode::kMaxFiles * cProTrackerMode::kFileNameLen];
 static char s_info[160];
 static char s_title[48];
 static char s_right[48];
 static char s_text2[8][16];
-static const char* kSongFolder = "ProTracker";
 
 constexpr uint32_t kNotePopupDelayMs = 500;
 constexpr uint32_t kInstrPopupDelayMs = 180;
@@ -76,7 +72,6 @@ static void functRight();
 static void functCopy();
 static void functDelete();
 static void functInsert();
-static void functFile();
 static void functEnter();
 static void functEncoder(int16_t value);
 static void functActionButton(uint8_t button, uint8_t state);
@@ -301,7 +296,6 @@ void cProTrackerMode::stop()
     mtPopups.hideStepPopups();
     popupActive = false;
 
-    display.setControlHide(listBox);
     display.setControlHide(infoLabel);
     display.setControlHide(frameControl);
     padsBacklight.clearGlobalPads(1, 1, 1);
@@ -371,7 +365,6 @@ void cProTrackerMode::showDefaultScreen()
 {
     titleBar->show(true);
 
-    display.setControlHide(listBox);
     display.setControlHide(infoLabel);
     display.setControlShow(patternControl);
     display.refreshControl(patternControl);
@@ -417,35 +410,6 @@ void cProTrackerMode::refreshEditState()
 
 void cProTrackerMode::refreshPattern()
 {
-    if (mode == kModeFileList)
-    {
-        int first = fileSelected - kVisibleFileRows / 2;
-        if (first > fileCount - kVisibleFileRows)
-            first = fileCount - kVisibleFileRows;
-        if (first < 0)
-            first = 0;
-
-        int n = 0;
-        s_list[0] = '\0';
-        if (fileCount == 0)
-            n += snprintf(s_list, sizeof(s_list), "No .mod files found in /%s on the SD card", kSongFolder);
-
-        for (int i = first; i < fileCount && i < first + kVisibleFileRows; i++)
-        {
-            n += snprintf(s_list + n,
-                          sizeof(s_list) - (size_t)n,
-                          "%s %s\n",
-                          i == fileSelected ? ">" : " ",
-                          fileList[i]);
-            if (n >= (int)sizeof(s_list) - 4)
-                break;
-        }
-
-        display.setControlText(listBox, s_list);
-        display.refreshControl(listBox);
-        return;
-    }
-
     trackerPattern.patternLength = kRows;
     trackerPattern.selectedParam = editParam > kParamFx1 ? kParamFx1 : editParam;
     trackerPattern.middleVisibleStep = trackerPattern.actualStep;
@@ -512,7 +476,6 @@ void cProTrackerMode::refreshLabels()
                                            "Preview", "Undo",     "Redo",      "More" };
     static const char* const kPage1[8] = { "", "", "Duplicate", "", "", "Copy", "Paste", "More" };
     static const char* const kPage1b[8] = { "", "", "Pattern", "", "", "Pattern", "Pattern", "" };
-    static const char* const kFiles[8] = { "Cancel", "Save", "New", "", "", "", "", "Load" };
 
     if (shiftMuteView)
         return;
@@ -527,13 +490,7 @@ void cProTrackerMode::refreshLabels()
         strLabelData* data = &labelDataGreen;
         int value = 1;
 
-        if (mode == kModeFileList)
-        {
-            text = kFiles[i];
-            data = &labelDataGreen;
-            value = 0;
-        }
-        else if (page == 0)
+        if (page == 0)
         {
             text = kPage0[i];
             if (i < 3)
@@ -671,7 +628,7 @@ void cProTrackerMode::bindButtons()
     ip->setButtonObj(interfaceButtonDelete, buttonPress, functDelete);
     ip->setButtonObj(interfaceButtonInsert, buttonPress, functInsert);
     ip->setButtonObj(interfaceButtonMiniMiddle, buttonPress, functEnter);
-    ip->setButtonObj(interfaceButtonFile, buttonPress, functFile);
+    ip->setButtonObj(interfaceButtonFile, buttonPress, functSwitchModule);
 
     ip->setPotObj(interfacePot0, functEncoder);
     ip->setPadsGlobal(functPads);
@@ -956,7 +913,9 @@ void cProTrackerMode::clearSelection()
         for (int r = r0; r <= r1; r++)
         {
             protracker::Note* n = cell(t, r);
-            if (editParam == kParamNote)
+            if (trackerPattern.selectState == 2)
+                n->set(0, 0, 0, 0); // a selected block is cleared completely
+            else if (editParam == kParamNote)
                 n->set(0, 0, n->command(), n->param());
             else if (editParam == kParamInstr)
                 n->set(0, n->period(), n->command(), n->param());
@@ -1018,14 +977,22 @@ void cProTrackerMode::pasteSelection()
         return;
 
     storeUndo();
-    const int t0 = trackerPattern.actualTrack;
-    const int r0 = trackerPattern.actualStep;
+    int t0 = trackerPattern.actualTrack;
+    int r0 = trackerPattern.actualStep;
+    if (trackerPattern.selectState == 2)
+    {
+        int t1, r1;
+        selectionRect(t0, r0, t1, r1); // paste at the top left of a selected block
+    }
     for (int t = 0; t < s_clipTracks && t0 + t < kTracks; t++)
     {
         for (int r = 0; r < s_clipRows && r0 + r < kRows; r++)
             *cell(t0 + t, r0 + r) = s_clip[t * kRows + r];
     }
-    moveStep(s_clipRows);
+    if (trackerPattern.selectState == 2)
+        endSelection();
+    else
+        moveStep(s_clipRows);
 }
 
 void cProTrackerMode::copyPattern()
@@ -1234,64 +1201,6 @@ void cProTrackerMode::applyPopup()
 // ---------------------------------------------------------------------------------------------
 // files
 // ---------------------------------------------------------------------------------------------
-void cProTrackerMode::showFileList()
-{
-    FileSystem* fs = platform->getFileSystem();
-    if (!fs->isSdCardInserted())
-    {
-        showMessage("NO SD CARD");
-        return;
-    }
-
-    fs->mkdir(0, kSongFolder);
-
-    fileCount = kMaxFiles;
-    fs->listDirContents(kSongFolder,
-                        FileSystem::kFiles,
-                        isModuleFileName,
-                        s_fileNames,
-                        sizeof(s_fileNames),
-                        kFileNameLen - 1,
-                        fileCount,
-                        fileList);
-    fileSelected = 0;
-
-    mode = kModeFileList;
-    selectedPlace = -1;
-    activateLabelsBorder();
-
-    display.setControlHide(patternControl);
-    display.setControlShow(listBox);
-
-    refreshLabels();
-    refreshPattern();
-    snprintf(s_info, sizeof(s_info), "SONGS  /%s  (%d files)", kSongFolder, fileCount);
-    display.setControlText(infoLabel, s_info);
-    display.setControlShow(infoLabel);
-    display.refreshControl(infoLabel);
-    display.synchronizeRefresh();
-}
-
-void cProTrackerMode::hideFileList()
-{
-    mode = kModeEdit;
-    bindButtons();
-    showDefaultScreen();
-}
-
-void cProTrackerMode::moveFileSelection(int delta)
-{
-    if (fileCount == 0)
-        return;
-
-    fileSelected += delta;
-    if (fileSelected < 0)
-        fileSelected = 0;
-    if (fileSelected >= fileCount)
-        fileSelected = fileCount - 1;
-    refreshPattern();
-}
-
 void cProTrackerMode::newSong()
 {
     stream->pause();
@@ -1302,30 +1211,22 @@ void cProTrackerMode::newSong()
     editPos = 0;
     trackerPattern.actualStep = 0;
     trackerPattern.actualTrack = 0;
+    trackerPattern.selectState = 1;
     sample = 1;
     dirty = false;
+    filePath[0] = '\0';
     s_undoMeta[0].count = s_undoMeta[1].count = 0;
 }
 
-void cProTrackerMode::loadSelectedFile()
+bool cProTrackerMode::loadFile(const char* path, const char** error)
 {
-    if (fileCount == 0)
-    {
-        hideFileList();
-        return;
-    }
-
     FileSystem* fs = platform->getFileSystem();
-
-    char path[96];
-    snprintf(path, sizeof(path), "%s/%s", kSongFolder, fileList[fileSelected]);
 
     auto [ok, handle] = fs->openFile(path, FileSystem::kRead);
     if (!ok)
     {
-        hideFileList();
-        showMessage("CANNOT OPEN FILE");
-        return;
+        *error = "Cannot open file";
+        return false;
     }
 
     FsContext ctx = { fs, handle };
@@ -1346,54 +1247,31 @@ void cProTrackerMode::loadSelectedFile()
     editPos = 0;
     trackerPattern.actualStep = 0;
     trackerPattern.actualTrack = 0;
+    trackerPattern.selectState = 1;
     sample = 1;
     dirty = false;
     s_undoMeta[0].count = s_undoMeta[1].count = 0;
 
-    hideFileList();
     if (result != protracker::Result::kOk)
-        showMessage(protracker::resultText(result));
+    {
+        filePath[0] = '\0';
+        *error = protracker::resultText(result);
+        return false;
+    }
+
+    snprintf(filePath, sizeof(filePath), "%s", path);
+    return true;
 }
 
-void cProTrackerMode::saveSong()
+bool cProTrackerMode::saveFile(const char* path, const char** error)
 {
     FileSystem* fs = platform->getFileSystem();
-    if (!fs->isSdCardInserted())
-    {
-        showMessage("NO SD CARD");
-        return;
-    }
-
-    fs->mkdir(0, kSongFolder);
-
-    // lower case file name from the song title, never overwrite an existing file
-    char base[24];
-    int n = 0;
-    for (int i = 0; i < 20 && module.title[i] != '\0' && n < (int)sizeof(base) - 1; i++)
-    {
-        char c = module.title[i];
-        if (c >= 'A' && c <= 'Z')
-            c = (char)(c - 'A' + 'a');
-        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
-        base[n++] = ok ? c : '_';
-    }
-    if (n == 0)
-    {
-        snprintf(base, sizeof(base), "untitled");
-        n = 8;
-    }
-    base[n] = '\0';
-
-    char path[96];
-    snprintf(path, sizeof(path), "%s/%s.mod", kSongFolder, base);
-    for (int i = 1; i <= 999 && fs->exists(path); i++)
-        snprintf(path, sizeof(path), "%s/%s-%d.mod", kSongFolder, base, i);
 
     auto [ok, handle] = fs->openFile(path, FileSystem::kWriteCreateNew);
     if (!ok)
     {
-        showMessage("CANNOT CREATE FILE");
-        return;
+        *error = "Cannot create file";
+        return false;
     }
 
     FsContext ctx = { fs, handle };
@@ -1404,17 +1282,15 @@ void cProTrackerMode::saveSong()
     const protracker::Result result = module.save(io);
     fs->closeFile(handle);
 
-    if (result == protracker::Result::kOk)
+    if (result != protracker::Result::kOk)
     {
-        dirty = false;
-        char message[96];
-        snprintf(message, sizeof(message), "SAVED %s", path);
-        showMessage(message);
+        *error = protracker::resultText(result);
+        return false;
     }
-    else
-    {
-        showMessage(protracker::resultText(result));
-    }
+
+    snprintf(filePath, sizeof(filePath), "%s", path);
+    dirty = false;
+    return true;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1425,21 +1301,11 @@ static void functSwitchModule(uint8_t button)
     PT->eventFunct(eventSwitchModule, PT, &button, 0);
 }
 
-static void functFile()
-{
-    if (PT->mode == cProTrackerMode::kModeEdit && !PT->popupActive)
-        PT->showFileList();
-}
-
 // Pattern held: arrows and the encoder pick the pattern of the current position
 static void functPattern(uint8_t state)
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
-    {
-        if (state == buttonPress)
-            PT->hideFileList();
+    if (state == buttonHold)
         return;
-    }
 
     PT->patternHeld = (state == buttonPress);
     PT->refreshEditState();
@@ -1468,6 +1334,9 @@ static void functNote(uint8_t state)
     if (PT->mode != cProTrackerMode::kModeEdit)
         return;
 
+    if (state == buttonHold)
+        return;
+
     if (state == buttonPress)
     {
         PT->editParam = cProTrackerMode::kParamNote;
@@ -1485,6 +1354,9 @@ static void functNote(uint8_t state)
 static void functInstr(uint8_t state)
 {
     if (PT->mode != cProTrackerMode::kModeEdit)
+        return;
+
+    if (state == buttonHold)
         return;
 
     if (state == buttonPress)
@@ -1513,7 +1385,7 @@ static void functFx(uint8_t state)
 
 static void functShift(uint8_t state)
 {
-    if (PT->mode != cProTrackerMode::kModeEdit || PT->popupActive)
+    if (PT->mode != cProTrackerMode::kModeEdit || PT->popupActive || state == buttonHold)
         return;
 
     if (state == buttonPress)
@@ -1522,7 +1394,8 @@ static void functShift(uint8_t state)
     }
     else
     {
-        PT->endSelection();
+        // the selection stays after Shift is released, so that Copy and Delete can use it
+        PT->isSelectingNow = false;
         PT->showMuteButtons(false);
         PT->refreshPattern();
     }
@@ -1545,12 +1418,17 @@ static void moveCursor(int dTrack, int dStep)
         return;
 
     const bool shift = PT->isShiftPressed();
-    if (shift && !PT->isSelectingNow)
-        PT->startSelection();
-    else if (!shift && PT->isSelectingNow)
-        PT->endSelection();
-    else if (!shift && PT->trackerPattern.selectState == 2)
-        PT->endSelection();
+    if (shift)
+    {
+        // extend the selection (an existing one is continued)
+        if (PT->trackerPattern.selectState != 2)
+            PT->startSelection();
+        PT->isSelectingNow = true;
+    }
+    else if (PT->trackerPattern.selectState == 2)
+    {
+        PT->endSelection(); // moving without Shift drops the selection
+    }
 
     if (dTrack != 0)
         PT->moveTrack(dTrack);
@@ -1563,14 +1441,60 @@ static void moveCursor(int dTrack, int dStep)
     PT->refreshPattern();
 }
 
-static void functUp()
+// Shift+Up selects the whole track, Shift+Up again the whole pattern. Shift+Down goes back.
+static void growSelection(bool up)
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
+    strTrackerPattern& t = PT->trackerPattern;
+
+    int t0 = 0, r0 = 0, t1 = 0, r1 = 0;
+    const bool range = t.selectState == 2;
+    if (range)
+        PT->selectionRect(t0, r0, t1, r1);
+
+    const bool fullTrack = range && r0 == 0 && r1 == kRows - 1 && t0 == t1;
+    const bool fullPattern = range && r0 == 0 && r1 == kRows - 1 && t0 == 0 && t1 == kTracks - 1;
+
+    if (up)
     {
-        PT->moveFileSelection(-1);
-        return;
+        if (fullPattern)
+            return;
+
+        t.selectState = 2;
+        t.selectColumn = 0;
+        t.selectStartStep = 0;
+        t.selectEndStep = kRows - 1;
+        if (fullTrack)
+        {
+            t.selectStartTrack = 0;
+            t.selectEndTrack = kTracks - 1;
+        }
+        else
+        {
+            t.selectStartTrack = t.selectEndTrack = t.actualTrack;
+        }
+    }
+    else
+    {
+        if (fullPattern)
+        {
+            t.selectStartTrack = t.selectEndTrack = t.actualTrack;
+        }
+        else if (fullTrack)
+        {
+            PT->endSelection();
+        }
+        else
+        {
+            return;
+        }
     }
 
+    PT->isSelectingNow = true;
+    PT->refreshPattern();
+}
+
+static void functUp()
+{
     if (PT->selectedPlace >= 0 || PT->patternHeld)
     {
         if (PT->patternHeld || PT->selectedPlace == 0)
@@ -1583,17 +1507,17 @@ static void functUp()
         return;
     }
 
+    if (PT->isShiftPressed())
+    {
+        growSelection(true);
+        return;
+    }
+
     moveCursor(0, -1);
 }
 
 static void functDown()
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
-    {
-        PT->moveFileSelection(1);
-        return;
-    }
-
     if (PT->selectedPlace >= 0 || PT->patternHeld)
     {
         if (PT->patternHeld || PT->selectedPlace == 0)
@@ -1603,6 +1527,12 @@ static void functDown()
         else if (PT->selectedPlace == 2)
             PT->changeEditStep(-1);
         PT->refreshEditState();
+        return;
+    }
+
+    if (PT->isShiftPressed())
+    {
+        growSelection(false);
         return;
     }
 
@@ -1639,7 +1569,7 @@ static void functRight()
 
 static void functCopy()
 {
-    if (PT->mode != cProTrackerMode::kModeEdit || !PT->editMode)
+    if (PT->mode != cProTrackerMode::kModeEdit)
         return;
 
     if (PT->isShiftPressed())
@@ -1651,7 +1581,7 @@ static void functCopy()
 
 static void functDelete()
 {
-    if (PT->mode != cProTrackerMode::kModeEdit || !PT->editMode)
+    if (PT->mode != cProTrackerMode::kModeEdit)
         return;
 
     if (PT->isShiftPressed())
@@ -1682,12 +1612,6 @@ static void functInsert()
 // Enter previews the step in green mode, and writes the current note, instrument or effect in red
 static void functEnter()
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
-    {
-        PT->loadSelectedFile();
-        return;
-    }
-
     const protracker::Note& n = *PT->cell(PT->trackerPattern.actualTrack, PT->trackerPattern.actualStep);
     const int note = noteFromPeriod(n.period());
 
@@ -1708,12 +1632,6 @@ static void functEnter()
 static void functEncoder(int16_t value)
 {
     value = interfaceGlobals.invertValForList ? -value : value;
-
-    if (PT->mode == cProTrackerMode::kModeFileList)
-    {
-        PT->moveFileSelection(value > 0 ? 1 : -1);
-        return;
-    }
 
     if (PT->patternHeld || PT->selectedPlace >= 0)
     {
@@ -1746,26 +1664,8 @@ static void functEncoder(int16_t value)
 
 static void functActionButton(uint8_t button, uint8_t state)
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
-    {
-        if (state != buttonPress)
-            return;
-
-        if (button == 0)
-            PT->hideFileList();
-        else if (button == 1)
-        {
-            PT->saveSong();
-        }
-        else if (button == 2)
-        {
-            PT->newSong();
-            PT->hideFileList();
-        }
-        else if (button == 7)
-            PT->loadSelectedFile();
-        return;
-    }
+    if (state == buttonHold)
+        return; // a long press is still the same press
 
     // Pattern, Position and Step jump are held while the arrows, the encoder or the pads change them
     if (button <= 2 && PT->page == 0)

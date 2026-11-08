@@ -1,3 +1,4 @@
+#include "protrackerMode/ptSlots.h"
 #include "fileManager.h"
 #include "fileManagerDefs.h"
 #include "sampleImporter/sampleImporter.h"
@@ -132,8 +133,8 @@ void cSampleImporter::update()
         if (addNextFlag)
         {
             addNextFlag = 0;
-            selectedSlot = (selectedSlot + addNextOffset >= kSampleInstrumentsCount)
-                             ? kSampleInstrumentsCount - 1
+            selectedSlot = (selectedSlot + addNextOffset >= protracker::kSampleCount)
+                             ? protracker::kSampleCount - 1
                              : selectedSlot + addNextOffset;
         }
 
@@ -244,7 +245,7 @@ void cSampleImporter::start(uint32_t options)
 {
     moduleRefresh = 1;
 
-    if (mtProject.values.lastUsedInstrument >= kSampleInstrumentsCount)
+    if (mtProject.values.lastUsedInstrument >= protracker::kSampleCount)
     {
         // mtProject.values.lastUsedInstrument = 0;
         selectedSlot = 0;
@@ -262,7 +263,7 @@ void cSampleImporter::start(uint32_t options)
         selectedPlace = 1;
         selectedSlot = (options & 0xff) - 1;
 
-        if (selectedSlot >= kSampleInstrumentsCount)
+        if (selectedSlot >= protracker::kSampleCount)
             selectedSlot = 0;
 
         mtProject.values.lastUsedInstrument = selectedSlot;
@@ -394,7 +395,7 @@ static void instrumentAdd(bool addNext)
     uint8_t replaceEnd =
       replaceStart + (SI->getSelectionEnd(listFiles) - SI->getSelectionStart(listFiles));
 
-    if (replaceEnd >= kSampleInstrumentsCount)
+    if (replaceEnd >= protracker::kSampleCount)
     {
         mtPopups.show(0, "Too many samples selected");
         return;
@@ -403,7 +404,7 @@ static void instrumentAdd(bool addNext)
     uint8_t instrToReplaceCount = 0;
     for (uint8_t i = replaceStart; i <= replaceEnd; i++)
     {
-        if (mtProject.instrument[i].isActive)
+        if (ptActive(i))
         {
             instrToReplaceCount++;
         }
@@ -476,7 +477,7 @@ static void functInstrumentDelete()
     uint8_t deleteStart = SI->getSelectionStart(listInstruments);
     uint8_t deleteEnd = SI->getSelectionEnd(listInstruments);
 
-    if (deleteStart >= kSampleInstrumentsCount || deleteEnd >= kSampleInstrumentsCount ||
+    if (deleteStart >= protracker::kSampleCount || deleteEnd >= protracker::kSampleCount ||
         deleteEnd < deleteStart)
     {
         return;
@@ -485,7 +486,7 @@ static void functInstrumentDelete()
     uint8_t instrToDeleteCount = 0;
     for (uint8_t i = deleteStart; i <= deleteEnd; i++)
     {
-        if (mtProject.instrument[i].isActive)
+        if (ptActive(i))
         {
             instrToDeleteCount++;
         }
@@ -551,7 +552,7 @@ static void functInstrumentImport()
 
     uint8_t instrToReplace = SI->selectedSlot;
 
-    if (instrToReplace < kSampleInstrumentsCount && mtProject.instrument[instrToReplace].isActive)
+    if (instrToReplace < protracker::kSampleCount && ptActive(instrToReplace))
     {
         SI->replaceSource = 1;
         SI->firstLineReplaceInfoPopup =
@@ -570,24 +571,9 @@ static void functImportAndReplaceInstrumentConfirm()
     SI->clearInfoPopupHandlerFunctions();
     mtPopups.hideInfoPopup();
 
-    SI->lowerData.clear();
-    SI->upperData.clear();
-
-    SI->lowerData.push_back(SI->spectrum[0].lowerData);
-    SI->upperData.push_back(SI->spectrum[0].upperData);
-
-#ifdef TRACKER_MINI
-    SI->lowerData.push_back(SI->spectrum[1].lowerData);
-    SI->upperData.push_back(SI->spectrum[1].upperData);
-#endif
-
-    bool result = newFileManager.drawSampleWaveform(
-      SI->getSelectionStart(listFiles), SI->lowerData, SI->upperData);
-
-    if (result)
-    {
-        SI->ip->blockAllInputs();
-    }
+    SI->sampleType = mtSampleTypeWaveFile;
+    SI->addNextFlag = 0;
+    SI->importSamples();
 }
 
 void cSampleImporter::setImportFuncts()
@@ -845,7 +831,7 @@ void cSampleImporter::calcImportFreeMem()
 {
     importMemoryFree = 0;
 
-    if (mtProject.instrument[selectedSlot].isActive)
+    if (ptActive(selectedSlot))
     {
         importMemoryFree = newFileManager.getSampleMemorySize(selectedSlot, selectedSlot);
     }
@@ -928,15 +914,15 @@ static void functRename()
     {
         return;
     }
-    if (mtProject.instrument[SI->selectedSlot].isActive != 1)
+    if (!ptActive(SI->selectedSlot))
     {
         return;
     }
 
     SI->playFromPads(INTERFACE_BUTTON_PREVIEW, buttonRelease, -1);
 
-    SI->keyboardManager.fillName(mtProject.instrument[SI->selectedSlot].sample.file_name);
-    SI->keyboardManager.activateKeyboard(SAMPLE_NAME_SIZE);
+    SI->keyboardManager.fillName(ptName(SI->selectedSlot));
+    SI->keyboardManager.activateKeyboard(22);
 
     SI->ip->clearButtonsRange(interfaceButton0, interfaceButton7);
 
@@ -969,8 +955,9 @@ static void functConfirmRename()
 
         if (allow)
         {
-            strncpy(
-              mtProject.instrument[SI->selectedSlot].sample.file_name, localName, SAMPLE_NAME_SIZE);
+            strncpy(ptName(SI->selectedSlot), localName, 22);
+            ptName(SI->selectedSlot)[22] = 0;
+            protrackerMode.dirty = true;
 
             SI->showFileList();
 
@@ -987,7 +974,6 @@ static void functConfirmRename()
             // SI->displayDelete(SI->selectedPlace);
 
             //	fileManager.setInstrumentChangeFlag(mtProject.values.lastUsedInstrument);
-            newFileManager.setInstrumentStructChanged(mtProject.values.lastUsedInstrument);
 
             SI->keyboardManager.deactivateKeyboard();
         }
@@ -1067,46 +1053,27 @@ void cSampleImporter::pasteInstruments()
         return;
     }
 
-    uint8_t willFit = 0;
-    uint8_t selectOverMax = 0;
+    ProTrackerStream* stream = protrackerMode.stream;
+    if (stream != nullptr)
+        stream->pause();
 
-    uint8_t instrActiveInSel = SI->getActiveInstrInSelection();
-
-    SI->copyElement = 0;
-
-    if (!instrActiveInSel)
-        return;
-
-    while (SI->selectedSlot + SI->copyElementsCount > 48)
+    // copy in the right direction so that overlapping ranges are fine
+    const int count = copyElementsCount;
+    for (int n = 0; n < count; n++)
     {
-        SI->copyElementsCount--;
-        selectOverMax++;
+        const int k = (selectedSlot > instrCopyStart) ? count - 1 - n : n;
+        if (selectedSlot + k >= protracker::kSampleCount || instrCopyStart + k >= protracker::kSampleCount)
+            continue;
+        protracker::copySlot(protrackerMode.module, instrCopyStart + k, selectedSlot + k);
     }
 
-    for (int i = (SI->copyElementsCount - selectOverMax); i > 0; i--)
-    {
-        willFit = SI->willCopyInstrFit(i);
+    if (stream != nullptr)
+        stream->resume();
 
-        if (willFit)
-        {
-            break;
-        }
-        else
-        {
-            SI->copyElementsCount--;
-            instrActiveInSel--;
-            // TODO: popout ze kopiowanie zostalo uciete
-        }
-    }
-
-    if (willFit)
-    {
-        if (newFileManager.copyInstrumentsInWorkspace(
-              instrCopyStart, copyElementsCount, selectedSlot))
-        {
-            SI->ip->blockAllInputs();
-        }
-    }
+    protrackerMode.dirty = true;
+    listInstrumentSlots();
+    refreshInstrumentsList();
+    refreshActionButtons();
 }
 
 static void functShift(uint8_t state)
@@ -1351,7 +1318,7 @@ uint8_t cSampleImporter::changeInstrumentSelection(int16_t value)
     }
     else
     {
-        selectedSlot = clamp(selectedSlot + value, 0, kSampleInstrumentsCount - 1);
+        selectedSlot = clamp(selectedSlot + value, 0, protracker::kSampleCount - 1);
         memset(&selectionTab[listInstruments][0], 0, SI->maxListLength);
         selectionLength[listInstruments] = 0;
     }
@@ -1432,58 +1399,132 @@ void cSampleImporter::BrowseOrAdd()
     }
 }
 
+// Loads the selected WAV files straight into the sample slots of the song, starting at the selected
+// slot. The files are converted to 8-bit mono; nothing is resampled and a slot holds 65534 bytes.
 void cSampleImporter::importSamples()
 {
-    if (!fullMemoryFlag)
+    FileSystem* fs = platform->getFileSystem();
+    uint8_t selStart = getSelectionStart(listFiles);
+    uint8_t selEnd = getSelectionEnd(listFiles);
+
+    if (selectedSlot + (selEnd - selStart) >= protracker::kSampleCount)
     {
-        uint8_t selStart = getSelectionStart(listFiles);
-        uint8_t selEnd = getSelectionEnd(listFiles);
+        mtPopups.show(0, "Too many samples selected");
+        return;
+    }
 
-        bool result = newFileManager.importSamplesToProject(
-          selStart,
-          selEnd,
-          selectedSlot,
-          0,
-          MAX_16BIT,
-          false,
-          static_cast<FileManagerOperation::SampleLoadMode>(sampleLoadMode));
-        addNextOffset = (selEnd - selStart) + 1;
+    ProTrackerStream* stream = protrackerMode.stream;
+    if (stream != nullptr)
+        stream->pause();
 
-        if (result)
+    uint8_t loaded = 0;
+    bool truncated = false;
+    bool failed = false;
+
+    for (uint8_t f = selStart; f <= selEnd; f++)
+    {
+        const int slot = selectedSlot + (f - selStart);
+        char path[PATCH_SIZE];
+        snprintf(path, sizeof(path), "%s/%s", newFileManager.getExplorerPath(), explorerNames[f]);
+
+        auto [ok, handle] = fs->openFile(path, FileSystem::kRead);
+        if (!ok)
         {
-            SI->ip->blockAllInputs();
+            failed = true;
+            continue;
+        }
+
+        strWavFileHeader header;
+        protracker::WavResult result = protracker::WavResult::kUnsupported;
+        if (readHeader(&header, fs, handle))
+        {
+            protracker::WavInfo info;
+            info.format = header.AudioFormat;
+            info.channels = header.numChannels;
+            info.bits = header.bitsPerSample;
+            info.rate = header.sampleRate;
+            info.dataBytes = header.subchunk2Size;
+
+            struct Ctx
+            {
+                FileSystem* fs;
+                FileSystem::FileHandle handle;
+            } ctx = { fs, handle };
+
+            protracker::FileIo io;
+            io.ctx = &ctx;
+            io.read = [](void* c, void* dst, uint32_t count) -> uint32_t {
+                Ctx* x = (Ctx*)c;
+                int32_t got = x->fs->readFile(dst, count, x->handle);
+                return got > 0 ? (uint32_t)got : 0;
+            };
+
+            result = protracker::wavToSlot(protrackerMode.module, slot, info, io);
+        }
+        fs->closeFile(handle);
+
+        if (result == protracker::WavResult::kOk || result == protracker::WavResult::kTruncated)
+        {
+            // the file name without its extension names the sample
+            char name[23];
+            strncpy(name, explorerNames[f], sizeof(name) - 1);
+            name[sizeof(name) - 1] = 0;
+            char* dot = strrchr(name, '.');
+            if (dot != nullptr)
+                *dot = 0;
+            protracker::setSlotName(protrackerMode.module, slot, name);
+            protrackerMode.module.fixSample(slot);
+
+            loaded++;
+            truncated = truncated || result == protracker::WavResult::kTruncated;
+        }
+        else
+        {
+            failed = true;
         }
     }
-    else
+
+    if (stream != nullptr)
+        stream->resume();
+
+    protrackerMode.dirty = true;
+    addNextOffset = (selEnd - selStart) + 1;
+
+    if (addNextFlag)
     {
-        mtPopups.show(0, "Not enough sample memory");
+        addNextFlag = 0;
+        selectedSlot = (selectedSlot + addNextOffset >= protracker::kSampleCount)
+                         ? protracker::kSampleCount - 1
+                         : selectedSlot + addNextOffset;
     }
+    protrackerMode.sample = selectedSlot + 1;
+    mtProject.values.lastUsedInstrument = selectedSlot;
+
+    cancelSelect(listInstruments);
+    listInstrumentSlots();
+    refreshInstrumentsList();
+    showDefaultScreen();
+    refreshActionButtons();
+
+    if (failed)
+        mtPopups.show(0, loaded ? "Some files could not be loaded" : "Cannot load this file");
+    else if (truncated)
+        mtPopups.show(0, "Sample cut to 65534 bytes");
 }
 
 //==============================================================================================
 
 void cSampleImporter::listInstrumentSlots()
 {
-    for (uint8_t i = 0; i < kSampleInstrumentsCount; i++)
+    for (uint8_t i = 0; i < protracker::kSampleCount; i++)
     {
-        if (mtProject.instrument[i].isActive)
+        if (ptActive(i))
         {
-            if (mtProject.sampleMemory[i].isStreamed)
-            {
-                snprintf(&interfaceGlobals.intrumentsNames[i][0],
-                         sizeof(interfaceGlobals.intrumentsNames[i]),
-                         "%d.[S] %s",
-                         i + 1,
-                         mtProject.instrument[i].sample.file_name);
-            }
-            else
-            {
-                snprintf(&interfaceGlobals.intrumentsNames[i][0],
-                         sizeof(interfaceGlobals.intrumentsNames[i]),
-                         "%d.%s",
-                         i + 1,
-                         mtProject.instrument[i].sample.file_name);
-            }
+            snprintf(&interfaceGlobals.intrumentsNames[i][0],
+                     sizeof(interfaceGlobals.intrumentsNames[i]),
+                     "%d.%s",
+                     i + 1,
+                     ptName(i));
         }
         else
         {
@@ -1560,7 +1601,7 @@ void cSampleImporter::calculateFileMemUsage()
         // get size when pasted on current isntrument slot
         for (uint32_t i = selectedSlot; i < (selectedSlot + tempSelectionLength); i++)
         {
-            if (mtProject.instrument[i].isActive)
+            if (ptActive(i))
             {
                 tempInstrumentMemorySize += newFileManager.getSampleMemorySize(i, i);
             }
@@ -1572,7 +1613,7 @@ void cSampleImporter::calculateFileMemUsage()
     {
         currentSelectMemorySize = estimateFileRamUsage(currentFolderMemoryFileUsage[selectedFile]);
 
-        if (mtProject.instrument[selectedSlot].isActive)
+        if (ptActive(selectedSlot))
         {
             currentSelectMemorySize -=
               newFileManager.getSampleMemorySize(selectedSlot, selectedSlot);
@@ -1623,7 +1664,7 @@ void cSampleImporter::calculateMemUsage()
     strcat(file_path, &locationExplorerList[selectedFile][0]);
 
     currentSelectMemorySize = 2* fileManager.samplesLoader.waveLoader.getInfoAboutWave(file_path);
-    if(mtProject.instrument[selectedSlot].isActive) currentSelectMemorySize -=
+    if(ptActive(selectedSlot)) currentSelectMemorySize -=
 2*mtProject.instrument[selectedSlot].sample.length;
 }*/
 
@@ -1664,7 +1705,7 @@ void cSampleImporter::playSampleFromBank(uint8_t pad, uint8_t state, int16_t vel
 {
     if (currentCopyStatusFlag || currentLoadStatusFlag)
         return;
-    if (!mtProject.instrument[selectedSlot].isActive)
+    if (!ptActive(selectedSlot))
         return;
 
     //	if(sequencer.getSeqState() != Sequencer::SEQ_STATE_STOP)
@@ -1838,7 +1879,7 @@ bool cSampleImporter::checkIfAnyInstrActive()
 
     for (uint32_t i = selectionStart; i < (selectionStart + selectionLength[listInstruments]); i++)
     {
-        if (mtProject.instrument[i].isActive == 1)
+        if (ptActive(i))
         {
             isActive = true;
             break;
@@ -1925,7 +1966,7 @@ uint8_t cSampleImporter::getActiveInstrInSelection()
 
     for (uint8_t instr = instrCopyStart; instr < (instrCopyStart + copyElementsCount); instr++)
     {
-        if (mtProject.instrument[instr].isActive == 1)
+        if (ptActive(instr))
         {
             activeInstr++;
         }
@@ -1943,7 +1984,7 @@ uint8_t cSampleImporter::willCopyInstrFit(uint8_t length)
 
     for (int i = instrCopyStart; i < (length + instrCopyStart); i++)
     {
-        if (mtProject.instrument[i].isActive)
+        if (ptActive(i))
         {
             memoryUsedBySelection += newFileManager.getSampleMemorySize(i, i);
         }
@@ -1951,7 +1992,7 @@ uint8_t cSampleImporter::willCopyInstrFit(uint8_t length)
 
     for (int i = selectedSlot; i < (length + selectedSlot); i++)
     {
-        if (mtProject.instrument[i].isActive)
+        if (ptActive(i))
         {
             pasteLocationMemUsage += newFileManager.getSampleMemorySize(i, i);
         }
@@ -2055,14 +2096,16 @@ static void functMemoryModeOrToggle()
 
 void cSampleImporter::handleMemoryModeOrToggle()
 {
-    if (selectedPlace == 1 && selectedSlot < kSampleInstrumentsCount &&
-        mtProject.instrument[selectedSlot].isActive)
+    return; // no RAM/stream modes in a .mod
+
+    if (selectedPlace == 1 && selectedSlot < protracker::kSampleCount &&
+        ptActive(selectedSlot))
     {
         playFromPads(INTERFACE_BUTTON_PREVIEW, buttonRelease, -1);
 
         uint8_t selStart = getSelectionStart(listInstruments);
         uint8_t selEnd = getSelectionEnd(listInstruments);
-        if (selStart >= kSampleInstrumentsCount || selEnd >= kSampleInstrumentsCount ||
+        if (selStart >= protracker::kSampleCount || selEnd >= protracker::kSampleCount ||
             selEnd < selStart)
         {
             selStart = selectedSlot;
@@ -2074,7 +2117,7 @@ void cSampleImporter::handleMemoryModeOrToggle()
 
         for (uint8_t idx = selStart; idx <= selEnd; idx++)
         {
-            if (!mtProject.instrument[idx].isActive)
+            if (!ptActive(idx))
             {
                 continue;
             }
@@ -2218,28 +2261,22 @@ static void functDeleteInstrumentConfirm()
     uint8_t deleteStart = SI->getSelectionStart(listInstruments);
     uint8_t deleteEnd = SI->getSelectionEnd(listInstruments);
 
-    if (deleteStart >= kSampleInstrumentsCount || deleteEnd >= kSampleInstrumentsCount ||
-        deleteEnd < deleteStart)
+    if (deleteStart < protracker::kSampleCount && deleteEnd < protracker::kSampleCount &&
+        deleteEnd >= deleteStart)
     {
-        return;
-    }
+        ProTrackerStream* stream = protrackerMode.stream;
+        if (stream != nullptr)
+            stream->pause();
+        for (uint8_t i = deleteStart; i <= deleteEnd; i++)
+            protracker::clearSlot(protrackerMode.module, i);
+        if (stream != nullptr)
+            stream->resume();
 
-    uint8_t instrToDeleteCount = 0;
-    for (uint8_t i = deleteStart; i <= deleteEnd; i++)
-    {
-        if (mtProject.instrument[i].isActive)
-        {
-            instrToDeleteCount++;
-        }
-    }
-
-    if (instrToDeleteCount > 0)
-    {
-        if (newFileManager.deleteInstruments(SI->getSelectionStart(listInstruments),
-                                             SI->getSelectionEnd(listInstruments)))
-        {
-            SI->ip->blockAllInputs();
-        }
+        protrackerMode.dirty = true;
+        SI->cancelSelect(listInstruments);
+        SI->listInstrumentSlots();
+        SI->refreshInstrumentsList();
+        SI->refreshActionButtons();
     }
 
     SI->hideStopPatternPopup();
@@ -2247,68 +2284,45 @@ static void functDeleteInstrumentConfirm()
 
 void cSampleImporter::initDeleteUnusedInstruments()
 {
-    memset(instrUseMap, 0, sizeof(instrUseMap));
-
-    for (int patternIdx = PATTERN_INDEX_MIN; patternIdx < PATTERN_INDEX_MAX; patternIdx++)
-    {
-        const Sequencer::strPattern* pattern =
-          newFileManager.loadWorkspacePatternToTempBuffer(patternIdx);
-
-        if (pattern == nullptr)
-        {
-            continue;
-        }
-
-        for (int trackIdx = 0; trackIdx < kSampleTracks; trackIdx++)
-        {
-            for (int stepIdx = 0; stepIdx < pattern->track[trackIdx].length; stepIdx++)
-            {
-                const struct Sequencer::strPattern::strTrack::strStep& step =
-                  pattern->track[trackIdx].step[stepIdx];
-
-                if (step.note > Sequencer::STEP_NOTE_EMPTY)
-                {
-                    instrUseMap[step.instrument] = 1;
-                }
-            }
-        }
-    }
+    bool used[protracker::kSampleCount];
+    protracker::usedSamples(protrackerMode.module, used);
+    for (int i = 0; i < protracker::kSampleCount; i++)
+        instrUseMap[i] = used[i] ? 1 : 0;
 
     stepDelete = true;
 }
 
 bool cSampleImporter::stepDeleteUnusedInstruments()
 {
-    int8_t unusedInstrIdx = -1;
-    for (int instrIdx = 0; instrIdx < kSampleInstrumentsCount; instrIdx++)
+    bool any = false;
+    for (int i = 0; i < protracker::kSampleCount; i++)
     {
-        if (!instrUseMap[instrIdx] && mtProject.instrument[instrIdx].isActive)
+        if (!instrUseMap[i] && ptActive(i))
         {
-            unusedInstrIdx = instrIdx;
-            newFileManager.deleteInstruments(instrIdx, instrIdx);
-            break; // only delete one at a time
+            protracker::clearSlot(protrackerMode.module, i);
+            any = true;
         }
     }
-
-    return (unusedInstrIdx > -1);
+    protrackerMode.dirty = protrackerMode.dirty || any;
+    stepDelete = false;
+    return false; // done in one go
 }
 
 static void functDeleteUnusedInstrumentsConfirm()
 {
+    ProTrackerStream* stream = protrackerMode.stream;
+    if (stream != nullptr)
+        stream->pause();
     SI->initDeleteUnusedInstruments();
+    SI->stepDeleteUnusedInstruments();
+    if (stream != nullptr)
+        stream->resume();
 
-    if (SI->stepDeleteUnusedInstruments())
-    {
-        SI->ip->blockAllInputs();
-        SI->hideStopPatternPopup();
-        return;
-    }
-    else
-    {
-        SI->clearInfoPopupHandlerFunctions();
-        SI->hideInfoPopup();
-        return;
-    }
+    SI->clearInfoPopupHandlerFunctions();
+    SI->hideInfoPopup();
+    SI->listInstrumentSlots();
+    SI->refreshInstrumentsList();
+    SI->refreshActionButtons();
 }
 
 static void functDeleteInstrumentDeny()

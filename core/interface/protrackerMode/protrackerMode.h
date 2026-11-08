@@ -20,7 +20,6 @@ class cProTrackerMode : public ModuleBase
     enum Mode : uint8_t
     {
         kModeEdit,
-        kModeFileList,
     };
 
     enum Param : uint8_t
@@ -31,9 +30,6 @@ class cProTrackerMode : public ModuleBase
         kParamFx2, // same as Fx1: a ProTracker step has a single effect
     };
 
-    static constexpr int kMaxFiles = 64;
-    static constexpr int kFileNameLen = 40;
-    static constexpr int kVisibleFileRows = 15;
     static constexpr int kUndoDepth = 16;
 
     cProTrackerMode() {}
@@ -101,11 +97,8 @@ class cProTrackerMode : public ModuleBase
     void cancelPopups();
 
     // ---- files
-    void showFileList();
-    void hideFileList();
-    void moveFileSelection(int delta);
-    void loadSelectedFile();
-    void saveSong();
+    bool loadFile(const char* path, const char** error); // error: text when it returns false
+    bool saveFile(const char* path, const char** error);
     void newSong();
 
     // ---- screen
@@ -149,7 +142,6 @@ class cProTrackerMode : public ModuleBase
     hControl bgLabel = -1;
     hControl frameControl = -1;
     hControl patternControl = -1;
-    hControl listBox = -1;
     hControl infoLabel = -1;
 
     static strTrackerPattern trackerPattern;
@@ -164,10 +156,8 @@ class cProTrackerMode : public ModuleBase
     bool popupActive = false;
     bool wasNoteEditBefore = false;
 
-    // files
-    int fileCount = 0;
-    int fileSelected = 0;
-    char* fileList[kMaxFiles] = {};
+    // the file the song was loaded from or saved to (empty for a new song)
+    char filePath[96] = "";
 
     elapsedMillis refreshTimer;
     int lastRow = -1;

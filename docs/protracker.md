@@ -12,10 +12,10 @@ The screen is the stock Polyend pattern editor: four tracks of note, instrument 
 * **Rec** switches between green (pads only play, cursor follows playback) and red (pads write).
 * **Note / Instr / Fx1 / Fx2** tap to choose the column. Holding Note or Instr opens the stock popup (pads or encoder choose, release applies in red mode). A step has one effect, so Fx1 and Fx2 both select it; Fx1/Fx2 held + encoder or pad changes the effect command, otherwise the value.
 * **Pads** use the stock layout. Red: note, instrument (pad 1 = sample 1) or effect value is written and the cursor moves by the step jump. Green: preview only.
-* **Bottom buttons, page 1:** Pattern, Position, Step jump (hold + arrows, encoder or pads), Preview, Undo, Redo. **Page 2:** Duplicate Pattern, Copy Pattern, Paste Pattern.
+* **Bottom buttons, page 1:** Pattern, Position, Step jump: each is active while its button is held; turn the jogwheel (or use the arrows or pads) to change the value. Preview, Undo, Redo. **Page 2:** Duplicate Pattern, Copy Pattern, Paste Pattern.
 * **Pattern** (held) + arrows or encoder picks the pattern of the current position; pressing it on another screen returns here.
-* **Play** loops the current pattern, Shift+Play starts at the cursor. **Shift** + bottom buttons 1-4 mutes tracks. Shift+arrows select a block; Copy copies, Shift+Copy pastes; Delete clears, Shift+Delete is backspace; Insert inserts a row, Shift+Insert goes to the first row.
-* **File** opens the song list (Load, Save, New, Cancel).
+* **Play** loops the current pattern, Shift+Play starts at the cursor. **Shift** + bottom buttons 1-4 mutes tracks. Shift+Left/Right extend a selection, Shift+Up selects the whole track and Shift+Up again the whole pattern (Shift+Down goes back). The selection stays after Shift is released until the cursor is moved. Copy copies the selection, Shift+Copy pastes at its top left, Delete clears it (Shift+Delete is backspace); Insert inserts a row, Shift+Insert goes to the first row.
+* **File** opens the file screen.
 
 Limits follow the .mod format: 4 tracks, 64 rows, 31 samples, patterns 0-99, ProTracker effects 0-F.
 
@@ -30,6 +30,14 @@ The **Song** button opens the arrangement view, built from the stock Polyend son
 * **Pattern** goes back to the pattern screen on the selected slot.
 
 Playback stops when you change screens.
+
+## File screen
+
+The **File** button opens a screen with the layout of the stock Polyend file screen: New Song, Open, Save and Save As. Open and Save As show the SD card browser (folders on the left, starting in `/ProTracker`) with Enter, Delete, New Folder, Cancel and Open/Save; Save As names the file with the on-screen keyboard. Only `.mod` files can be opened. New and Open ask to save unsaved changes first.
+
+## Sample loader
+
+The **Sample Load** screen (stock layout: file browser on the left, instrument list on the right) loads WAV files straight into the 31 sample slots of the song. Add and Add Next load the selected files from the selected slot on; Import loads the selected file into the selected slot. Samples are converted to 8-bit mono (channels averaged, not resampled) and cut at 65534 bytes. Delete, Delete Unused (samples no pattern uses), Copy/Paste (Shift+Copy) and Rename work on the slots.
 
 ## Files
 

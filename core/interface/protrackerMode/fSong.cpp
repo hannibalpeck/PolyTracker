@@ -540,6 +540,9 @@ static void refreshAll()
 
 static void functShift(uint8_t state)
 {
+    if (state == buttonHold)
+        return;
+
     display.setControlText2(SE->label[3], state == buttonPress ? "Empty Slot" : "Slot");
     display.refreshControl(SE->label[3]);
     display.synchronizeRefresh();
@@ -547,6 +550,9 @@ static void functShift(uint8_t state)
 
 static void functActionButton(uint8_t button, uint8_t state)
 {
+    if (state == buttonHold)
+        return; // a long press is still the same press
+
     // Tempo is held while the encoder or the arrows change it
     if (button == 7)
     {

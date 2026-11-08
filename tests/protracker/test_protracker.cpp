@@ -5,6 +5,7 @@
 
 #include "ptModule.h"
 #include "ptReplayer.h"
+#include "ptSamples.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -814,6 +815,101 @@ static void testPreview()
     CHECK(!c.rep.isPreviewing());
 }
 
+
+static void testWavSlots()
+{
+    printf("WAV to sample slot\n");
+    std::vector<uint8_t> pool(kPoolBytes);
+    Module m;
+    m.attach(pool.data(), pool.size());
+    m.clear();
+
+    // 16-bit stereo: left +16384, right 0 averages to +8192 -> +32 in 8 bits
+    MemFile f;
+    for (int i = 0; i < 100; i++)
+    {
+        int16_t l = 16384, r = 0;
+        f.data.push_back((uint8_t)(l & 0xFF));
+        f.data.push_back((uint8_t)(l >> 8));
+        f.data.push_back((uint8_t)(r & 0xFF));
+        f.data.push_back((uint8_t)(r >> 8));
+    }
+    FileIo io;
+    io.ctx = &f;
+    io.read = memRead;
+
+    WavInfo info;
+    info.format = 1;
+    info.channels = 2;
+    info.bits = 16;
+    info.rate = 44100;
+    info.dataBytes = (uint32_t)f.data.size();
+    CHECK(wavToSlot(m, 3, info, io) == WavResult::kOk);
+    CHECK(m.samples[3].length == 100);
+    CHECK(m.sampleData(3)[2] == 32 && m.sampleData(3)[99] == 32);
+    CHECK(m.samples[3].volume == 64 && m.samples[3].loopLength == 2);
+    CHECK(slotActive(m, 3) && !slotActive(m, 4));
+
+    // 8-bit unsigned, odd length is cut to an even one
+    MemFile g;
+    for (int i = 0; i < 51; i++)
+        g.data.push_back(192); // +64
+    io.ctx = &g;
+    info.channels = 1;
+    info.bits = 8;
+    info.dataBytes = 51;
+    CHECK(wavToSlot(m, 4, info, io) == WavResult::kOk);
+    CHECK(m.samples[4].length == 50);
+    CHECK(m.sampleData(4)[2] == 64);
+
+    // float
+    MemFile h;
+    float fl = -0.5f;
+    for (int i = 0; i < 10; i++)
+    {
+        uint8_t b[4];
+        memcpy(b, &fl, 4);
+        h.data.insert(h.data.end(), b, b + 4);
+    }
+    io.ctx = &h;
+    info.format = 3;
+    info.bits = 32;
+    info.dataBytes = 40;
+    CHECK(wavToSlot(m, 5, info, io) == WavResult::kOk);
+    CHECK(m.sampleData(5)[2] == -64);
+
+    // longer than a slot: truncated
+    MemFile big;
+    big.data.assign(70000 * 2, 0);
+    io.ctx = &big;
+    info.format = 1;
+    info.bits = 16;
+    info.dataBytes = (uint32_t)big.data.size();
+    CHECK(wavToSlot(m, 6, info, io) == WavResult::kTruncated);
+    CHECK(m.samples[6].length == kMaxSampleBytes);
+
+    // unsupported and short files
+    info.bits = 12;
+    CHECK(wavToSlot(m, 7, info, io) == WavResult::kUnsupported);
+    MemFile shortFile;
+    shortFile.data.assign(10, 0);
+    io.ctx = &shortFile;
+    info.bits = 16;
+    info.dataBytes = 100;
+    CHECK(wavToSlot(m, 7, info, io) == WavResult::kIoError);
+
+    // copy, clear, usage
+    copySlot(m, 3, 9);
+    CHECK(m.samples[9].length == 100 && m.sampleData(9)[50] == 32);
+    clearSlot(m, 9);
+    CHECK(!slotActive(m, 9) && m.sampleData(9)[50] == 0);
+
+    m.pattern(0)[0].set(4, 428, 0, 0); // sample number 4 = slot 3
+    bool used[kSampleCount];
+    usedSamples(m, used);
+    CHECK(used[3] && !used[0] && !used[4]);
+}
+
 int main()
 {
     testRoundTrip();
@@ -830,6 +926,7 @@ int main()
     testFunkRepeatAndEdgeCases();
     testLedFilter();
     testPreview();
+    testWavSlots();
 
     printf("\n%d checks, %d failures\n", gChecks, gFailures);
     return gFailures == 0 ? 0 : 1;
