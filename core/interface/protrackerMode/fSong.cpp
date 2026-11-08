@@ -513,6 +513,7 @@ void cProTrackerSong::bindButtons()
     ip->setButtonObj(interfaceButtonRight, buttonPress, functRight);
     ip->setPotObj(interfacePot0, functEncoder);
 
+    ip->setButtonObj(interfaceButtonFile, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonPattern, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonConfig, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonMaster, buttonPress, functSwitchModule);

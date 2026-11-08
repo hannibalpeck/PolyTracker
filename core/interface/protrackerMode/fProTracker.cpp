@@ -268,6 +268,7 @@ void cProTrackerMode::start(uint32_t options)
         trackerPattern.selectState = 1;
         trackerPattern.showPlayhead = true;
         initialised = true;
+        loadLastSong();
     }
 
     // the sample sequencer and this mode don't share the output
@@ -1346,6 +1347,40 @@ void cProTrackerMode::newSong()
     s_undoMeta[0].count = s_undoMeta[1].count = 0;
 }
 
+// The last song that was loaded or saved is opened again after a restart.
+static const char* kLastSongFile = "/Mod/.lastsong";
+
+static void rememberSong(const char* path)
+{
+    FileSystem* fs = protrackerMode.platform_fs();
+    if (!fs->exists("/Mod"))
+        fs->mkdir(0, "/Mod");
+    auto [ok, handle] = fs->openFile(kLastSongFile, FileSystem::kWriteCreateNew);
+    if (!ok)
+        return;
+    fs->writeFile(path, strlen(path), handle);
+    fs->closeFile(handle);
+}
+
+void cProTrackerMode::loadLastSong()
+{
+    FileSystem* fs = platform->getFileSystem();
+    if (!fs->exists(kLastSongFile))
+        return;
+
+    auto [ok, handle] = fs->openFile(kLastSongFile, FileSystem::kRead);
+    if (!ok)
+        return;
+    char path[sizeof(filePath)] = {};
+    const int32_t got = fs->readFile(path, sizeof(path) - 1, handle);
+    fs->closeFile(handle);
+    if (got <= 0 || !fs->exists(path))
+        return;
+
+    const char* error = nullptr;
+    loadFile(path, &error);
+}
+
 bool cProTrackerMode::loadFile(const char* path, const char** error)
 {
     FileSystem* fs = platform->getFileSystem();
@@ -1388,6 +1423,7 @@ bool cProTrackerMode::loadFile(const char* path, const char** error)
     }
 
     snprintf(filePath, sizeof(filePath), "%s", path);
+    rememberSong(filePath);
     return true;
 }
 
@@ -1587,6 +1623,7 @@ bool cProTrackerMode::saveFile(const char* path, const char** error)
 
     snprintf(filePath, sizeof(filePath), "%s", path);
     dirty = false;
+    rememberSong(filePath);
     return true;
 }
 

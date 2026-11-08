@@ -17,15 +17,15 @@
 // clang-format off
 
 #ifdef TRACKER_MINI
-constexpr uint8_t baseMenuGroupCount = 8;
+constexpr uint8_t baseMenuGroupCount = 7;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 9;
 #elif defined(PLATFORM_IMX)
-constexpr uint8_t baseMenuGroupCount = 7;
+constexpr uint8_t baseMenuGroupCount = 6;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 12;
 #else
-constexpr uint8_t baseMenuGroupCount = 6;
+constexpr uint8_t baseMenuGroupCount = 5;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 12;
 #endif
@@ -42,7 +42,6 @@ cMenuGroup menuBase(menuBase, 0, baseMenuGroupCount);
 
 cMenuGroup menuProject(menuBase, "Project Settings", projectMenuGroupCount);
 cMenuGroup menuGeneral(menuBase, "General", generalMenuGroupCount);
-cMenuGroup menuMidi(menuBase, "MIDI", 11);
 
 #ifdef PLATFORM_IMX
 cMenuGroup menuUsb(menuBase, "USB", 2);
@@ -55,7 +54,7 @@ cMenuGroup menuFirmware(menuBase, "Firmware", 4);
 cMenuGroup menuFunctionButtons(menuBase, "Fn buttons binding", 8);
 #endif
 
-cMenuGroup menuCredits(menuBase, "Info", 4);
+cMenuGroup menuCredits(menuBase, "Info", 1);
 
 // elementy/////////
 
@@ -214,38 +213,6 @@ const strItemTypeListText ccInModeSetup{ &mtConfig.midi.ccInMode, 4, midiIn };
 const strItemTypeListText ccInChannelSetup{ &mtConfig.midi.ccInChannel, 17, notesChannel };
 const strItemTypeListText middleCSetup{ &mtConfig.midi.middleC, 4, middleC };
 const strItemTypeListTextWithAction slaveClockCompSetup{ &mtConfig.midi.slaveClockComp, std::size(slaveClockComp),  slaveClockComp, setSlaveClockCompValue };
-
-cMenuItem melClockIn(menuMidi, "Clock in", nullptr, menuTypeItemListText, &clockInSetup);
-cMenuItem melClockOut(menuMidi, "Clock out", nullptr, menuTypeItemListText, &clockOutSetup);
-cMenuItem melTransportIn(menuMidi,
-                         "Transport in",
-                         nullptr,
-                         menuTypeItemListText,
-                         &transportInSetup);
-cMenuItem melTransportOut(menuMidi,
-                          "Transport out",
-                          nullptr,
-                          menuTypeItemListText,
-                          &transportOutSetup);
-cMenuItem melNotsInMode(menuMidi, "Notes in", nullptr, menuTypeItemListText, &notesInModeSetup);
-cMenuItem melNotesInChannel(menuMidi,
-                            "Notes in channel",
-                            nullptr,
-                            menuTypeItemListText,
-                            &notesInChanneletup);
-cMenuItem melNotsOutMode(menuMidi, "MIDI out", nullptr, menuTypeItemListText, &notesOutModeSetup);
-cMenuItem melCCInMode(menuMidi, "CC in", supportedCcInDesc, menuTypeItemListText, &ccInModeSetup);
-cMenuItem melCCInChannel(menuMidi,
-                         "CC in channel",
-                         supportedCcInDesc,
-                         menuTypeItemListText,
-                         &ccInChannelSetup);
-cMenuItem melMiddleC(menuMidi, "Middle C", nullptr, menuTypeItemListText, &middleCSetup);
-cMenuItem melSlaveClockComp(menuMidi,
-                            "Clock sync correction",
-                            slaveClockCompDesc,
-                            menuTypeItemListTextWithAction,
-                            &slaveClockCompSetup);
 
 //==================================================================================================================================================================
 // Firmware

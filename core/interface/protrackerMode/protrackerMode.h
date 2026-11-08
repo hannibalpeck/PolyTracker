@@ -107,6 +107,8 @@ class cProTrackerMode : public ModuleBase
     int exportStep(uint32_t budgetMs, const char** error); // 0 running, 1 done, -1 error
     int exportPercent() const;
     void newSong();
+    void loadLastSong();
+    FileSystem* platform_fs() { return platform->getFileSystem(); }
     void clearSong();
 
     // ---- screen

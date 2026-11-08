@@ -24,16 +24,22 @@ static const uint16_t framesPlacesConfigGridScreen[3][4] = {
 };
 
 const char creditsText[] = {
-    "Polyend Tracker Community Edition (CE)"
-    "\nLicensed under the MIT License"
-    "\n(No Wholesale Commercial Clones; see LICENSE)."
+    "ProTracker mode for the Polyend Tracker+"
+    "\nA ProTracker (Amiga) .mod tracker on the Polyend Tracker CE firmware."
+    "\nSource: github.com/hannibalpeck/PolyTracker"
     "\n"
-    "\nAll provided demo projects and samples are under a CC BY-NC 4.0 license."
+    "\nProTracker source"
+    "\nThe .mod format and the replayer follow ProTracker 2.3D as"
+    "\nimplemented in pt2-clone by Olav Sorensen (8bitbubsy),"
+    "\ngithub.com/8bitbubsy/pt2-clone. ProTracker is the Amiga"
+    "\nmodule editor by Amiga Freelancers (Lars Hamre and others)."
     "\n"
-    "\nMore licenses can be found at github.com/polyend/tracker-ce"
-    "\nand polyend.com/licenses"
-    "\n\n\n\n\n\n\n\n\n\n\n\n\n"
-    "Sandroid was here ;)"
+    "\nPolyend source"
+    "\nPolyend Tracker Community Edition (CE), MIT License"
+    "\n(No Wholesale Commercial Clones; see LICENSE),"
+    "\ngithub.com/polyend/tracker-ce"
+    "\nProvided demo projects and samples: CC BY-NC 4.0."
+    "\nMore licenses: polyend.com/licenses"
 };
 
 void cConfigEditor::initDisplayControls()
