@@ -24,6 +24,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 | **Sample Load** | Loads WAV files into the 31 sample slots (converted to 8-bit mono), with Add, Import, Delete, Delete Unused, Copy/Paste and Rename. |
 | **Sample Edit** | The stock Polyend sample editor on the current sample: Start/End/Zoom selection, Undo, Preview/Apply, a playback line, and the effects Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In and Fade Out. |
 | **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, live loop editing while a pad is held and a playback line. |
+| **Sample Rec** | The stock recorder (sources, gain, monitor, crop, undo). **To slot** records into the first free sample slot, **Save** writes a WAV. |
 | **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources). |
 
 Hold **Instr** in the sample editor or the sample parameters to pick another sample with the encoder.
@@ -32,7 +33,7 @@ Hold **Instr** in the sample editor or the sample parameters to pick another sam
 
 **File > Export WAV** renders the song from position 0 until it ends or loops (at most 15 minutes) to a 16-bit 44.1 kHz stereo WAV in `/Mod/Export`, named after the song. "Please wait while exporting..." and the progress in percent are shown while it renders.
 
-Not done yet: recording from the sample recorder into the 31 ProTracker sample slots (the recorder still works on the stock sample memory), and WAV import does not resample.
+The **Sample Rec** screen records from the inputs as before; after recording, **Save** writes a WAV to `Recordings/` and **To slot** puts the recording (8-bit mono, channels averaged, cut at 65534 bytes) in the first free sample slot of the song under the name you type. Neither WAV import nor recording resamples, so a 44.1 kHz recording plays high at C-3.
 
 Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 

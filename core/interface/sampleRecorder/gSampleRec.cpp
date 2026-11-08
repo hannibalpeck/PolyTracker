@@ -462,7 +462,7 @@ void cSampleRecorder::showDefaultScreen()
         display.setControlText(label[4], "");
         display.setControlText2(label[4], "");
         display.setControlText(label[5], "Cancel");
-        display.setControlText(label[6], "Save & Load");
+        display.setControlText(label[6], "To slot");
         display.setControlText(label[7], "Save");
 
         for (uint8_t i = 0; i < 8; i++)

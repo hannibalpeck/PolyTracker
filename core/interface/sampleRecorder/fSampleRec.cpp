@@ -8,6 +8,7 @@
 #include "mtPadsBacklight.h"
 #include "mtRandomNameGenerator.h"
 #include "sampleRecorder/sampleRecorder.h"
+#include "protrackerMode/protrackerMode.h"
 
 #include "core/interfaceMenuPopup.h"
 #include "core/interfacePopups.h"
@@ -1833,62 +1834,76 @@ static void functActionAutoName()
     SR->keyboardManager.setRandomName();
 }
 
+// Save & Load: the recording goes into the first free sample slot of the song (8 bit mono, the
+// channels averaged, cut at 65534 bytes, no resampling), named like the keyboard name.
 static void functActionConfirmSaveLoad()
 {
     SR->saveOrSaveloadFlag = cSampleRecorder::saveTypeLoad;
 
-    FileSystem* fileSystem = TrackerImpl::getInstance()->getPlatform()->getFileSystem();
+    cProTrackerMode* pt = &protrackerMode;
 
-    if ((mtProject.used_memory + recorder.getSize()) > mtProject.max_memory)
+    int slot = -1;
+    for (int i = 0; i < protracker::kSampleCount; i++)
     {
-        SR->notEnoughMemoryFlag = 1;
-        return;
-    }
-    SR->firstFreeInstrumentSlotFound = -1;
-
-    for (uint8_t i = 0; i < kSampleInstrumentsCount; i++)
-    {
-        if (!mtProject.instrument[i].isActive)
+        if (pt->module.samples[i].length == 0)
         {
-            SR->firstFreeInstrumentSlotFound = i;
-            // mtProject.values.lastUsedInstrument = i;
+            slot = i;
             break;
         }
     }
-    if (SR->firstFreeInstrumentSlotFound == -1)
+    if (slot < 0)
     {
         SR->notEnoughInstrumentsFlag = 1;
         return;
     }
-    else
+
+    const int16_t* left = recorder.getAddress(AudioInput::InputChannels::kLeft);
+    const int16_t* right = recorder.getAddress(AudioInput::InputChannels::kRight);
+    uint32_t length = recorder.getLength();
+    if (left == nullptr || length < 2)
+        return;
+    if (length > protracker::kMaxSampleBytes)
+        length = protracker::kMaxSampleBytes;
+    length &= ~1u;
+
+    if (pt->stream != nullptr)
+        pt->stream->pause();
+
+    int8_t* dst = pt->module.sampleData(slot);
+    for (uint32_t i = 0; i < length; i++)
     {
-        char filePath[70];
-        sprintf(filePath, "%s/%s.wav", recordingDirPath, SR->keyboardManager.getName());
-        if (fileSystem->exists(filePath))
-        {
-            SR->selectionWindowSaveFlag = 1;
-            SR->keyboardManager.deactivateKeyboard();
-            SR->showSelectionWindowSave();
-            return;
-        }
-        else
-        {
-            if (newFileManager.saveRecordedSound(
-                  recordingDirPath,
-                  SR->keyboardManager.getName(),
-                  SR->firstFreeInstrumentSlotFound < 0
-                    ? std::nullopt
-                    : std::make_optional(SR->firstFreeInstrumentSlotFound),
-                  recorder.getAddress(AudioInput::InputChannels::kLeft),
-                  recorder.getAddress(AudioInput::InputChannels::kRight),
-                  recorder.getLength()))
-            {
-                SR->ip->blockAllInputs();
-            }
-            SR->keyboardManager.deactivateKeyboard();
-        }
-        // SR->firstFreeInstrumentSlotFound++;
+        int32_t v = left[i];
+        if (right != nullptr)
+            v = (v + right[i]) / 2;
+        v = (v + 128) >> 8;
+        dst[i] = (int8_t)(v > 127 ? 127 : (v < -128 ? -128 : v));
     }
+
+    protracker::Sample& smp = pt->module.samples[slot];
+    memset(smp.name, 0, sizeof(smp.name));
+    strncpy(smp.name, SR->keyboardManager.getName(), 22);
+    smp.length = length;
+    smp.fineTune = 0;
+    smp.volume = 64;
+    smp.loopStart = 0;
+    smp.loopLength = 2;
+    pt->module.fixSample(slot);
+    pt->sample = slot + 1;
+    pt->dirty = true;
+
+    if (pt->stream != nullptr)
+        pt->stream->resume();
+
+    SR->keyboardManager.deactivateKeyboard();
+    SR->setCurrentScreenType(cSampleRecorder::screenTypeConfig);
+    SR->showDefaultScreen();
+    display.processDisplayUpdateImmediate();
+    SR->refreshMonitorState();
+    SR->setDefaultScreenFunct();
+
+    char text[40];
+    snprintf(text, sizeof(text), "Recorded to sample %02d", slot + 1);
+    mtPopups.show(0, text);
 }
 
 static void functActionStopRec()

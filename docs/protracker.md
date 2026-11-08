@@ -52,6 +52,10 @@ The **Sample Play** button opens the sample header: Sample (which of the 31), Vo
 
 In both the sample editor and the sample parameters screen, hold **Instr** and turn the encoder to pick another sample from the list; releasing Instr loads it. While a pattern is playing in green mode, Left/Right still move the cursor between the tracks.
 
+## Sample recorder
+
+After a recording, the keyboard screen has **To slot** (button 7) and **Save** (button 8). To slot stores the recording in the first free sample slot (length 0) of the song, 8 bit mono (channels averaged, no resampling, cut at 65534 bytes), named with the name typed on the keyboard, and makes it the current sample. Save writes the WAV file to `Recordings/` as before. When all 31 slots are used, To slot says so.
+
 ## Files
 
 Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing name becomes `name-N.mod`. Samples are 8-bit, at most 65534 bytes each, 31 per song; a module holds up to 128 orders of 64 rows.
