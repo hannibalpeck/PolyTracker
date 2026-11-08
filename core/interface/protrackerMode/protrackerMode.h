@@ -52,6 +52,9 @@ class cProTrackerMode : public ModuleBase
     void changeSongLength(int delta);
     void insertOrder();
     void deleteOrder();
+    void toggleRecord();
+    void toggleNoteEntry();
+    void changeNoteAtCursor(int delta);
     int enterNote(int semitone); // returns the note entered (0..35) or -1
     void previewNote(int note);
     void stopPreview();
@@ -102,6 +105,8 @@ class cProTrackerMode : public ModuleBase
     int octave = 0;  // pad 0 plays semitone octave * 12 (0..2)
     int hexIndex = 0;
     bool dirty = false;
+    bool recording = false;  // Rec button: pads write into the song, otherwise they only play
+    bool noteEntry = false;  // Note button: pads write notes for as long as it is on
     bool initialised = false;
 
     // controls

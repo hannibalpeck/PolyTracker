@@ -46,6 +46,8 @@ static const char* kSongFolder = "ProTracker";
 static void functSwitchModule(uint8_t button);
 static void functGame();
 static void functInstr();
+static void functRec();
+static void functNote();
 static void functPattern();
 static void functPlayAction();
 static void functUp();
@@ -205,6 +207,7 @@ void cProTrackerMode::start(uint32_t options)
     mode = kModeEdit;
     page = 0;
     hexIndex = 0;
+    noteEntry = false;
     lastViewKey = 0xFFFFFFFF;
 
     ip->setButtonObj(interfaceButtonPerformance, buttonPress, functSwitchModule);
@@ -305,6 +308,8 @@ void cProTrackerMode::setDefaultScreenFunct()
     ip->setButtonObj(interfaceButtonDelete, buttonPress, functDelete);
     ip->setButtonObj(interfaceButtonGame, buttonPress, functGame);
     ip->setButtonObj(interfaceButtonInstr, buttonPress, functInstr);
+    ip->setButtonObj(interfaceButtonRec, buttonPress, functRec);
+    ip->setButtonObj(interfaceButtonNote, buttonPress, functNote);
 
     for (uint8_t b = interfaceButton0; b <= interfaceButton7; b++)
         ip->setButtonObj(b, functActionButton);
@@ -365,9 +370,10 @@ void cProTrackerMode::refreshInfo()
 
     snprintf(s_info,
              sizeof(s_info),
-             "%s%s  POS %02d/%02d PAT %02d ROW %02d  SPD %d BPM %d  SMP %02d OCT %d  CH%d %s",
+             "%s%s  %s  POS %02d/%02d PAT %02d ROW %02d  SPD %d BPM %d  SMP %02d OCT %d  CH%d %s",
              module.title[0] != '\0' ? module.title : "untitled",
              dirty ? "*" : "",
+             noteEntry ? "NOTE" : (recording ? "REC" : "PLAY"),
              pos,
              module.songLength,
              module.order[pos],
@@ -610,6 +616,55 @@ void cProTrackerMode::deleteOrder()
     if (editPos >= module.songLength)
         editPos = module.songLength - 1;
     dirty = true;
+}
+
+void cProTrackerMode::toggleRecord()
+{
+    recording = !recording;
+    lastViewKey = 0xFFFFFFFF;
+}
+
+// The Note button: jump to the note column and write notes from the pads (and the encoder) until
+// it is pressed again.
+void cProTrackerMode::toggleNoteEntry()
+{
+    noteEntry = !noteEntry;
+    if (noteEntry)
+    {
+        cursorX = (cursorX / 3) * 3 + kFieldNote;
+        hexIndex = 0;
+    }
+    lastViewKey = 0xFFFFFFFF;
+}
+
+void cProTrackerMode::changeNoteAtCursor(int delta)
+{
+    if (replayer.isPlaying())
+        return;
+
+    protracker::Note* n = cellAt(editPos, editRow, cursorX / 3);
+    int note = 12; // C-2 when the cell is empty
+    if (n->period() != 0)
+    {
+        int best = 0;
+        for (int i = 0; i < 36; i++)
+        {
+            if (protracker::kPeriodTable[i] == n->period())
+                best = i;
+        }
+        note = best;
+    }
+
+    note += delta;
+    if (note < 0)
+        note = 0;
+    if (note > 35)
+        note = 35;
+
+    const uint8_t smp = n->sample() != 0 ? n->sample() : (uint8_t)sample;
+    n->set(smp, (uint16_t)protracker::kPeriodTable[note], n->command(), n->param());
+    dirty = true;
+    previewNote(note);
 }
 
 int cProTrackerMode::enterNote(int semitone)
@@ -955,6 +1010,18 @@ static void functPlayAction()
     PT->lastViewKey = 0xFFFFFFFF;
 }
 
+static void functRec()
+{
+    if (PT->mode == cProTrackerMode::kModeEdit)
+        PT->toggleRecord();
+}
+
+static void functNote()
+{
+    if (PT->mode == cProTrackerMode::kModeEdit)
+        PT->toggleNoteEntry();
+}
+
 static void functInstr()
 {
     if (PT->mode == cProTrackerMode::kModeEdit)
@@ -1050,6 +1117,13 @@ static void functEncoder(int16_t value)
     if (PT->mode == cProTrackerMode::kModeFileList)
     {
         PT->moveFileSelection(step);
+        return;
+    }
+
+    if (PT->noteEntry)
+    {
+        PT->changeNoteAtCursor(PT->isShiftPressed() ? step * 12 : step);
+        PT->lastViewKey = 0xFFFFFFFF;
         return;
     }
 
@@ -1164,16 +1238,16 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
     if (PT->mode != cProTrackerMode::kModeEdit)
         return;
 
-    if (PT->cursorX % 3 == cProTrackerMode::kFieldNote)
+    // Rec or Note arms the pads for writing; otherwise they only play the current sample.
+    const bool writing = PT->recording || PT->noteEntry;
+
+    if (!writing || PT->cursorX % 3 == cProTrackerMode::kFieldNote)
     {
         const int semitone = padSemitone(pad);
         if (semitone >= 0)
         {
-            const int note = PT->enterNote(semitone);
-            if (note >= 0)
-                PT->previewNote(note);
-            else
-                PT->previewNote(PT->octave * 12 + semitone); // song playing: ignored
+            const int note = writing ? PT->enterNote(semitone) : -1;
+            PT->previewNote(note >= 0 ? note : PT->octave * 12 + semitone);
         }
     }
     else if (pad < 16)

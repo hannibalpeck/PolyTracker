@@ -7,7 +7,9 @@ The firmware boots into a ProTracker 2.3D style editor. The code is split in two
 
 ## Controls
 
-* **Pads** enter notes at the cursor, with the same pad layout as the stock firmware, and play the current sample while held (looping samples sustain). On the sample and effect columns the first 16 pads enter hex digits instead.
+* **Pads** play the current sample with the stock pad layout (looping samples sustain while held). By default they only play; nothing is written to the song.
+* **Rec** toggles recording. With Rec on, pads write notes at the cursor (on the sample and effect columns the first 16 pads enter hex digits). The info line shows PLAY, REC or NOTE.
+* **Note** jumps to the note column and turns on note entry until pressed again: pads write notes, and the encoder changes the note under the cursor (Shift: octave).
 * **Instr** opens the instrument selector, a list of the 31 samples. Pads (pad 1 is sample 1), the encoder and Up/Down choose the sample; Instr, Enter or Done closes it.
 * **Pattern** returns to the main ProTracker screen from any other screen, and closes the selector or file list. **Game** opens ProTracker as well.
 
