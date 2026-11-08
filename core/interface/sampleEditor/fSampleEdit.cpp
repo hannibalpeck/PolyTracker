@@ -274,6 +274,12 @@ void cSampleEditor::update()
         }
     }
 
+    if (playheadTimer >= 20)
+    {
+        playheadTimer = 0;
+        refreshPlayhead();
+    }
+
     if (applyingInProgress)
         refreshApplyingProgress();
     else if (processingInProgress)
@@ -450,6 +456,8 @@ void cSampleEditor::noteOnHandle([[maybe_unused]] uint8_t channel,
 
     const int16_t* src = currentEffect->getAddresToPolyphonicPlay(mtEffect::Channel::kLeft) + start;
     const uint32_t n = toBytes(src, end - start, previewBuf8);
+    auditionStart = selection.startPoint;
+    auditionEnd = selection.endPoint;
     PT->stream->requestPreviewData(previewBuf8, n, periodForNote(note), previewVolume());
 }
 
@@ -751,7 +759,46 @@ void cSampleEditor::refreshSpectrum()
     showSpectrum();
 }
 
-void cSampleEditor::refreshPlayhead() {}
+// the line shows where the sound that is heard is, inside the selected part
+void cSampleEditor::refreshPlayhead()
+{
+    if (screenType != mainScreen || PT->stream == nullptr)
+        return;
+
+    const uint32_t length = PT->stream->previewLength();
+    bool show = false;
+    if (PT->stream->isPreviewing() && length > 0)
+    {
+        uint32_t pos = PT->stream->previewPosition();
+        if (pos >= length)
+            pos = length - 1;
+        const int32_t v16 =
+          auditionStart + (int32_t)(((uint64_t)pos * (auditionEnd - auditionStart)) / length);
+
+        if (zoom.zoomValue == 1.0f)
+        {
+            playheadValue = (uint16_t)((600 * v16) / MAX_16BIT);
+            show = true;
+        }
+        else if (v16 >= zoom.zoomStart && v16 <= zoom.zoomEnd)
+        {
+            playheadValue = (uint16_t)mapClamped<int>(v16, zoom.zoomStart, zoom.zoomEnd, 0, 600);
+            show = true;
+        }
+    }
+
+    if (show)
+    {
+        display.setControlValue(playhead, playheadValue);
+        showPlayhead();
+        playheadShown = true;
+    }
+    else if (playheadShown)
+    {
+        playheadShown = false;
+        hidePlayhead();
+    }
+}
 
 void cSampleEditor::refreshUndoState()
 {
@@ -1388,6 +1435,8 @@ static void functPlay()
 
     const uint32_t n = toBytes(
       SE->currentEffect->getSampleAddresToPreview(mtEffect::Channel::kLeft), length, previewBuf8);
+    SE->auditionStart = SE->selection.startPoint;
+    SE->auditionEnd = SE->selection.endPoint;
     PT->stream->requestPreviewData(previewBuf8, n, periodForNote(24), previewVolume()); // C-3
 
     SE->playingInProgress = 1;

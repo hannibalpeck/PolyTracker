@@ -436,6 +436,10 @@ class cSampleEditor : public ModuleBase
     uint16_t selectedEffectListIdx = 0;
     uint8_t slot = 1; // the song slot (1..31) that is being edited
     elapsedMillis playTimer;
+    elapsedMillis playheadTimer;
+    bool playheadShown = false;
+    uint16_t auditionStart = 0; // the part of the sample that is being heard (16 bit points)
+    uint16_t auditionEnd = MAX_16BIT;
 
     const strEffectDisplayConstantParams& getCurrentEffectDisplayParams() const;
     bool isParameterList(uint8_t paramIdx) const;
