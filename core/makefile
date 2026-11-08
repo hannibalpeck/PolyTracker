@@ -1,6 +1,6 @@
 # Variables to provide (example values):
 # TOOLCHAIN=/usr/local/bin/arm-none-eabi-
-# PLATFORM=MK66 (MK66 and IMX are valid values)
+# PLATFORM=IMX
 # DEBUG=1 (any value turns on)
 
 # Target configuration
@@ -51,19 +51,14 @@ POLYSYNTH_DIR ?= ../synth
 -include ../version.mk
 DEFINES += $(FW_VERSION_DEFINES) $(CUSTOM_DEFINES)
 
-ifeq ($(PLATFORM), MK66)
-COMPILER_OPTIONS+=-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 
-else ifeq ($(PLATFORM), IMX)
+ifeq ($(PLATFORM), IMX)
 COMPILER_OPTIONS+=-mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfp16-format=ieee
 DEFINES+=-DPLATFORM_IMX -DFEATURE_SYNTH
 else 
 $(error Invalid PLATFORM value $(PLATFORM))
 endif
 
-ifeq ($(PRODUCT), MINI)
-DEFINES+=-DTRACKER_MINI
-else ifeq ($(PRODUCT), ORIGINAL)
-else ifeq ($(PRODUCT), PLUS)
+ifeq ($(PRODUCT), PLUS)
 else 
 $(error Invalid PRODUCT value $(PRODUCT))
 endif
