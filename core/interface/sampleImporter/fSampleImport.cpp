@@ -7,7 +7,6 @@
 
 #include "core/graphicProcessing.h"
 #include "mtAudioEngine.h"
-#include "projectEditor/projectEditor.h"
 
 #include "Platform.h"
 #include "mtConfig.h"

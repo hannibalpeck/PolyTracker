@@ -1,3 +1,4 @@
+#include "seqSelection.h"
 #include "mtAudioExport.h"
 #include "VoiceStreamManager.h"
 #include "fileManager.h"
@@ -5,7 +6,6 @@
 #include "mtSequencer.h"
 
 #include "core/songTimer.h"
-#include "patternEditor/patternEditor.h"
 
 #include "log.h"
 #include <algorithm>

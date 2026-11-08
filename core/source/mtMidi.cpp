@@ -1,12 +1,8 @@
+#include "seqSelection.h"
 #include "mtSequencer.h"
 
 #include "configEditor/configEditor.h"
-#include "instrumentEditor/instrumentEditor.h"
-#include "patternEditor/patternEditor.h"
-#include "sampleEditor/sampleEditor.h"
-#include "samplePlayback/samplePlayback.h"
 #include "sampleRecorder/sampleRecorder.h"
-#include "songEditor/songEditor.h"
 
 #include "Platform.h"
 #include "TrackerImpl.h"
@@ -14,20 +10,13 @@
 #include "util_math.h"
 #include <cmath>
 
-extern cPatternEditor patternEditor;
-
-static cSamplePlayback* SP = &samplePlayback;
 static cSampleRecorder* SR = &sampleRecorder;
-static cSampleEditor* SE = &sampleEditor;
-static cPatternEditor* PTE = &patternEditor;
-static cInstrumentEditor* IE = &instrumentEditor;
 static UartMidi* uartMidi = nullptr;
 static UsbMidi* usbMidi = nullptr;
 
 extern void playSongFromSelectedPattern();
 extern void playSongFromSelectedPattern_stop();
 
-void peformanceModeOnMidiCC(uint8_t cc_idx, uint8_t cc_value);
 void changeMixerOnMidiCC(uint8_t cc_idx, uint8_t cc_value);
 
 elapsedMillis timerMidiDelay = 0;
@@ -116,15 +105,6 @@ void handleJackNoteOn(byte channel, byte pitch, byte velocity)
                 sequencer.handleNoteOn(
                   Sequencer::GRID_OUTSIDE_PATTERN, pitch, velocity, pitch + 100);
 
-                patternEditor.refreshPatternFromOutsideModule();
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SamplePlayback)
-            {
-                SP->noteOnHandle(channel, pitch, velocity, pitch + 100);
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleEditor)
-            {
-                SE->noteOnHandle(channel, pitch, velocity, pitch + 100);
             }
             else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleRecorder)
             {
@@ -160,15 +140,6 @@ void handleUsbNoteOn(byte channel, byte pitch, byte velocity)
                 sequencer.handleNoteOn(
                   Sequencer::GRID_OUTSIDE_PATTERN, pitch, velocity, pitch + 100);
 
-                patternEditor.refreshPatternFromOutsideModule();
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SamplePlayback)
-            {
-                SP->noteOnHandle(channel, pitch, velocity, pitch + 100);
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleEditor)
-            {
-                SE->noteOnHandle(channel, pitch, velocity, pitch + 100);
             }
             else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleRecorder)
             {
@@ -197,24 +168,6 @@ void handleJackNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
                 sendSelection();
                 sequencer.handleNoteOff(Sequencer::GRID_OUTSIDE_PATTERN, pitch, 0, pitch + 100);
 
-                if (isEditMode())
-                {
-                    //					if (isMultiSelectionOnOneLine() &&
-                    // sequencer.noMoreRecOpen())
-                    if (sequencer.noMoreRecOpen())
-                    {
-                        PTE->moveCursorByStepParallel();
-                    }
-                }
-                patternEditor.refreshPatternFromOutsideModule();
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SamplePlayback)
-            {
-                SP->noteOffHandle(channel, pitch, 0, pitch + 100);
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleEditor)
-            {
-                SE->noteOffHandle(channel, pitch, 0, pitch + 100);
             }
             else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleRecorder)
             {
@@ -243,22 +196,6 @@ void handleUsbNoteOff(byte channel, byte pitch, [[maybe_unused]] byte velocity)
                 sendSelection();
                 sequencer.handleNoteOff(Sequencer::GRID_OUTSIDE_PATTERN, pitch, 0, pitch + 100);
 
-                if (isEditMode())
-                {
-                    if (sequencer.noMoreRecOpen())
-                    {
-                        PTE->moveCursorByStepParallel();
-                    }
-                }
-                patternEditor.refreshPatternFromOutsideModule();
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SamplePlayback)
-            {
-                SP->noteOffHandle(channel, pitch, 0, pitch + 100);
-            }
-            else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleEditor)
-            {
-                SE->noteOffHandle(channel, pitch, 0, pitch + 100);
             }
             else if (sequencer.getMidiInVoiceMode() == sequencer.midiInVoiceMode_SampleRecorder)
             {
@@ -276,13 +213,8 @@ void handleJackControlChange(byte channel, byte number, byte value)
 
     if ((channel == mtConfig.midi.ccInChannel) || (mtConfig.midi.ccInChannel == ALL_CC_CHANNELS))
     {
-        if (mtInterface.isPerformanceModeScreenActive())
-            peformanceModeOnMidiCC(number, value);
-
         changeMixerOnMidiCC(number, value);
 
-        IE->onControlChangeReceive(number, value);
-        SP->onControlChangeReceive(number, value);
     }
 }
 
@@ -293,13 +225,8 @@ void handleUSBControlChange(byte channel, byte number, byte value)
 
     if ((channel == mtConfig.midi.ccInChannel) || (mtConfig.midi.ccInChannel == ALL_CC_CHANNELS))
     {
-        if (mtInterface.isPerformanceModeScreenActive())
-            peformanceModeOnMidiCC(number, value);
-
         changeMixerOnMidiCC(number, value);
 
-        IE->onControlChangeReceive(number, value);
-        SP->onControlChangeReceive(number, value);
     }
 }
 

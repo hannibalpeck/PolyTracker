@@ -9,24 +9,19 @@
 #include "core/songTimer.h"
 #include "core/titleBar.h"
 
-#include "imageViewer/imageViewer.h"
-#include "instrumentEditor/instrumentEditor.h"
 #include "masterParams/masterParams.h"
-#include "patternEditor/patternEditor.h"
-#include "performanceMode/performanceMode.h"
-#include "projectEditor/projectEditor.h"
 #include "protrackerMode/protrackerMode.h"
-#include "sampleEditor/sampleEditor.h"
 #include "sampleImporter/sampleImporter.h"
-#include "samplePlayback/samplePlayback.h"
 #include "sampleRecorder/sampleRecorder.h"
-#include "songEditor/songEditor.h"
 
 #include "fileManager.h"
 #include "mtConfig.h"
 #include "mtPadBoard.h"
 #include "mtStructs.h"
 #include "mtTest.h"
+#include "mtAudioEngine.h"
+
+extern audioEngine engine;
 
 #include "Platform.h"
 #include "VoiceStreamManager.h"
@@ -54,47 +49,32 @@ extern uint8_t isAudioOutMuted();
 //=======================================================================
 //=======================================================================
 
+// Module slots keep their original numbers so that nothing else has to change; slots of removed
+// screens are empty.
 const uint8_t Interface::modulesCount = 13;
 const hModule Interface::modules[modulesCount] = {
-    &projectEditor,    // 0
+    nullptr,           // 0  (project editor, removed)
     &sampleImporter,   // 1
-    &patternEditor,    // 2
-    &samplePlayback,   // 3
-    &songEditor,       // 4
-    &instrumentEditor, // 5
-    &sampleEditor,     // 6
+    nullptr,           // 2  (pattern editor, removed)
+    nullptr,           // 3  (sample playback, removed)
+    nullptr,           // 4  (song editor, removed)
+    nullptr,           // 5  (instrument parameters, removed)
+    nullptr,           // 6  (sample editor, removed)
     &configEditor,     // 7
     &sampleRecorder,   // 8
-    &performanceMode,  // 9
-    &imageViewer,      // 10
-#ifdef PLATFORM_IMX
+    nullptr,           // 9  (performance mode, removed)
+    nullptr,           // 10 (image viewer, removed)
     &protrackerMode,   // 11 (Game button)
-#else
-    nullptr,           // 11
-#endif
     &masterParams,     // 12
 };
 
-#ifdef PLATFORM_IMX
-const uint8_t Interface::modulesButtonsCount = 12;
-#else
-const uint8_t Interface::modulesButtonsCount = 11;
-#endif
+const uint8_t Interface::modulesButtonsCount = 5;
 const uint32_t Interface::modulesButtons[][3] = {
-    { interfaceButtonPerformance, 9, 0 },
     { interfaceButtonMaster, 12, 0 },
-    { interfaceButtonParams, 5, mtInstEditModeParams },
-    { interfaceButtonFile, 0, 0 },
-    { interfaceButtonPattern, 2, 0 },
-    { interfaceButtonSamplePlay, 3, 0 },
-    { interfaceButtonSampleEdit, 6, 0 },
     { interfaceButtonSampleRec, 8, 0 },
     { interfaceButtonSampleLoad, 1, 0 },
-    { interfaceButtonSong, 4, 0 },
     { interfaceButtonConfig, 7, 0 },
-#ifdef PLATFORM_IMX
     { interfaceButtonGame, 11, 0 },
-#endif
 };
 
 //=======================================================================
@@ -112,7 +92,6 @@ void Interface::begin(Platform* platform, Synth* synth)
     Interface::platform = platform;
     Interface::fileSystem = platform->getFileSystem();
     Interface::ip = &::ip;
-    patternEditor.initExternalRamState();
     Interface::synth = synth;
     operatingMode = mtOperatingModeStartup;
 
@@ -276,13 +255,8 @@ void Interface::processStartScreen()
 #ifdef TRACKER_MINI
             initSpecialMiniTrackerButtons();
 #endif
-#if defined(PLATFORM_IMX) && !defined(PROTRACKER_NO_AUTOBOOT)
-            // Tracker+ boots straight into ProTracker mode. Build with -DPROTRACKER_NO_AUTOBOOT to
-            // start in the stock Pattern editor again; every other screen is still one button away.
+            // the firmware boots straight into ProTracker mode
             activateModule(&protrackerMode, 0);
-#else
-            activateModule(&patternEditor, 0);
-#endif
             unmuteAudioOutByKey();
 
 #ifdef TRACKER_MINI
@@ -486,10 +460,7 @@ void Interface::activateModule(hModule module, uint32_t options)
     ip->clearGlobalPads();
 
     onScreenModule = module;
-    if (module != &patternEditor)
-    {
-        songTimer.show();
-    }
+    songTimer.show();
     module->initDisplayControls();
 
     module->start(options);
@@ -543,7 +514,7 @@ void Interface::switchModuleByButton(hModule module, uint8_t button, uint32_t op
 
 void Interface::switchModuleToPrevious(hModule module, uint8_t options)
 {
-    if (previousModule == module)
+    if (previousModule == module || previousModule == nullptr)
         return;
 
     hModule prevModule = previousModule;
@@ -597,17 +568,17 @@ void Interface::toggleActiveModule(uint8_t state)
 
 bool Interface::isSongScreenActive()
 {
-    return isOnScreenModule(&songEditor);
+    return false; // screen removed
 }
 
 bool Interface::isPatternScreenActive()
 {
-    return isOnScreenModule(&patternEditor);
+    return false; // screen removed
 }
 
 bool Interface::isPerformanceModeScreenActive()
 {
-    return isOnScreenModule(&performanceMode);
+    return false; // screen removed
 }
 
 bool Interface::isMasterScreenActive()
@@ -617,12 +588,12 @@ bool Interface::isMasterScreenActive()
 
 bool Interface::isInstrumentParamsScreenActive()
 {
-    return isOnScreenModule(&instrumentEditor);
+    return false; // screen removed
 }
 
 bool Interface::isSamplePlayerScreenActive()
 {
-    return isOnScreenModule(&samplePlayback);
+    return false; // screen removed
 }
 
 bool Interface::isOnScreenModule(ModuleBase* module)
@@ -654,12 +625,6 @@ void interfaceEnvents(uint8_t event, void* param1, void* param2, void* param3)
         }
         case eventActivateGameModule:
         {
-            break;
-        }
-        case eventActivateImageViewer:
-        {
-            mtInterface.deactivateModule((hModule)param1);
-            mtInterface.activateModule(&imageViewer, param2 == nullptr ? 0 : *((uint8_t*)param2));
             break;
         }
         case eventToggleActiveModule:

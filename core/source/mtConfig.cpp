@@ -8,7 +8,6 @@
 
 #include "mtStructs.h"
 
-#include "performanceMode/performanceEngine.h"
 
 #include "convertOldFileVersionVolume.h"
 #include "mtConfig.h"
@@ -357,9 +356,9 @@ void checkConfig()
 
     for (uint8_t i = 0; i < 12; i++)
     {
-        if (mtConfig.values.perfFxPlaces[i] > performance.getFxCount() - 1)
+        if (mtConfig.values.perfFxPlaces[i] > 11)
         {
-            mtConfig.values.perfFxPlaces[i] = (i + 1 < performance.getFxCount()) ? i + 1 : 0;
+            mtConfig.values.perfFxPlaces[i] = i;
         }
 
         if (mtConfig.values.perfSelectedValues[i] > 3)

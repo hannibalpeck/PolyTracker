@@ -1,3 +1,4 @@
+#include "seqSelection.h"
 #include "core/interfacePopups.h"
 #include "core/interface.h"
 
@@ -13,7 +14,6 @@
 #endif
 
 #include "config.h"
-#include "patternEditor/patternEditor.h"
 #include "string.h"
 #include "util_math.h"
 
@@ -33,7 +33,6 @@ static void functDescriptionButton();
 static void functNoteActionButton(uint8_t button, uint8_t state);
 
 extern uint8_t functInvert();
-extern cPatternEditor patternEditor;
 
 InterfacePopups mtPopups;
 static InterfacePopups* POP = &mtPopups;
@@ -1099,12 +1098,6 @@ void InterfacePopups::refreshStepPopupDescription()
         display.setControlShow(textBox);
 
         mtPopups.refreshFxDescription();
-
-        if (!(patternEditor.trackerPattern.popupMode & 4))
-        {
-            patternEditor.trackerPattern.popupMode |= 4;
-            display.refreshControl(patternEditor.patternControl);
-        }
     }
     else
     {
@@ -1121,12 +1114,6 @@ void InterfacePopups::refreshStepPopupDescription()
         display.refreshControl(textLabel2);
 
         display.setControlHide(textBox);
-
-        if (patternEditor.trackerPattern.popupMode & 4)
-        {
-            patternEditor.trackerPattern.popupMode &= ~(4);
-            display.refreshControl(patternEditor.patternControl);
-        }
     }
 }
 
@@ -1191,7 +1178,7 @@ static void functPadsPopup(uint8_t pad, uint8_t state, int16_t)
                 if (mtInterface.isPatternScreenActive())
                 {
                     int instrumentToSet =
-                      patternEditor.isSelectionOrCursorInMidiTracks()
+                      false
                         ? MIDI_INSTRUMENTS_START_IDX + (pad % kMidiInstrumentsCount)
                         : pad;
 

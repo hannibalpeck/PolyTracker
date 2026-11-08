@@ -4,7 +4,6 @@
 #include "configEditor/configMenuActions.h"
 #include "ThemeManager.h"
 
-#include "imageViewer/imageViewerDefs.h"
 
 #include "polyassert.h"
 
@@ -306,33 +305,12 @@ cMenuItem melUsbAudio(menuUsb,
 // Credits & Info
 
 const strItemTypeActionButton creditsSetup{ openCreditsAction, nullptr };
-const strItemTypeActionButton manual1Setup{ openManual1Action, nullptr };
-const strItemTypeActionButton manual2Setup{ openManual2Action, nullptr };
-const strItemTypeActionButton manual3Setup{ openManual3Action, nullptr };
 
 cMenuItem melOpenCredits(menuCredits,
                          "About",
                          nullptr,
                          menuTypeItemActionButton,
                          &creditsSetup);
-
-cMenuItem melOpenManual1(menuCredits,
-                         &manualFolderNames[0][0],
-                         nullptr,
-                         menuTypeItemActionButton,
-                         &manual1Setup);
-
-cMenuItem melOpenManual2(menuCredits,
-                         &manualFolderNames[1][0],
-                         nullptr,
-                         menuTypeItemActionButton,
-                         &manual2Setup);
-
-cMenuItem melOpenManual3(menuCredits,
-                         &manualFolderNames[2][0],
-                         nullptr,
-                         menuTypeItemActionButton,
-                         &manual3Setup);
 
 
 //==================================================================================================================================================================

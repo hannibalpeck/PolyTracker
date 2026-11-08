@@ -1,23 +1,36 @@
-# Polyend Tracker Community Edition (CE)
+# ProTracker for Polyend Tracker+
 
-Welcome to the **Polyend Tracker Community Edition** repository!
+A ProTracker (Amiga) mode for the **Polyend Tracker+**, built from the open-source Polyend Tracker CE firmware. It boots straight into a four-channel, 64-row, 31-sample ProTracker 2.3D style editor and player, and loads and saves genuine Amiga `.mod` files. The replayer is ported from [pt2-clone](https://github.com/8bitbubsy/pt2-clone) by Olav Sorensen (BSD 3-Clause, see [`NOTICE.md`](NOTICE.md)).
 
-Built directly from the original Polyend firmware source code, Tracker CE opens up the Polyend Tracker platform to musicians, sound designers, and developers around the world. Whether you are here to flash the latest Community Edition firmware, want to build your own idea on the Tracker, design custom themes and fonts, write Sample Editor plugins, or build new synthesizer engines, we are excited to have you here.
+> **Status: not tested on hardware.** The ProTracker core has host-side unit tests (`tests/protracker`) and the firmware builds and links, but it has not been run on a real Tracker+ yet. Flash it with the recovery steps below in mind.
 
-### What's New:
-See [`CHANGELOG.md`](CHANGELOG.md) for the full list of new features and improvements in the stable releases.
+This firmware is Tracker+ only. Support for the Original Tracker and Tracker Mini was removed, along with the stock pattern, song, sample editing, instrument, performance and project screens. What is kept: the ProTracker screen, Config, Master, the sample recorder and the sample loader.
 
-### Download Firmware:
+## What it does
 
-###### Stable Releases: 
-For the latest official downloads for all devices, see [Releases](https://github.com/polyend/tracker-ce/releases).
+* Boots directly into ProTracker mode. Songs live in `/ProTracker` on the SD card; saving never overwrites an existing file (`name-N.mod`).
+* Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
+* Reads `M.K.`, `M!K!`, `FLT4`, `4CHN` and `N.T.` modules (6 and 8 channel modules are refused). Writes `M.K.` (or `M!K!` above 64 patterns).
+* The ProTracker screen is opened with the **Game** button.
+* Module memory is reserved from external RAM, which makes the stock sample memory about 2.1 MB smaller.
 
-###### Latest Beta Builds: 
-Automatically built from the latest changes (includes OG Tracker, Tracker+ and Tracker Mini):
+Not done yet: importing WAV files or recording into the 31 ProTracker sample slots. The recorder and loader screens still work on the stock sample memory and are not connected to the `.mod` samples.
 
-* [Download Latest Beta Firmware (`.zip`)](https://nightly.link/polyend/tracker-ce/workflows/build.yml/main/polyend-tracker-ce-firmware.zip)
-* [Download Latest Sample Editor Effects (`.zip`)](https://nightly.link/polyend/tracker-ce/workflows/build.yml/main/polyend-tracker-ce-effects.zip)
+## Repository structure
 
+```text
+.
+├── Makefile                # Top-level build (Tracker+ only)
+├── version.mk              # Version and build number
+├── core/                   # Application, audio engine, UI
+│   ├── protracker/         # Pure C++ .mod model and replayer (no hardware dependencies)
+│   └── interface/protrackerMode/   # The ProTracker screen
+├── platforms/imx/          # Tracker+ (i.MX RT1050) HAL, drivers and linker script
+├── synth/                  # PolySynth headers and precompiled libraries (see License)
+├── util/                   # Shared utility headers
+├── tests/protracker/       # Host unit tests
+└── docs/
+```
 
 ---
 
@@ -33,53 +46,6 @@ Automatically built from the latest changes (includes OG Tracker, Tracker+ and T
 
 ---
 
-## Repository Structure
-
-This unified codebase powers all three hardware instruments in the Tracker family:
-* **Original Polyend Tracker** (`NXP Kinetis MK66FX1M0`, Cortex-M4F @ 180 MHz)
-* **Polyend Tracker+ & Tracker Mini** (`NXP i.MX RT1051/RT1064`, Cortex-M7 @ 600 MHz)
-
-
-```text
-.
-├── Makefile                # Unified top-level build & version management
-├── version.mk              # Centralized version & build number configuration
-├── CHANGELOG.md            # Release history & feature highlights
-├── CONTRIBUTING.md         # Contribution rules & hardware testing workflow
-├── LICENSE                 # MIT License (+ No Wholesale Commercial Clones & Precompiled Synth Terms)
-├── NOTICE.md               # Third-party open-source attributions
-├── core/                   # Shared Tracker application, audio engine, UI & open synth engines
-├── platforms/
-│   ├── mk66/               # Original Tracker (Kinetis MK66) HAL, drivers & linker scripts
-│   └── imx/                # Tracker+ & Tracker Mini (i.MX RT1051) HAL, drivers & linker scripts
-├── synth/
-│   ├── include/PolySynth/  # PolySynth public headers & Open Synth SDK (synth/include/PolySynth/sdk/)
-│   └── lib/                # Precompiled libPolySynth.a & libPolyDSP.a + LICENSE-PROPRIETARY.txt
-├── util/                   # Shared C++ utility headers & third-party header libraries (ETL, magic_enum)
-├── editor-fx-sdk/          # .ptfx Sample Editor plugin SDK, builder & effects/ sources
-└── docs/                   # User guides, SDK tutorials & architecture documentation
-```
-
----
-
-## Guiding Principles of the Community Edition Firmware
-
-This repository prioritizes workflow continuity: our aim is to respect existing muscle memory, introduce features, optimizations and improvements that fit the original vision of the device, while fixing bugs along the way.
-
-If you have ideas for major workflow adjustments or structural changes, please open a [GitHub Discussion](https://github.com/polyend/tracker-ce/discussions) or a topic on the [Polyend Backstage Forum](https://backstage.polyend.com/) first, so we can align on direction together with the community.
-
-For radical experiments or reimagined interfaces, we actively encourage community forks!
-
----
-
-## Contributing
-
-We welcome community contributions! ❤️
-
-From bug fixes and workflow improvements to new open-source synth engines and `.ptfx` Sample Editor plugins. Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) for our project philosophy, pull request rules, hardware testing workflow, and technical checklist before opening a Pull Request.
-
----
-
 ## Building Firmware
 
 ### 1. Prerequisites
@@ -90,25 +56,19 @@ From bug fixes and workflow improvements to new open-source synth engines and `.
     * **macOS (`x86_64` / Apple Silicon via Rosetta)**: [`gcc-arm-none-eabi-10.3-2021.10-mac.tar.bz2`](https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-mac.tar.bz2)
     * **Windows (ZIP)**: [`gcc-arm-none-eabi-10.3-2021.10-win32.zip`](https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-win32.zip)
   * Ensure `arm-none-eabi-gcc` is on your `PATH`, extract the toolchain into `./agt/10.3/`, or pass `TOOLCHAIN=/path/to/arm-none-eabi-` to `make`.
-* `make` (for building firmware) and `python3` (used by `make ptfx` to package `.ptfx` Sample Editor plugins and by the `make bump-*` version helpers; standard library only).
+* `make` (for building firmware) and `python3` (used by the `make bump-*` version helpers; standard library only).
 
 ### 2. Build Commands
 From the repository root:
 
 ```bash
-# Build all three devices (Original Tracker, Tracker+, Tracker Mini)
-make all
-
-# Or build a single target:
-make original   # -> build/PolyendTracker_CE_1.0.0.ptf
 make plus       # -> build/TrackerPlus_CE_1.0.0.ptf
-make mini       # -> build/TrackerMini_CE_1.0.0.ptf
-
-# Build reference .ptfx Sample Editor effects into editor-fx-sdk/build/Effects/:
-make ptfx
-
-# Clean all build directories:
 make clean
+
+# Host tests for the ProTracker core (needs only g++):
+cd tests/protracker && g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined \
+  -I../../core/protracker test_protracker.cpp ../../core/protracker/ptModule.cpp \
+  ../../core/protracker/ptReplayer.cpp ../../core/protracker/ptTables.cpp -o /tmp/pt_test && /tmp/pt_test
 ```
 
 ### 3. Version Management (`version.mk`)
@@ -119,60 +79,34 @@ All firmware version numbers are defined in [`version.mk`](version.mk). The **Bu
 make version
 
 # Increment patch version (e.g. 1.0.0 -> 1.0.1)
-make bump-patch TARGET=all        # or TARGET=original | TARGET=plus | TARGET=mini
+make bump-patch
 
 # Increment minor version (e.g. 1.0.x -> 1.1.0)
-make bump-minor TARGET=all        # or TARGET=original | TARGET=plus | TARGET=mini
+make bump-minor
 ```
 
 ### 4. Flashing on Hardware & Emergency Recovery
 
-1. Copy the generated `.ptf` file from `build/` (`PolyendTracker_*.ptf`, `TrackerPlus_*.ptf`, or `TrackerMini_*.ptf`) to the `/Firmware/` folder on your Tracker's microSD card.
-   * *Note*: Keep `.ptf` filenames at **31 characters or fewer** so the Original Tracker's 32-byte `/Firmware/_fwinfo` bootloader buffer remains null-terminated.
+1. Copy the generated `.ptf` file from `build/` (`TrackerPlus_*.ptf`) to the `/Firmware/` folder on your Tracker's microSD card.
+   * Keep the `.ptf` filename at 31 characters or fewer.
 2. On the device, open **Config > Firmware > Firmware update**, select the `.ptf` file, and confirm.
 
 > **Bootloader Resilience & Emergency Firmware Recovery**:
 > * The Polyend Tracker bootloader is isolated from the application firmware:
->   * On the **Original Tracker (`MK66`)**, the bootloader runs on a separate dedicated microcontroller (`kBootloaderTrig`).
->   * On **Tracker+ and Tracker Mini (`IMX`)**, the bootloader resides in a protected region at the bottom of QSPI Flash (`0x60000000`–`0x6002FFFF`), while `.ptf` application builds are linked starting at `0x60030000` (do not modify the flash `ORIGIN` address in the linker scripts).
+>   * On the **Tracker+ (`IMX`)**, the bootloader resides in a protected region at the bottom of QSPI Flash (`0x60000000`–`0x6002FFFF`), while `.ptf` application builds are linked starting at `0x60030000` (do not modify the flash `ORIGIN` address in the linker scripts).
 > * **Emergency Recovery**: If a custom firmware build ever hangs or fails to boot into the UI, you can always recover your device:
 >   1. Place a known-good, stable `.ptf` firmware file for your device inside the `/Firmware/` folder on your microSD card (ideally as the only `.ptf` file in `/Firmware/`).
 >   2. Insert the microSD card into your Tracker and power it on.
->   3. Use a paperclip or SIM-eject pin to press the **recessed hardware Reset / Emergency Bootloader pinhole button** (located on the bottom of the Original Tracker / Tracker+, or next to the USB-C port on Tracker Mini). The hardware bootloader will automatically pick up the `.ptf` file from `/Firmware/` and flash it.
+>   3. Use a paperclip or SIM-eject pin to press the **recessed hardware Reset / Emergency Bootloader pinhole button** (on the bottom of the Tracker+). The hardware bootloader will automatically pick up the `.ptf` file from `/Firmware/` and flash it.
 
 ---
 
-## Documentation & Developer Guides
+## Documentation
 
-Full user and developer documentation is available in [`docs/`](docs/Home.md) and on the repository **Wiki**:
+* [ProTracker mode](docs/protracker.md)
+* [Firmware architecture and developer gotchas](docs/developer_guide.md) (written for the full upstream firmware; parts no longer apply)
+* [Custom Themes & Fonts](docs/custom_themes_and_fonts.md)
 
-* **User Guides**:
-  * [Custom Themes & Fonts](docs/custom_themes_and_fonts.md) + [Live Web Editor](https://polyend.github.io/tracker-theme-editor/) ([`polyend/tracker-theme-editor`](https://github.com/polyend/tracker-theme-editor))
-  * [Wavetable Envelopes, LFOs & Step FX](docs/wavetable_envelopes.md)
-  * [SD Card Image Viewer](docs/image_viewer.md)
-* **Developer & Architecture Guides**:
-  * [Firmware Architecture, Hardware Limits & Developer Gotchas](docs/developer_guide.md)
-  * [Custom Synth Engine SDK](docs/custom_synth_sdk.md)
-  * [Modular Sample Editor Effects & `.ptfx` Developer SDK](docs/modular_effects_system.md)
+## Upstream and license
 
----
-
-## Polyend Tracker Open-Source Ecosystem
-
-This repository is part of a growing open-source ecosystem around the Polyend Tracker family:
-
-* **[`polyend/tracker-theme-editor`](https://github.com/polyend/tracker-theme-editor)** ([Live Web App](https://polyend.github.io/tracker-theme-editor/)): Browser-based visual **Theme & Font Editor** with a hardware screen simulator.
-* **[`polyend/tracker-lib`](https://github.com/polyend/tracker-lib)**: Open-source library and tools for reading, writing, and inspecting Polyend Tracker project (`.mt`), pattern (`.mtp`), and instrument (`.pti`) files.
-* **[Polyend Backstage Forum](https://backstage.polyend.com/)**: Community forum for sharing custom themes, fonts, `.ptfx` plugins, synth engines, and discussing workflows.
-* **[The Tracker Overflow (Discord)](https://discord.com/invite/uEPTnwckJV)**: Unofficial Polyend Tracker Discord where users and developers can join, chat, and find like-minded people.
-
----
-
-## License
-
-* **Source Code, SDKs, Open Synth Engines (`core/synth/engines/`), `.ptfx` Sample Editor SDK (`editor-fx-sdk/`), Drivers & Utilities**: Licensed under the **MIT License with a Wholesale Commercial Clone Restriction** (see [`LICENSE`](LICENSE)).
-  * **Musicians & Creators**: Using the firmware for commercial music production, albums, paid live performances/gigs, sample packs, and monetized streaming/YouTube content is **expressly permitted**.
-  * **Developers & Plugin Authors**: Reusing individual source files, drivers, DSP algorithms, UI widgets, or open-source C++ synth engines (`CHIP`, etc.) in your own open-source or commercial projects—and selling `.ptfx` Sample Editor plugins—is **expressly permitted** under the MIT License.
-  * **No Wholesale Commercial Clones**: You may **not** sell compiled `.ptf` firmware builds, manufacture/sell commercial clone hardware running the Tracker firmware, or sell a direct port/wholesale clone of the complete Tracker application as a paid software product.
-* **Precompiled Synth & DSP Libraries (`synth/lib/libPolySynth.a`, `synth/lib/libPolyDSP.a`)**: Provided under the [Polyend Precompiled Synthesizer & DSP Library License](synth/lib/LICENSE-PROPRIETARY.txt), permitting free use on authentic Polyend hardware as well as personal/DIY non-commercial projects (commercial embedding of the precompiled `.a` binaries is prohibited).
-* **Third-Party Components**: See [`NOTICE.md`](NOTICE.md).
+Based on [polyend/tracker-ce](https://github.com/polyend/tracker-ce). See the upstream project for the stock firmware, other devices and its community. The license is unchanged: MIT with a Wholesale Commercial Clone Restriction (see [`LICENSE`](LICENSE)), the precompiled PolySynth/PolyDSP libraries have their own terms ([`synth/lib/LICENSE-PROPRIETARY.txt`](synth/lib/LICENSE-PROPRIETARY.txt)), and third-party components are listed in [`NOTICE.md`](NOTICE.md).

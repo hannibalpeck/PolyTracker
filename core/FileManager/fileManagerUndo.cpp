@@ -4,8 +4,6 @@
 #include "core/interfacePopups.h"
 
 #include "fileManager.h"
-#include "patternEditor/patternEditor.h"
-static cPatternEditor* PTE = &patternEditor;
 
 const uint8_t UNDO_CAPACITY = 20;
 __NOINIT(EXTERNAL_RAM) Sequencer::strPattern undoPatternBuffer[UNDO_CAPACITY];
@@ -47,39 +45,11 @@ struct strUndoSong
     uint8_t redoPossibility = 0; // ile razy zrzuciliśmy
 } static undoSong;
 
-void cFileManager::storePatternSelection(uint8_t index)
+void cFileManager::storePatternSelection([[maybe_unused]] uint8_t index)
 {
-    strUndoPatternBuffer_Selection* dest = &undoPatternBufferSelection[index];
-    strTrackerPattern* src = &PTE->trackerPattern;
-
-    dest->editParam_ = PTE->editParam;
-
-    dest->currentTrack = src->actualTrack;
-    dest->currentStep = src->actualStep;
-
-    dest->selectState = src->selectState;
-
-    dest->selectStartTrack = src->selectStartTrack;
-    dest->selectStartStep = src->selectStartStep;
-    dest->selectEndTrack = src->selectEndTrack;
-    dest->selectEndStep = src->selectEndStep;
 }
-void cFileManager::restorePatternSelection(uint8_t index)
+void cFileManager::restorePatternSelection([[maybe_unused]] uint8_t index)
 {
-    strTrackerPattern* dest = &PTE->trackerPattern;
-    strUndoPatternBuffer_Selection* src = &undoPatternBufferSelection[index];
-
-    PTE->editParam = src->editParam_;
-
-    dest->actualTrack = src->currentTrack;
-    dest->actualStep = src->currentStep;
-
-    dest->selectState = src->selectState;
-
-    dest->selectStartTrack = src->selectStartTrack;
-    dest->selectStartStep = src->selectStartStep;
-    dest->selectEndTrack = src->selectEndTrack;
-    dest->selectEndStep = src->selectEndStep;
 }
 void cFileManager::storePatternUndoRevision()
 {

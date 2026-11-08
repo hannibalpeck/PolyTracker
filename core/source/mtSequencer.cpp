@@ -2,6 +2,7 @@
 #include <numeric>
 
 #ifdef FEATURE_SYNTH
+#include "seqSelection.h"
 #include "Synth.h"
 #endif
 #include "fileManager.h"
@@ -13,8 +14,6 @@
 
 #include "configEditor/configEditor.h"
 #include "core/songTimer.h"
-
-#include "patternEditor/patternEditor.h"
 
 #include "core/interfacePopups.h"
 
@@ -35,14 +34,9 @@ Sequencer::strPattern seq[2];
 #include "playModeDefs.h"
 
 extern audioEngine engine;
-extern cPatternEditor patternEditor;
 
 extern cSampleRecorder sampleRecorder;
 cSampleRecorder* SR = &sampleRecorder;
-
-#include "performanceMode/performanceMode.h"
-extern cPerformanceMode performanceMode;
-static cPerformanceMode* PM = &performanceMode;
 
 extern void cbkSetCurrentExporterOnLastStep();
 
@@ -1612,8 +1606,6 @@ void Sequencer::stop(StopContext context)
 
     sendMidiStop();
 
-    patternEditor.refreshEditStateFromOutsideModule();
-
     for (int trackIdx = 0; trackIdx < kAllTracks; trackIdx++)
     {
         player.track[trackIdx].stepSent.note = STEP_NOTE_EMPTY;
@@ -1947,14 +1939,6 @@ void Sequencer::switchRowStep(uint8_t row) // przełączamy stepy w zależności
         if (!isNextPatternAvailable)
             player.onSongEnd();
 
-        if (patternSwitched && mtInterface.isPerformanceModeScreenActive())
-        {
-            for (uint8_t a = 0; a < kPerformanceTracks; a++)
-            {
-                mtProject.perfTracksPatterns[a] = mtProject.values.actualPattern;
-            }
-            PM->refreshTrackPattern = 1;
-        }
     }
 }
 
