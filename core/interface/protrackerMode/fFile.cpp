@@ -19,7 +19,7 @@ cProTrackerFile protrackerFile;
 static cProTrackerFile* F = &protrackerFile;
 static cProTrackerMode* PT = &protrackerMode;
 
-static const char* kSongFolder = "/ProTracker";
+static const char* kSongFolder = "/mods";
 
 __NOINIT(EXTERNAL_RAM) static char s_names[kMaxFilesListLength * kMaxFileNameLen];
 static char* s_list[kMaxFilesListLength];
@@ -806,7 +806,7 @@ void cProTrackerFile::actExportWav()
     display.refreshControl(label[6]);
     display.synchronizeRefresh();
     if (done)
-        message("WAV exported to /ProTracker/Export");
+        message("WAV exported to /mods/Export");
     else
         message(error != nullptr ? error : "Cannot export the WAV file");
 }

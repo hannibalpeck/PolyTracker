@@ -34,7 +34,7 @@ Playback stops when you change screens.
 
 ## File screen
 
-The **File** button opens a screen with the layout of the stock Polyend file screen: New Song, Open, Clear Song (patterns, order list and title are cleared, the samples stay), Save and Save As. Open and Save As show the SD card browser (folders on the left, starting in `/ProTracker`) with Enter, Delete, New Folder, Cancel and Open/Save; Save As names the file with the on-screen keyboard. Only `.mod` files can be opened. **Export WAV** renders the song (from position 0 until it ends or loops, at most 15 minutes) to a 16-bit 44.1 kHz stereo WAV in `/ProTracker/Export`, named after the song; the screen is busy while it renders and shows the progress in percent. New and Open ask to save unsaved changes first.
+The **File** button opens a screen with the layout of the stock Polyend file screen: New Song, Open, Clear Song (patterns, order list and title are cleared, the samples stay), Save and Save As. Open and Save As show the SD card browser (folders on the left, starting in `/mods`) with Enter, Delete, New Folder, Cancel and Open/Save; Save As names the file with the on-screen keyboard. Only `.mod` files can be opened. **Export WAV** renders the song (from position 0 until it ends or loops, at most 15 minutes) to a 16-bit 44.1 kHz stereo WAV in `/mods/Export`, named after the song; the screen is busy while it renders and shows the progress in percent. New and Open ask to save unsaved changes first.
 
 ## Sample loader
 
@@ -42,7 +42,7 @@ The **Sample Load** screen (stock layout: file browser on the left, instrument l
 
 ## Files
 
-Songs are stored in `/ProTracker` on the SD card. Saving never overwrites: an existing name becomes `name-N.mod`. Samples are 8-bit, at most 65534 bytes each, 31 per song; a module holds up to 128 orders of 64 rows.
+Songs are stored in `/mods` on the SD card. Saving never overwrites: an existing name becomes `name-N.mod`. Samples are 8-bit, at most 65534 bytes each, 31 per song; a module holds up to 128 orders of 64 rows.
 
 ## Memory
 

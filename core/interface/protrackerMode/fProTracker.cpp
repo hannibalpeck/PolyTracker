@@ -1394,7 +1394,7 @@ bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** erro
 {
     FileSystem* fs = platform->getFileSystem();
 
-    const char* folder = "/ProTracker/Export";
+    const char* folder = "/mods/Export";
     if (!fs->exists(folder))
         fs->mkdir(0, folder);
 

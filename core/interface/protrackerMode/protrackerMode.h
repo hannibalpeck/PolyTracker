@@ -13,7 +13,7 @@
 
 // The ProTracker (Amiga, 4 channels, 64 rows, 31 samples) pattern screen. It uses the stock Polyend
 // pattern grid, bottom buttons and popups, but edits a genuine .mod song that is played by the
-// ProTracker replayer. Songs are loaded from and saved to /ProTracker on the SD card.
+// ProTracker replayer. Songs are loaded from and saved to /mods on the SD card.
 class cProTrackerMode : public ModuleBase
 {
   public:
