@@ -172,7 +172,7 @@ void Replayer::mix(int16_t* left, int16_t* right, uint32_t frames)
 void Replayer::previewStart(int sampleIndex, uint16_t period)
 {
     previewActive_ = false;
-    if (mod_ == nullptr || playing_ || sampleIndex < 0 || sampleIndex >= kSampleCount)
+    if (mod_ == nullptr || sampleIndex < 0 || sampleIndex >= kSampleCount)
         return;
 
     const Sample& smp = mod_->samples[sampleIndex];
@@ -198,35 +198,56 @@ void Replayer::previewStart(int sampleIndex, uint16_t period)
     previewActive_ = true;
 }
 
+int32_t Replayer::nextPreviewSample()
+{
+    int32_t out = 0;
+    if (previewActive_)
+    {
+        out = (int32_t)previewPtr_[previewPos_] * previewVolume_;
+
+        previewFrac_ += previewDelta_;
+        if (previewFrac_ >= (1u << 24))
+        {
+            previewPos_ += previewFrac_ >> 24;
+            previewFrac_ &= (1u << 24) - 1;
+
+            if (previewLoopEnd_ != 0)
+            {
+                while (previewPos_ >= previewLoopEnd_)
+                    previewPos_ -= previewLoopEnd_ - previewLoopStart_;
+            }
+            else if (previewPos_ >= previewLen_)
+            {
+                previewActive_ = false;
+            }
+        }
+    }
+    return out;
+}
+
 void Replayer::mixPreview(int16_t* left, int16_t* right, uint32_t frames)
 {
     for (uint32_t f = 0; f < frames; f++)
     {
-        int32_t out = 0;
-        if (previewActive_)
-        {
-            out = (int32_t)previewPtr_[previewPos_] * previewVolume_;
-
-            previewFrac_ += previewDelta_;
-            if (previewFrac_ >= (1u << 24))
-            {
-                previewPos_ += previewFrac_ >> 24;
-                previewFrac_ &= (1u << 24) - 1;
-
-                if (previewLoopEnd_ != 0)
-                {
-                    while (previewPos_ >= previewLoopEnd_)
-                        previewPos_ -= previewLoopEnd_ - previewLoopStart_;
-                }
-                else if (previewPos_ >= previewLen_)
-                {
-                    previewActive_ = false;
-                }
-            }
-        }
-
+        const int32_t out = nextPreviewSample();
         left[f] = (int16_t)out;
         right[f] = (int16_t)out;
+    }
+}
+
+// the preview voice on top of the song, used when a pad is played while the song runs
+void Replayer::addPreview(int16_t* left, int16_t* right, uint32_t frames)
+{
+    if (!previewActive_)
+        return;
+
+    for (uint32_t f = 0; f < frames; f++)
+    {
+        const int32_t out = nextPreviewSample();
+        int32_t l = left[f] + out;
+        int32_t r = right[f] + out;
+        left[f] = (int16_t)(l > 32767 ? 32767 : (l < -32768 ? -32768 : l));
+        right[f] = (int16_t)(r > 32767 ? 32767 : (r < -32768 ? -32768 : r));
     }
 }
 
@@ -415,6 +436,7 @@ void Replayer::render(int16_t* left, int16_t* right, uint32_t frames)
 
         uint32_t n = frames < samplesToNextTick_ ? frames : samplesToNextTick_;
         mix(left, right, n);
+        addPreview(left, right, n);
 
         left += n;
         right += n;

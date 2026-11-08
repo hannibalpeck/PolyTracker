@@ -90,6 +90,8 @@ class Replayer
     void paulaDmaOff(int v);
     void mix(int16_t* left, int16_t* right, uint32_t frames);
     void mixPreview(int16_t* left, int16_t* right, uint32_t frames);
+    void addPreview(int16_t* left, int16_t* right, uint32_t frames);
+    int32_t nextPreviewSample();
 
     // -------------------------------------------------------------- replayer
     struct Channel

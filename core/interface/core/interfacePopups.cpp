@@ -8,6 +8,7 @@
 
 #include "mtSequencer.h"
 #include "protrackerMode/protrackerMode.h"
+#include "ptEffects.h"
 #include "padToBeatNoteConverter.h"
 
 #ifdef GUI_HANDLE_SYNTH
@@ -338,6 +339,14 @@ void InterfacePopups::showInstrumentsPopup(enumStepPopups mode)
     display.synchronizeRefresh();
 }
 
+static const char* const* ptFxNames()
+{
+    static const char* names[protracker::kEffectCount];
+    for (int i = 0; i < protracker::kEffectCount; i++)
+        names[i] = protracker::kEffects[i].name;
+    return names;
+}
+
 void InterfacePopups::showFxesPopup()
 {
     labelDoubleArrow.bitmaps[0].xValue = 600 + 15;
@@ -358,12 +367,12 @@ void InterfacePopups::showFxesPopup()
     display.refreshControl(textLabel1);
 
     // showActualInstrument();
-    ptrActualItemsList = (char**)(interfaceGlobals.ptrFxNames);
+    ptrActualItemsList = (char**)ptFxNames();
 
     instrList.start = selectedActualItem;
     instrList.linesCount = 15;
-    instrList.length = FX_COUNT - FX_COUNT_HIDDEN_FXes;
-    instrList.data = (char**)interfaceGlobals.ptrFxNames;
+    instrList.length = protracker::kEffectCount;
+    instrList.data = (char**)ptFxNames();
 
     display.setControlSize(popupListControl, -1, 420);
     display.setControlPosition(popupListControl, 600, 30);
@@ -725,7 +734,7 @@ void InterfacePopups::setStepPopupValue(int16_t value)
         }
         case stepPopupFx:
         {
-            selectedActualItem = clamp<int8_t>(value, 0, FX_COUNT - 1 - FX_COUNT_HIDDEN_FXes);
+            selectedActualItem = clamp<int8_t>(value, 0, protracker::kEffectCount - 1);
             mtProject.values.lastUsedFx = selectedActualItem;
 
             display.setControlValue(popupListControl, selectedActualItem);
@@ -842,7 +851,7 @@ void InterfacePopups::changeStepPopupValue(int16_t value, InterfacePopups::Popup
             padsBacklight.setBackLayer(0, 0, selectedActualItem);
 
             selectedActualItem =
-              clamp<int8_t>(selectedActualItem + value, 0, FX_COUNT - 1 - FX_COUNT_HIDDEN_FXes);
+              clamp<int8_t>(selectedActualItem + value, 0, protracker::kEffectCount - 1);
 
             mtProject.values.lastUsedFx = selectedActualItem;
             display.setControlValue(popupListControl, selectedActualItem);
@@ -864,7 +873,7 @@ void InterfacePopups::changeStepPopupValue(int16_t value, InterfacePopups::Popup
 void InterfacePopups::refreshFxDescription()
 {
     display.setControlValue(textBox, 10);
-    display.setControlText(textBox, interfaceGlobals.fxDescPtr(selectedActualItem));
+    display.setControlText(textBox, (char*)protracker::kEffects[selectedActualItem].description);
     // display.setControlShow(textBox);
     display.refreshControl(textBox);
 }

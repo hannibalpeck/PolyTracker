@@ -16,6 +16,7 @@
 #include "core/interfacePopups.h"
 #include "core/songTimer.h"
 
+#include "ptEffects.h"
 #include "ptTables.h"
 
 cProTrackerMode protrackerMode;
@@ -45,6 +46,8 @@ static int s_clipTracks = 0;
 static int s_clipRows = 0;
 __NOINIT(EXTERNAL_RAM) static uint8_t s_patternClip[protracker::kPatternBytes];
 static bool s_hasPatternClip = false;
+static uint8_t s_trackClip[kRows * 4];
+static bool s_hasTrackClip = false;
 
 static char s_info[160];
 static char s_title[48];
@@ -122,23 +125,25 @@ static void formatNote(char* out, uint16_t period)
     out[3] = 0;
 }
 
-// Pad number -> semitone above the lowest pad, with the same pad layout as the stock firmware.
+// Pad number (0..47) -> note 0..35 (C-1..B-3). Pad 13 (index 12) is C-3, the pads above it fold
+// down, because a .mod only has three octaves: pads 1-12 are C-2..B-2, 13-24 C-3..B-3, 25-36 C-1..B-1,
+// 37-48 C-2..B-2.
 static int padSemitone(uint8_t pad)
 {
     if (pad >= 48)
         return -1;
-    const int lowest = mtPadBoard.getNoteFromPad(36); // the pad that holds the lowest note
-    return (int)mtPadBoard.getNoteFromPad((int8_t)pad) - lowest;
+    int note = 12 + pad;
+    if (note >= 36)
+        note -= 36;
+    return note;
 }
 
-static int padForSemitone(int semitone)
+// the pad that shows a note in the note popup
+static int padForSemitone(int note)
 {
-    for (int pad = 0; pad < 48; pad++)
-    {
-        if (padSemitone((uint8_t)pad) == semitone)
-            return pad;
-    }
-    return 36;
+    if (note < 0 || note >= 36)
+        return 12;
+    return note >= 12 ? note - 12 : note + 24;
 }
 
 static bool isButtonDown(int button)
@@ -232,6 +237,11 @@ bool cProTrackerMode::isFxHeld()
            platform->getButtons()->isButtonPressed(interfaceButtonFx2);
 }
 
+bool cProTrackerMode::isHeld(int button)
+{
+    return platform->getButtons()->isButtonPressed(button);
+}
+
 bool cProTrackerMode::isShiftPressed()
 {
     return platform->getButtons()->isButtonPressed(interfaceButtonShift);
@@ -308,15 +318,17 @@ void cProTrackerMode::update()
         return;
 
     // popups open when Note or Instr is held for a moment
-    for (uint8_t i = 0; i < 2; i++)
+    for (uint8_t i = 0; i < 3; i++)
     {
         if (!popupActive && stepButtonsState[i] == 1 &&
             stepButtonsTimer[i] > (i == 0 ? kNotePopupDelayMs : kInstrPopupDelayMs))
         {
             if (i == 0)
                 showNotePopup();
-            else
+            else if (i == 1)
                 showInstrumentPopup();
+            else
+                showFxPopup();
         }
     }
 
@@ -335,11 +347,9 @@ void cProTrackerMode::update()
         {
             lastRow = row;
             trackerPattern.playheadPosition = (int16_t)row;
-            if (!editMode)
-            {
-                trackerPattern.actualStep = (int16_t)row;
-                trackerPattern.selectState = 1;
-            }
+            // the cursor runs with the song, so that recording lands where it shows
+            trackerPattern.actualStep = (int16_t)row;
+            trackerPattern.selectState = 1;
             changed = true;
         }
     }
@@ -472,10 +482,11 @@ void cProTrackerMode::refreshHeldValues()
 
 void cProTrackerMode::refreshLabels()
 {
-    static const char* const kPage0[8] = { "Pattern", "Position", "Step jump", "",
-                                           "Preview", "Undo",     "Redo",      "More" };
-    static const char* const kPage1[8] = { "", "", "Duplicate", "", "", "Copy", "Paste", "More" };
-    static const char* const kPage1b[8] = { "", "", "Pattern", "", "", "Pattern", "Pattern", "" };
+    static const char* const kPage0[8] = { "Pattern", "Position", "Step jump", "Copy",
+                                           "Paste",   "Copy",     "Paste",     "More" };
+    static const char* const kPage0b[8] = { "", "", "", "Track", "Track", "Pattern", "Pattern", "" };
+    static const char* const kPage1[8] = { "Preview", "Undo", "Redo", "Duplicate", "", "", "", "More" };
+    static const char* const kPage1b[8] = { "", "", "", "Pattern", "", "", "", "" };
 
     if (shiftMuteView)
         return;
@@ -493,24 +504,16 @@ void cProTrackerMode::refreshLabels()
         if (page == 0)
         {
             text = kPage0[i];
+            text2 = kPage0b[i];
             if (i < 3)
                 text2 = s_text2[i];
 
-            if (i == 3)
+            if (i >= 3 && i <= 6)
             {
-                colors = display.getTheme().inactiveLabelsColors;
+                const bool copy = (i == 3 || i == 5);
+                colors = (copy || editMode) ? display.getTheme().activeButtonLabelsColors
+                                            : display.getTheme().inactiveButtonLabelsColors;
                 data = &labelDataRed;
-                value = 0;
-            }
-            else if (i == 5 || i == 6)
-            {
-                colors = editMode ? display.getTheme().activeButtonLabelsColors
-                                  : display.getTheme().inactiveButtonLabelsColors;
-                data = &labelDataRed;
-                value = 0;
-            }
-            else if (i == 4)
-            {
                 value = 0;
             }
             else if (i == 7)
@@ -523,9 +526,17 @@ void cProTrackerMode::refreshLabels()
         {
             text = kPage1[i];
             text2 = kPage1b[i];
-            colors = editMode ? display.getTheme().activeButtonLabelsColors
-                              : display.getTheme().inactiveButtonLabelsColors;
-            data = &labelDataRed;
+            if (i == 0)
+            {
+                value = 0; // Preview works in both modes
+            }
+            else
+            {
+                colors = editMode ? display.getTheme().activeButtonLabelsColors
+                                  : display.getTheme().inactiveButtonLabelsColors;
+                data = &labelDataRed;
+                value = 0;
+            }
             if (i == 7)
             {
                 colors = display.getTheme().moreButtonColors;
@@ -768,6 +779,51 @@ void cProTrackerMode::redo()
 }
 
 // ---------------------------------------------------------------------------------------------
+// effect values, the usual ProTracker ranges
+// ---------------------------------------------------------------------------------------------
+// Cxx 00..40, Bxx 00..7F, Dxx 00..63 (decimal digits), Exy only changes y, the others 00..FF
+// (Fxx: 01..1F is the speed in ticks, 20..FF the tempo in BPM)
+static uint8_t stepParam(uint8_t command, uint8_t old, int delta)
+{
+    int v = old;
+    switch (command)
+    {
+        case 0xC: v = old + delta; return (uint8_t)(v < 0 ? 0 : (v > 64 ? 64 : v));
+        case 0xB: v = old + delta; return (uint8_t)(v < 0 ? 0 : (v > 127 ? 127 : v));
+        case 0xD:
+        {
+            v = (old >> 4) * 10 + (old & 0x0F) + delta;
+            v = v < 0 ? 0 : (v > 63 ? 63 : v);
+            return (uint8_t)(((v / 10) << 4) | (v % 10));
+        }
+        case 0xE:
+        {
+            v = (old & 0x0F) + delta;
+            v = v < 0 ? 0 : (v > 15 ? 15 : v);
+            return (uint8_t)((old & 0xF0) | v);
+        }
+        default: v = old + delta; return (uint8_t)(v < 0 ? 0 : (v > 255 ? 255 : v));
+    }
+}
+
+// a value picked on the pads (0..255) brought into the range of the command
+static uint8_t padParam(uint8_t command, uint8_t old, int value)
+{
+    switch (command)
+    {
+        case 0xC: return (uint8_t)(value * 64 / 255);
+        case 0xB: return (uint8_t)(value / 2);
+        case 0xD:
+        {
+            const int v = value * 63 / 255;
+            return (uint8_t)(((v / 10) << 4) | (v % 10));
+        }
+        case 0xE: return (uint8_t)((old & 0xF0) | (value >> 4));
+        default: return (uint8_t)value;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // editing
 // ---------------------------------------------------------------------------------------------
 int cProTrackerMode::writeNote(int semitone)
@@ -818,9 +874,51 @@ void cProTrackerMode::writeFxValue(int value)
         for (int r = r0; r <= r1; r++)
         {
             protracker::Note* n = cell(t, r);
-            n->set(n->sample(), n->period(), n->command(), (uint8_t)value);
+            n->set(n->sample(), n->period(), n->command(), padParam(n->command(), n->param(), value));
         }
     }
+}
+
+// An entry of the Fx list goes to the effect lane. E-commands keep their value nibble, other
+// effects get a sensible starting value that the jogwheel then changes.
+void cProTrackerMode::writeEffect(int index)
+{
+    if (index < 0 || index >= protracker::kEffectCount)
+        return;
+
+    const protracker::EffectInfo& fx = protracker::kEffects[index];
+
+    storeUndo();
+    int t0, r0, t1, r1;
+    selectionRect(t0, r0, t1, r1);
+    for (int t = t0; t <= t1; t++)
+    {
+        for (int r = r0; r <= r1; r++)
+        {
+            protracker::Note* n = cell(t, r);
+            uint8_t param = n->param();
+            if (fx.paramHigh >= 0)
+                param = (uint8_t)((fx.paramHigh << 4) | (n->command() == 0xE ? (param & 0x0F) : 0));
+            else if (n->command() != fx.command)
+                param = fx.command == 0xC ? 0x40 : (fx.command == 0xF ? 0x06 : 0x00);
+            n->set(n->sample(), n->period(), fx.command, param);
+        }
+    }
+}
+
+// Live recording: the note lands on the row that is playing, in the track of the cursor.
+void cProTrackerMode::recordNote(int note)
+{
+    if (note < 0 || note >= 36)
+        return;
+
+    int row = replayer.row();
+    if (row < 0 || row >= kRows)
+        row = trackerPattern.actualStep;
+
+    protracker::Note* n = cell(trackerPattern.actualTrack, row);
+    n->set((uint8_t)sample, (uint16_t)protracker::kPeriodTable[note], n->command(), n->param());
+    dirty = true;
 }
 
 void cProTrackerMode::writeFxType(int type)
@@ -892,12 +990,7 @@ void cProTrackerMode::changeValue(int delta)
             }
             else
             {
-                int value = n->param() + delta;
-                if (value < 0)
-                    value = 0;
-                if (value > 255)
-                    value = 255;
-                n->set(n->sample(), n->period(), n->command(), (uint8_t)value);
+                n->set(n->sample(), n->period(), n->command(), stepParam(n->command(), n->param(), delta));
             }
         }
     }
@@ -1009,6 +1102,22 @@ void cProTrackerMode::pastePattern()
     memcpy(module.pattern(currentPattern()), s_patternClip, protracker::kPatternBytes);
 }
 
+void cProTrackerMode::copyTrack()
+{
+    for (int r = 0; r < kRows; r++)
+        memcpy(s_trackClip + r * 4, cell(trackerPattern.actualTrack, r), 4);
+    s_hasTrackClip = true;
+}
+
+void cProTrackerMode::pasteTrack()
+{
+    if (!s_hasTrackClip)
+        return;
+    storeUndo();
+    for (int r = 0; r < kRows; r++)
+        memcpy(cell(trackerPattern.actualTrack, r), s_trackClip + r * 4, 4);
+}
+
 // A copy of the current pattern goes to the first pattern number that isn't in use yet.
 void cProTrackerMode::duplicatePattern()
 {
@@ -1079,7 +1188,7 @@ void cProTrackerMode::changeEditStep(int delta)
 void cProTrackerMode::previewPeriod(int sampleNumber, int period)
 {
     if (stream == nullptr || sampleNumber < 1 || sampleNumber > protracker::kSampleCount ||
-        period <= 0 || replayer.isPlaying())
+        period <= 0)
         return;
 
     stream->requestPreview(sampleNumber - 1, (uint16_t)period);
@@ -1128,7 +1237,7 @@ void cProTrackerMode::setStepButtonState(uint8_t button, uint8_t state)
     {
         if (popupActive || isShiftPressed() || patternHeld || mode != kModeEdit)
             return;
-        if (stepButtonsState[0] || stepButtonsState[1])
+        if (stepButtonsState[0] || stepButtonsState[1] || stepButtonsState[2])
             return;
 
         stepButtonsState[button] = 1;
@@ -1158,6 +1267,16 @@ void cProTrackerMode::showInstrumentPopup()
 
     const protracker::Note& n = *cell(trackerPattern.actualTrack, trackerPattern.actualStep);
     mtPopups.showStepPopup(stepPopupInstr, (int8_t)((n.sample() != 0 ? n.sample() : sample) - 1));
+}
+
+void cProTrackerMode::showFxPopup()
+{
+    popupActive = true;
+    trackerPattern.popupMode |= 2;
+    refreshPattern();
+
+    const protracker::Note& n = *cell(trackerPattern.actualTrack, trackerPattern.actualStep);
+    mtPopups.showStepPopup(stepPopupFx, (int8_t)protracker::effectIndex(n.command(), n.param()));
 }
 
 void cProTrackerMode::cancelPopups()
@@ -1193,6 +1312,10 @@ void cProTrackerMode::applyPopup()
         sample = value + 1;
         if (editMode)
             writeInstrument(sample);
+    }
+    else if (state == stepPopupFx)
+    {
+        writeEffect(value); // the chosen effect always goes to the lane
     }
 
     refreshEditState();
@@ -1311,12 +1434,26 @@ static void functPattern(uint8_t state)
     PT->refreshEditState();
 }
 
+// Rec switches writing on and off. Rec together with Play starts the pattern and records.
 static void functRecAction()
 {
     if (PT->mode != cProTrackerMode::kModeEdit)
         return;
 
-    PT->editMode = !PT->editMode;
+    if (PT->isHeld(interfaceButtonPlay))
+    {
+        if (!PT->editMode)
+            PT->storeUndo(); // the whole take can be undone in one step
+        PT->editMode = 1;
+        if (!PT->isPlaying())
+            PT->togglePlay(PT->isShiftPressed());
+    }
+    else
+    {
+        PT->editMode = !PT->editMode;
+        if (PT->editMode && PT->isPlaying())
+            PT->storeUndo();
+    }
     PT->refreshEditState();
 }
 
@@ -1324,6 +1461,13 @@ static void functPlayAction()
 {
     if (PT->mode != cProTrackerMode::kModeEdit)
         return;
+
+    if (!PT->isPlaying() && PT->isHeld(interfaceButtonRec))
+    {
+        if (!PT->editMode)
+            PT->storeUndo();
+        PT->editMode = 1;
+    }
 
     PT->togglePlay(PT->isShiftPressed());
     PT->refreshEditState();
@@ -1376,11 +1520,21 @@ static void functInstr(uint8_t state)
 // Fx1 and Fx2 both select the effect: a ProTracker step has one effect command with its value
 static void functFx(uint8_t state)
 {
-    if (PT->mode != cProTrackerMode::kModeEdit || state != buttonPress)
+    if (PT->mode != cProTrackerMode::kModeEdit || state == buttonHold)
         return;
 
-    PT->editParam = cProTrackerMode::kParamFx1;
-    PT->refreshEditState();
+    if (state == buttonPress)
+    {
+        PT->editParam = cProTrackerMode::kParamFx1;
+        PT->setStepButtonState(2, 1);
+        PT->refreshEditState();
+    }
+    else
+    {
+        PT->setStepButtonState(2, 0);
+        if (PT->popupActive)
+            PT->applyPopup();
+    }
 }
 
 static void functShift(uint8_t state)
@@ -1697,31 +1851,42 @@ static void functActionButton(uint8_t button, uint8_t state)
     {
         switch (button)
         {
-            case 4: // Preview
+            case 3: PT->copyTrack(); break;
+            case 4:
+                if (PT->editMode)
+                    PT->pasteTrack();
+                break;
+            case 5: PT->copyPattern(); break;
+            case 6:
+                if (PT->editMode)
+                    PT->pastePattern();
+                break;
+            default: break;
+        }
+    }
+    else
+    {
+        switch (button)
+        {
+            case 0: // Preview
             {
                 const protracker::Note& n =
                   *PT->cell(PT->trackerPattern.actualTrack, PT->trackerPattern.actualStep);
                 PT->previewPeriod(n.sample() != 0 ? n.sample() : PT->sample, n.period());
                 break;
             }
-            case 5:
+            case 1:
                 if (PT->editMode)
                     PT->undo();
                 break;
-            case 6:
+            case 2:
                 if (PT->editMode)
                     PT->redo();
                 break;
-            default: break;
-        }
-    }
-    else if (PT->editMode)
-    {
-        switch (button)
-        {
-            case 2: PT->duplicatePattern(); break;
-            case 5: PT->copyPattern(); break;
-            case 6: PT->pastePattern(); break;
+            case 3:
+                if (PT->editMode)
+                    PT->duplicatePattern();
+                break;
             default: break;
         }
     }
@@ -1762,7 +1927,12 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
         if (semitone < 0)
             return;
 
-        if (PT->editMode)
+        if (PT->editMode && PT->isPlaying())
+        {
+            PT->recordNote(semitone); // live recording
+            PT->previewNote(semitone);
+        }
+        else if (PT->editMode)
         {
             const int note = PT->writeNote(semitone);
             if (note >= 0)

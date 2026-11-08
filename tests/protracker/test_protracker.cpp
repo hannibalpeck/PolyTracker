@@ -813,6 +813,18 @@ static void testPreview()
     c.rep.previewStart(0, 428);
     c.rep.play(0, 0);
     CHECK(!c.rep.isPreviewing());
+
+    // a preview started while the song runs is heard on top of it
+    Fixture d(rate);
+    d.makeSquare(0);
+    d.rep.play(0, 0);
+    d.rep.render(l.data(), r.data(), 512);
+    CHECK(l[100] == 0 && l[300] == 0); // the empty pattern is silent
+    d.rep.previewStart(0, 428);
+    CHECK(d.rep.isPreviewing());
+    d.rep.render(l.data(), r.data(), 512);
+    CHECK(d.rep.isPlaying() && d.rep.isPreviewing());
+    CHECK(l[100] != 0 || l[300] != 0);
 }
 
 

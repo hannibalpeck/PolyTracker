@@ -60,6 +60,8 @@ class cProTrackerMode : public ModuleBase
     void writeInstrument(int instrument);
     void writeFxValue(int value);
     void writeFxType(int type);
+    void writeEffect(int index); // an entry of the Fx list: command and a fitting value
+    void recordNote(int note);   // live recording: the note goes to the playing row of the cursor track
     void changeValue(int delta);
     void clearSelection();
     void backspace();
@@ -69,6 +71,8 @@ class cProTrackerMode : public ModuleBase
     void copyPattern();
     void pastePattern();
     void duplicatePattern();
+    void copyTrack();
+    void pasteTrack();
     void storeUndo();
     void undo();
     void redo();
@@ -93,6 +97,7 @@ class cProTrackerMode : public ModuleBase
     void setStepButtonState(uint8_t button, uint8_t state);
     void showNotePopup();
     void showInstrumentPopup();
+    void showFxPopup();
     void applyPopup();
     void cancelPopups();
 
@@ -114,6 +119,7 @@ class cProTrackerMode : public ModuleBase
     void showMessage(const char* message);
     bool isShiftPressed();
     bool isFxHeld();
+    bool isHeld(int button);
 
     Mode mode = kModeEdit;
     uint8_t page = 0; // which set of bottom buttons is shown
@@ -151,8 +157,8 @@ class cProTrackerMode : public ModuleBase
     strFrameData frameData;
 
     // popups
-    uint8_t stepButtonsState[2] = {};
-    elapsedMillis stepButtonsTimer[2];
+    uint8_t stepButtonsState[3] = {}; // Note, Instr, Fx
+    elapsedMillis stepButtonsTimer[3];
     bool popupActive = false;
     bool wasNoteEditBefore = false;
 
