@@ -66,7 +66,7 @@ Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing 
 
 ## Known limits
 
-* Not tested on hardware yet.
+* Beta (0.9.0). Tested on actual Tracker+ hardware.
 * Some `#ifdef` code for other devices is still in the tree.
 
 ## Settings, restart and credits
