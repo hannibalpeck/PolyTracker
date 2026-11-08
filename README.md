@@ -6,15 +6,35 @@ A ProTracker (Amiga) mode for the **Polyend Tracker+**, built from the open-sour
 
 This firmware is Tracker+ only. Support for the Original Tracker and Tracker Mini was removed, along with the stock pattern, song, sample editing, instrument, performance and project screens. What is kept: the ProTracker screen, Config, Master, the sample recorder and the sample loader.
 
-## What it does
+## What it does (version 0.9.0 beta)
 
-* Boots directly into ProTracker mode. Songs live in `/Mod` on the SD card; saving never overwrites an existing file (`name-N.mod`).
+* Boots directly into the ProTracker screen. Songs live in `/Mod` on the SD card; saving never overwrites an existing file (`name-N.mod`). The last song is loaded again after a restart, unsaved changes included when the unit was shut down with the power button.
 * Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
 * Reads `M.K.`, `M!K!`, `FLT4`, `4CHN` and `N.T.` modules (6 and 8 channel modules are refused). Writes `M.K.` (or `M!K!` above 64 patterns).
-* ProTracker is the main screen: the firmware starts in it, and the **Pattern** button returns to it from every other screen.
+* Limits follow the .mod format: 4 tracks, 64 rows, 31 samples (8 bit, at most 65534 bytes), patterns 0-99, 128 order slots, the 29 ProTracker effects.
 * Module memory is reserved from external RAM, which makes the stock sample memory about 2.1 MB smaller.
 
-Not done yet: importing WAV files or recording into the 31 ProTracker sample slots. The recorder and loader screens still work on the stock sample memory and are not connected to the `.mod` samples.
+### Screens
+
+| Button | Screen |
+|---|---|
+| **Pattern** | The ProTracker pattern editor in the stock Polyend look: four tracks, live recording (Play + Rec), 48-pad note map (pad 13 = C-3), Note/Instr/Fx popups with the 29 effects, effect values on the jogwheel with ProTracker ranges, track/pattern copy and paste, selection, mute, Undo/Redo. |
+| **Song** | Arrangement view of the order list (up to 128 slots): add/delete slots, pattern per slot, tempo, play pattern or song. A song keeps playing when you change screens. |
+| **File** | New Song, Open, Save, Save As (SD browser, on-screen keyboard), Clear Song (samples stay) and **Export WAV**. |
+| **Sample Load** | Loads WAV files into the 31 sample slots (converted to 8-bit mono), with Add, Import, Delete, Delete Unused, Copy/Paste and Rename. |
+| **Sample Edit** | The stock Polyend sample editor on the current sample: Start/End/Zoom selection, Undo, Preview/Apply, a playback line, and the effects Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In and Fade Out. |
+| **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, live loop editing while a pad is held and a playback line. |
+| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources). |
+
+Hold **Instr** in the sample editor or the sample parameters to pick another sample with the encoder.
+
+### Export to WAV
+
+**File > Export WAV** renders the song from position 0 until it ends or loops (at most 15 minutes) to a 16-bit 44.1 kHz stereo WAV in `/Mod/Export`, named after the song. "Please wait while exporting..." and the progress in percent are shown while it renders.
+
+Not done yet: recording from the sample recorder into the 31 ProTracker sample slots (the recorder still works on the stock sample memory), and WAV import does not resample.
+
+Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
 ## Repository structure
 

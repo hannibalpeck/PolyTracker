@@ -4,6 +4,18 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ---
 
+## [0.9.0 beta] - ProTracker for Tracker+
+
+Tested on actual Tracker+ hardware.
+
+* ProTracker 2.3D replayer and genuine `.mod` load/save; boots into the ProTracker pattern screen.
+* Pattern, Song, File, Sample Load, Sample Edit (14 effects) and Sample Play (loop parameters) screens, live recording, Fx popup with the 29 effects.
+* Export WAV from the File screen, with a progress indicator.
+* Last song reloaded after a restart. Config without MIDI section; Info credits the sources.
+* Removed: Original Tracker and Tracker Mini support, the stock pattern/instrument/performance/project screens, the WT Smoother, Timestretch and Modular sample effects.
+
+---
+
 ## [1.0.0] - Initial Community Edition Release
 
 > **⚠️ Important :: Project Compatibility Notice:**
