@@ -864,7 +864,10 @@ void cProTrackerMode::writeInstrument(int instrument)
         for (int r = r0; r <= r1; r++)
         {
             protracker::Note* n = cell(t, r);
-            n->set((uint8_t)instrument, n->period(), n->command(), n->param());
+            // a sample without a note makes no sound, so a new instrument brings the C-3 note along
+            const uint16_t period =
+              (n->period() == 0 && instrument != 0) ? (uint16_t)protracker::kPeriodTable[24] : n->period();
+            n->set((uint8_t)instrument, period, n->command(), n->param());
         }
     }
 }
@@ -1388,9 +1391,61 @@ bool cProTrackerMode::loadFile(const char* path, const char** error)
     return true;
 }
 
-// Renders the whole song (until it reaches its end and starts over, at most 15 minutes) to a 16 bit
-// stereo WAV file with the replayer, faster than real time. outPath gets the file that was written.
-bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** error, void (*progress)(int percent))
+// ---- WAV export
+// The song is rendered with the replayer, faster than real time, to a 16 bit 44.1 kHz stereo WAV
+// file: from position 0 until the song ends or starts over, at most 15 minutes. It runs in slices
+// (exportStep) so that the screen keeps being redrawn.
+namespace
+{
+struct ExportState
+{
+    FileSystem::FileHandle handle;
+    uint32_t frames = 0;
+    int percent = 0;
+    bool muted[kTracks] = {};
+    bool active = false;
+};
+ExportState s_exp;
+
+constexpr uint32_t kExportRate = 44100;
+constexpr uint32_t kExportBlock = 256;
+constexpr uint32_t kExportMaxFrames = kExportRate * 60 * 15;
+
+void put32(uint8_t* d, uint32_t v)
+{
+    d[0] = (uint8_t)v;
+    d[1] = (uint8_t)(v >> 8);
+    d[2] = (uint8_t)(v >> 16);
+    d[3] = (uint8_t)(v >> 24);
+}
+
+void wavHeader(uint8_t* h, uint32_t dataBytes)
+{
+    memcpy(h, "RIFF", 4);
+    put32(h + 4, 36 + dataBytes);
+    memcpy(h + 8, "WAVEfmt ", 8);
+    put32(h + 16, 16);
+    h[20] = 1; // PCM
+    h[21] = 0;
+    h[22] = 2; // stereo
+    h[23] = 0;
+    put32(h + 24, kExportRate);
+    put32(h + 28, kExportRate * 4);
+    h[32] = 4;
+    h[33] = 0;
+    h[34] = 16;
+    h[35] = 0;
+    memcpy(h + 36, "data", 4);
+    put32(h + 40, dataBytes);
+}
+} // namespace
+
+int cProTrackerMode::exportPercent() const
+{
+    return s_exp.percent;
+}
+
+bool cProTrackerMode::exportBegin(char* outPath, size_t outSize, const char** error)
 {
     FileSystem* fs = platform->getFileSystem();
 
@@ -1419,97 +1474,90 @@ bool cProTrackerMode::exportWav(char* outPath, size_t outSize, const char** erro
         return false;
     }
 
-    constexpr uint32_t kRate = 44100;
-    constexpr uint32_t kBlock = 256;
-    constexpr uint32_t kMaxFrames = kRate * 60 * 15;
-
-    auto put32 = [](uint8_t* d, uint32_t v) {
-        d[0] = (uint8_t)v;
-        d[1] = (uint8_t)(v >> 8);
-        d[2] = (uint8_t)(v >> 16);
-        d[3] = (uint8_t)(v >> 24);
-    };
-    auto header = [&](uint8_t* h, uint32_t dataBytes) {
-        memcpy(h, "RIFF", 4);
-        put32(h + 4, 36 + dataBytes);
-        memcpy(h + 8, "WAVEfmt ", 8);
-        put32(h + 16, 16);
-        h[20] = 1; // PCM
-        h[21] = 0;
-        h[22] = 2; // stereo
-        h[23] = 0;
-        put32(h + 24, kRate);
-        put32(h + 28, kRate * 4);
-        h[32] = 4;
-        h[33] = 0;
-        h[34] = 16;
-        h[35] = 0;
-        memcpy(h + 36, "data", 4);
-        put32(h + 40, dataBytes);
-    };
-
     uint8_t head[44];
-    header(head, 0);
-    bool good = fs->writeFile(head, sizeof(head), handle) == (int32_t)sizeof(head);
+    wavHeader(head, 0);
+    if (fs->writeFile(head, sizeof(head), handle) != (int32_t)sizeof(head))
+    {
+        fs->closeFile(handle);
+        *error = "Cannot write the WAV file";
+        return false;
+    }
 
     stream->pause();
     replayer.stop();
-    bool muted[kTracks];
     for (int t = 0; t < kTracks; t++)
     {
-        muted[t] = replayer.isMuted(t);
+        s_exp.muted[t] = replayer.isMuted(t);
         replayer.setMuted(t, false); // the export is the whole song
     }
 
-    static int16_t left[kBlock];
-    static int16_t right[kBlock];
-    static int16_t out[kBlock * 2];
-
-    uint32_t frames = 0;
-    int shown = -1;
-    const int length = module.songLength > 0 ? module.songLength : 1;
+    s_exp.handle = handle;
+    s_exp.frames = 0;
+    s_exp.percent = 0;
+    s_exp.active = true;
     replayer.play(0, 0);
-    while (good && replayer.isPlaying() && replayer.songLoops() == 0 && frames < kMaxFrames)
-    {
-        if (progress != nullptr)
-        {
-            int percent = (replayer.position() * kRows + replayer.row()) * 100 / (length * kRows);
-            percent = percent > 99 ? 99 : percent;
-            if (percent != shown)
-            {
-                shown = percent;
-                progress(percent);
-            }
-        }
+    return true;
+}
 
-        replayer.render(left, right, kBlock);
-        for (uint32_t i = 0; i < kBlock; i++)
+// Renders for about budgetMs. Returns 0 while it goes on, 1 when the file is complete, -1 on an error.
+int cProTrackerMode::exportStep(uint32_t budgetMs, const char** error)
+{
+    if (!s_exp.active)
+        return 1;
+
+    FileSystem* fs = platform->getFileSystem();
+    static int16_t left[kExportBlock];
+    static int16_t right[kExportBlock];
+    static int16_t out[kExportBlock * 2];
+
+    const int length = module.songLength > 0 ? module.songLength : 1;
+    bool good = true;
+    elapsedMillis spent;
+
+    while (good && replayer.isPlaying() && replayer.songLoops() == 0 &&
+           s_exp.frames < kExportMaxFrames && spent < budgetMs)
+    {
+        replayer.render(left, right, kExportBlock);
+        for (uint32_t i = 0; i < kExportBlock; i++)
         {
             out[i * 2] = left[i];
             out[i * 2 + 1] = right[i];
         }
-        good = fs->writeFile(out, sizeof(out), handle) == (int32_t)sizeof(out);
-        frames += kBlock;
+        good = fs->writeFile(out, sizeof(out), s_exp.handle) == (int32_t)sizeof(out);
+        s_exp.frames += kExportBlock;
     }
 
+    int percent = (replayer.position() * kRows + replayer.row()) * 100 / (length * kRows);
+    s_exp.percent = percent > 99 ? 99 : percent;
+
+    const bool finished = !replayer.isPlaying() || replayer.songLoops() != 0 ||
+                          s_exp.frames >= kExportMaxFrames;
+    if (good && !finished)
+        return 0;
+
+    // done (or failed): restore the player and complete the header
     replayer.stop();
     for (int t = 0; t < kTracks; t++)
-        replayer.setMuted(t, muted[t]);
+        replayer.setMuted(t, s_exp.muted[t]);
     stream->resume();
+    s_exp.active = false;
 
     if (good)
     {
-        header(head, frames * 4);
-        good = fs->seekFile(0, handle) && fs->writeFile(head, sizeof(head), handle) == (int32_t)sizeof(head);
+        uint8_t head[44];
+        wavHeader(head, s_exp.frames * 4);
+        good = fs->seekFile(0, s_exp.handle) &&
+               fs->writeFile(head, sizeof(head), s_exp.handle) == (int32_t)sizeof(head);
     }
-    fs->closeFile(handle);
+    fs->closeFile(s_exp.handle);
 
     if (!good)
     {
         *error = "Cannot write the WAV file";
-        return false;
+        return -1;
     }
-    return true;
+    s_exp.percent = 100;
+    return 1;
 }
 
 bool cProTrackerMode::saveFile(const char* path, const char** error)

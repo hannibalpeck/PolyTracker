@@ -7,6 +7,7 @@
 #include "config.h"
 #include "core/modulesBase.h"
 #include "display.h"
+#include "elapsedMillis.h"
 #include "list.h"
 
 // The File screen. It has the layout of the stock Polyend file screen (New / Open / Save / Save As,
@@ -44,7 +45,7 @@ class cProTrackerFile : public ModuleBase
     cProTrackerFile() {}
     ~cProTrackerFile() {}
 
-    virtual void update() {}
+    virtual void update();
     virtual void start(uint32_t options);
     virtual void stop();
     virtual void initDisplayControls();
@@ -74,6 +75,7 @@ class cProTrackerFile : public ModuleBase
     void actSave();
     void actSaveAs();
     void actExportWav();
+    void finishExport(const char* text);
     void actLoadSelected();
     void actDeleteSelected();
     void actKeyboardConfirm();
@@ -99,6 +101,9 @@ class cProTrackerFile : public ModuleBase
     FileBrowserData fileBrowserData = {};
     FileBrowser fileBrowser;
     bool browserReady = false;
+    uint8_t exportStage = 0; // 0 idle, 1 waiting for the text to show, 2 rendering
+    int exportShown = -1;
+    elapsedMillis exportTimer;
 };
 
 extern cProTrackerFile protrackerFile;

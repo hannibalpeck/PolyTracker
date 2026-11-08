@@ -780,35 +780,63 @@ static void functSave()
     F->actSave();
 }
 
-// the screen is redrawn from inside the render loop: percentage on the button and in the title
-static void exportProgress(int percent)
+// Export WAV: the "please wait" text is drawn first, then update() renders in slices so that the
+// screen keeps refreshing and the percentage moves.
+void cProTrackerFile::actExportWav()
 {
-    static char title[40];
-    static char text[8];
-    snprintf(title, sizeof(title), "File - Rendering WAV %d%%", percent);
-    snprintf(text, sizeof(text), "%d%%", percent);
-    F->titleBar->setTitle(title);
-    display.setControlText(F->label[6], "Rendering");
-    display.setControlText2(F->label[6], text);
-    display.refreshControl(F->label[6]);
+    exportStage = 1;
+    exportTimer = 0;
+    exportShown = -1;
+    ip->clearAllButtons();
+    mtPopups.showInfoPopup("Please wait while exporting...", "0%");
     display.synchronizeRefresh();
 }
 
-void cProTrackerFile::actExportWav()
+void cProTrackerFile::finishExport(const char* text)
 {
-    static char path[kMaxFilePathLen + 1];
-    const char* error = nullptr;
-    exportProgress(0);
-    const bool done = PT->exportWav(path, sizeof(path), &error, exportProgress);
+    exportStage = 0;
+    mtPopups.hideInfoPopup();
+    bindMain();
     setSongNameOnTitle();
-    display.setControlText(label[6], "Export");
-    display.setControlText2(label[6], "WAV");
-    display.refreshControl(label[6]);
-    display.synchronizeRefresh();
-    if (done)
-        message("WAV exported to /Mod/Export");
-    else
-        message(error != nullptr ? error : "Cannot export the WAV file");
+    message(text);
+}
+
+void cProTrackerFile::update()
+{
+    if (exportStage == 0)
+        return;
+
+    static char path[kMaxFilePathLen + 1];
+    static char percentText[8];
+    const char* error = nullptr;
+
+    if (exportStage == 1)
+    {
+        if (exportTimer < 250) // let the text reach the screen before the work starts
+            return;
+        if (!PT->exportBegin(path, sizeof(path), &error))
+        {
+            finishExport(error != nullptr ? error : "Cannot export the WAV file");
+            return;
+        }
+        exportStage = 2;
+        return;
+    }
+
+    const int result = PT->exportStep(40, &error);
+    if (result == 0)
+    {
+        if (PT->exportPercent() != exportShown)
+        {
+            exportShown = PT->exportPercent();
+            snprintf(percentText, sizeof(percentText), "%d%%", exportShown);
+            mtPopups.showInfoPopup("Please wait while exporting...", percentText);
+        }
+        return;
+    }
+
+    finishExport(result > 0 ? "WAV exported to /Mod/Export"
+                            : (error != nullptr ? error : "Cannot export the WAV file"));
 }
 
 static void functExportWav()
