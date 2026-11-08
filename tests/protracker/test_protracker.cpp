@@ -772,6 +772,48 @@ static void testLedFilter()
     CHECK(energyOn < energyOff);
 }
 
+static void testPreview()
+{
+    printf("Sample preview\n");
+    const float rate = 44100.0f;
+    std::vector<int16_t> l(512), r(512);
+
+    // a looping sample sustains until it is stopped
+    Fixture a(rate);
+    a.makeSquare(0);
+    a.rep.previewStart(0, 428);
+    CHECK(a.rep.isPreviewing());
+    for (int block = 0; block < 20; block++)
+        a.rep.render(l.data(), r.data(), 512);
+    CHECK(a.rep.isPreviewing());
+    CHECK(l[100] != 0 || l[300] != 0);
+    CHECK(l[10] == r[10]);
+    a.rep.previewStop();
+    a.rep.render(l.data(), r.data(), 512);
+    CHECK(l[0] == 0 && l[511] == 0);
+
+    // a one-shot sample ends by itself
+    Fixture b(rate);
+    b.mod.samples[2].length = 64;
+    b.mod.samples[2].volume = 64;
+    for (int i = 0; i < 64; i++)
+        b.mod.sampleData(2)[i] = 50;
+    b.mod.fixSample(2);
+    b.rep.previewStart(2, 428);
+    for (int block = 0; block < 20; block++)
+        b.rep.render(l.data(), r.data(), 512);
+    CHECK(!b.rep.isPreviewing());
+
+    // an empty sample makes no sound, and playing the song cancels a preview
+    Fixture c(rate);
+    c.rep.previewStart(4, 428);
+    CHECK(!c.rep.isPreviewing());
+    c.makeSquare(0);
+    c.rep.previewStart(0, 428);
+    c.rep.play(0, 0);
+    CHECK(!c.rep.isPreviewing());
+}
+
 int main()
 {
     testRoundTrip();
@@ -787,6 +829,7 @@ int main()
     testSampleOffsetAndRetrigger();
     testFunkRepeatAndEdgeCases();
     testLedFilter();
+    testPreview();
 
     printf("\n%d checks, %d failures\n", gChecks, gFailures);
     return gFailures == 0 ? 0 : 1;

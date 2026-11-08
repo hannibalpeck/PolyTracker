@@ -26,6 +26,7 @@ class cProTrackerMode : public ModuleBase
     {
         kModeEdit,
         kModeFileList,
+        kModeSampleList, // the instrument (sample) selector, opened with the Instr button
     };
 
     static constexpr int kMaxFiles = 64;
@@ -51,7 +52,9 @@ class cProTrackerMode : public ModuleBase
     void changeSongLength(int delta);
     void insertOrder();
     void deleteOrder();
-    void enterNote(int semitone);
+    int enterNote(int semitone); // returns the note entered (0..35) or -1
+    void previewNote(int note);
+    void stopPreview();
     void enterHexDigit(int digit);
     void clearCell();
     void newSong();
@@ -68,6 +71,10 @@ class cProTrackerMode : public ModuleBase
     void moveFileSelection(int delta);
     void loadSelectedFile();
     void saveSong();
+
+    // ---- instrument selector
+    void showSampleList();
+    void hideSampleList();
 
     // ---- screen
     void showDefaultScreen();

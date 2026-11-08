@@ -169,6 +169,67 @@ void Replayer::mix(int16_t* left, int16_t* right, uint32_t frames)
     }
 }
 
+void Replayer::previewStart(int sampleIndex, uint16_t period)
+{
+    previewActive_ = false;
+    if (mod_ == nullptr || playing_ || sampleIndex < 0 || sampleIndex >= kSampleCount)
+        return;
+
+    const Sample& smp = mod_->samples[sampleIndex];
+    if (smp.length < 2 || period == 0)
+        return;
+
+    previewPtr_ = mod_->sampleData(sampleIndex);
+    previewLen_ = smp.length;
+    previewVolume_ = smp.volume > 64 ? 64 : smp.volume;
+
+    previewLoopStart_ = 0;
+    previewLoopEnd_ = 0;
+    if (smp.loopLength > 2 && smp.loopStart + smp.loopLength <= smp.length)
+    {
+        previewLoopStart_ = smp.loopStart;
+        previewLoopEnd_ = smp.loopStart + smp.loopLength;
+    }
+
+    uint32_t real = period < 113 ? 113 : period; // same limit as Paula
+    previewDelta_ = clockOverRateQ24_ / real;
+    previewPos_ = 0;
+    previewFrac_ = 0;
+    previewActive_ = true;
+}
+
+void Replayer::mixPreview(int16_t* left, int16_t* right, uint32_t frames)
+{
+    for (uint32_t f = 0; f < frames; f++)
+    {
+        int32_t out = 0;
+        if (previewActive_)
+        {
+            out = (int32_t)previewPtr_[previewPos_] * previewVolume_;
+
+            previewFrac_ += previewDelta_;
+            if (previewFrac_ >= (1u << 24))
+            {
+                previewPos_ += previewFrac_ >> 24;
+                previewFrac_ &= (1u << 24) - 1;
+
+                if (previewLoopEnd_ != 0)
+                {
+                    while (previewPos_ >= previewLoopEnd_)
+                        previewPos_ -= previewLoopEnd_ - previewLoopStart_;
+                }
+                else if (previewPos_ >= previewLen_)
+                {
+                    previewActive_ = false;
+                }
+            }
+        }
+
+        left[f] = (int16_t)out;
+        right[f] = (int16_t)out;
+    }
+}
+
 // ============================================================================================
 //  Setup and transport
 // ============================================================================================
@@ -286,6 +347,7 @@ void Replayer::startPlayback(bool patternMode, int pattern, int position, int ro
     if (mod_ == nullptr || !mod_->isAttached())
         return;
 
+    previewActive_ = false;
     resetChannels();
     turnOffVoices();
 
@@ -334,8 +396,7 @@ void Replayer::render(int16_t* left, int16_t* right, uint32_t frames)
     {
         if (!playing_)
         {
-            memset(left, 0, frames * sizeof(int16_t));
-            memset(right, 0, frames * sizeof(int16_t));
+            mixPreview(left, right, frames);
             return;
         }
 

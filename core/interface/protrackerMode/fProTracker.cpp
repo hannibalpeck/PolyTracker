@@ -9,6 +9,7 @@
 #include "Platform.h"
 #include "cr_section_macros.h"
 #include "mtAudioEngine.h"
+#include "mtPadBoard.h"
 #include "mtPadsBacklight.h"
 #include "mtSequencer.h"
 
@@ -44,6 +45,8 @@ static const char* kSongFolder = "ProTracker";
 // ---------------------------------------------------------------------------------------------
 static void functSwitchModule(uint8_t button);
 static void functGame();
+static void functInstr();
+static void functPattern();
 static void functPlayAction();
 static void functUp();
 static void functDown();
@@ -214,7 +217,7 @@ void cProTrackerMode::start(uint32_t options)
     ip->setButtonObj(interfaceButtonSampleRec, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonSampleLoad, buttonPress, functSwitchModule);
     ip->setButtonObj(interfaceButtonSong, buttonPress, functSwitchModule);
-    ip->setButtonObj(interfaceButtonPattern, buttonPress, functSwitchModule);
+    ip->setButtonObj(interfaceButtonPattern, buttonPress, functPattern);
 
     showDefaultScreen();
     setDefaultScreenFunct();
@@ -226,6 +229,7 @@ void cProTrackerMode::stop()
 
     if (stream != nullptr)
     {
+        stream->requestPreviewStop();
         stream->requestStop();
         stream->setEnabled(false);
     }
@@ -300,6 +304,7 @@ void cProTrackerMode::setDefaultScreenFunct()
     ip->setButtonObj(interfaceButtonRight, buttonPress, functRight);
     ip->setButtonObj(interfaceButtonDelete, buttonPress, functDelete);
     ip->setButtonObj(interfaceButtonGame, buttonPress, functGame);
+    ip->setButtonObj(interfaceButtonInstr, buttonPress, functInstr);
 
     for (uint8_t b = interfaceButton0; b <= interfaceButton7; b++)
         ip->setButtonObj(b, functActionButton);
@@ -322,8 +327,11 @@ void cProTrackerMode::refreshLabels()
     static const char* const kPage1[8] = { "Smp -", "Smp +", "Oct -", "Oct +",
                                            "Len -", "Len +", "Exit",  "More" };
     static const char* const kFiles[8] = { "Cancel", "", "", "", "", "", "", "Load" };
+    static const char* const kSamples[8] = { "Done", "", "", "", "", "", "", "Done" };
 
-    const char* const* names = mode == kModeFileList ? kFiles : (page == 0 ? kPage0 : kPage1);
+    const char* const* names = mode == kModeFileList
+                                 ? kFiles
+                                 : (mode == kModeSampleList ? kSamples : (page == 0 ? kPage0 : kPage1));
     for (int i = 0; i < 8; i++)
     {
         display.setControlText(label[i], names[i]);
@@ -398,6 +406,36 @@ void cProTrackerMode::refreshPattern()
                           "%s %s\n",
                           i == fileSelected ? ">" : " ",
                           fileList[i]);
+            if (n >= (int)sizeof(s_list) - 4)
+                break;
+        }
+
+        display.setControlText(listBox, s_list);
+        display.refreshControl(listBox);
+        return;
+    }
+
+    if (mode == kModeSampleList)
+    {
+        const int count = protracker::kSampleCount;
+        int first = (sample - 1) - rowsVisible / 2;
+        if (first > count - rowsVisible)
+            first = count - rowsVisible;
+        if (first < 0)
+            first = 0;
+
+        int n = 0;
+        s_list[0] = '\0';
+        for (int i = first; i < count && i < first + rowsVisible; i++)
+        {
+            const protracker::Sample& smp = module.samples[i];
+            n += snprintf(s_list + n,
+                          sizeof(s_list) - (size_t)n,
+                          "%s %02d %-22s %5u\n",
+                          i == sample - 1 ? ">" : " ",
+                          i + 1,
+                          smp.name,
+                          (unsigned)smp.length);
             if (n >= (int)sizeof(s_list) - 4)
                 break;
         }
@@ -574,16 +612,33 @@ void cProTrackerMode::deleteOrder()
     dirty = true;
 }
 
-void cProTrackerMode::enterNote(int semitone)
+int cProTrackerMode::enterNote(int semitone)
 {
     const int note = octave * 12 + semitone;
     if (note < 0 || note >= 36 || replayer.isPlaying())
-        return;
+        return -1;
 
     protracker::Note* n = cellAt(editPos, editRow, cursorX / 3);
     n->set((uint8_t)sample, (uint16_t)protracker::kPeriodTable[note], n->command(), n->param());
     dirty = true;
     moveRow(1);
+    return note;
+}
+
+void cProTrackerMode::previewNote(int note)
+{
+    if (note < 0 || note >= 36 || replayer.isPlaying() || stream == nullptr)
+        return;
+
+    const int index = sample - 1;
+    const int fineTune = module.samples[index].fineTune & 0x0F;
+    stream->requestPreview(index, (uint16_t)protracker::kPeriodTable[fineTune * 37 + note]);
+}
+
+void cProTrackerMode::stopPreview()
+{
+    if (stream != nullptr)
+        stream->requestPreviewStop();
 }
 
 void cProTrackerMode::enterHexDigit(int digit)
@@ -715,6 +770,39 @@ void cProTrackerMode::showFileList()
     display.setControlText(infoLabel, s_info);
     display.refreshControl(infoLabel);
     display.synchronizeRefresh();
+}
+
+void cProTrackerMode::showSampleList()
+{
+    if (mode != kModeEdit)
+        return;
+
+    mode = kModeSampleList;
+    hexIndex = 0;
+
+    display.setControlHide(cursorBar);
+    display.setControlHide(gutterBox);
+    for (int ch = 0; ch < protracker::kChannelCount; ch++)
+        display.setControlHide(channelBox[ch]);
+    display.setControlShow(listBox);
+
+    ip->clearButtonsRange(interfaceButton0, interfaceButton7);
+    for (uint8_t b = interfaceButton0; b <= interfaceButton7; b++)
+        ip->setButtonObj(b, functActionButton);
+    setFileListScreenFunct(); // Up, Down and Enter work the same way
+
+    refreshLabels();
+    refreshPattern();
+    snprintf(s_info, sizeof(s_info), "INSTRUMENTS  pads or encoder select, Instr closes");
+    display.setControlText(infoLabel, s_info);
+    display.refreshControl(infoLabel);
+    display.synchronizeRefresh();
+}
+
+void cProTrackerMode::hideSampleList()
+{
+    stopPreview();
+    hideFileList(); // returns to the editor
 }
 
 void cProTrackerMode::hideFileList()
@@ -867,9 +955,36 @@ static void functPlayAction()
     PT->lastViewKey = 0xFFFFFFFF;
 }
 
+static void functInstr()
+{
+    if (PT->mode == cProTrackerMode::kModeEdit)
+        PT->showSampleList();
+    else if (PT->mode == cProTrackerMode::kModeSampleList)
+        PT->hideSampleList();
+}
+
+// The Pattern button always brings back the main ProTracker screen.
+static void functPattern()
+{
+    if (PT->mode == cProTrackerMode::kModeSampleList)
+        PT->hideSampleList();
+    else if (PT->mode == cProTrackerMode::kModeFileList)
+        PT->hideFileList();
+    else if (PT->page != 0)
+    {
+        PT->page = 0;
+        PT->refreshLabels();
+    }
+}
+
 static void functUp()
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
+    if (PT->mode == cProTrackerMode::kModeSampleList)
+    {
+        PT->changeSample(-1);
+        PT->refreshPattern();
+    }
+    else if (PT->mode == cProTrackerMode::kModeFileList)
         PT->moveFileSelection(-1);
     else
     {
@@ -880,7 +995,12 @@ static void functUp()
 
 static void functDown()
 {
-    if (PT->mode == cProTrackerMode::kModeFileList)
+    if (PT->mode == cProTrackerMode::kModeSampleList)
+    {
+        PT->changeSample(1);
+        PT->refreshPattern();
+    }
+    else if (PT->mode == cProTrackerMode::kModeFileList)
         PT->moveFileSelection(1);
     else
     {
@@ -911,12 +1031,21 @@ static void functEnter()
 {
     if (PT->mode == cProTrackerMode::kModeFileList)
         PT->loadSelectedFile();
+    else if (PT->mode == cProTrackerMode::kModeSampleList)
+        PT->hideSampleList();
 }
 
 static void functEncoder(int16_t value)
 {
     value = interfaceGlobals.invertValForList ? -value : value;
     const int step = value > 0 ? 1 : -1;
+
+    if (PT->mode == cProTrackerMode::kModeSampleList)
+    {
+        PT->changeSample(step);
+        PT->refreshPattern();
+        return;
+    }
 
     if (PT->mode == cProTrackerMode::kModeFileList)
     {
@@ -932,6 +1061,13 @@ static void functActionButton(uint8_t button, uint8_t state)
 {
     if (state != buttonPress)
         return;
+
+    if (PT->mode == cProTrackerMode::kModeSampleList)
+    {
+        if (button == 0 || button == 7)
+            PT->hideSampleList();
+        return;
+    }
 
     if (PT->mode == cProTrackerMode::kModeFileList)
     {
@@ -993,15 +1129,57 @@ static void functActionButton(uint8_t button, uint8_t state)
     PT->lastViewKey = 0xFFFFFFFF;
 }
 
+// Pad number -> semitone above the lowest pad, using the same pad layout as the stock firmware.
+static int padSemitone(uint8_t pad)
+{
+    if (pad >= 48)
+        return -1;
+    const int lowest = mtPadBoard.getNoteFromPad(36); // the pad that holds the lowest note
+    return (int)mtPadBoard.getNoteFromPad((int8_t)pad) - lowest;
+}
+
 static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
 {
-    if (state != padPress || PT->mode != cProTrackerMode::kModeEdit)
+    if (state == padRelease)
+    {
+        PT->stopPreview();
+        return;
+    }
+
+    if (state != padPress)
+        return;
+
+    if (PT->mode == cProTrackerMode::kModeSampleList)
+    {
+        // like the stock instrument popup: a pad picks the instrument with that number
+        if (pad < protracker::kSampleCount)
+        {
+            PT->sample = pad + 1;
+            PT->refreshPattern();
+            PT->previewNote(12); // C-2
+        }
+        return;
+    }
+
+    if (PT->mode != cProTrackerMode::kModeEdit)
         return;
 
     if (PT->cursorX % 3 == cProTrackerMode::kFieldNote)
-        PT->enterNote(pad);
+    {
+        const int semitone = padSemitone(pad);
+        if (semitone >= 0)
+        {
+            const int note = PT->enterNote(semitone);
+            if (note >= 0)
+                PT->previewNote(note);
+            else
+                PT->previewNote(PT->octave * 12 + semitone); // song playing: ignored
+        }
+    }
     else if (pad < 16)
+    {
         PT->enterHexDigit(pad);
+    }
 
     PT->lastViewKey = 0xFFFFFFFF;
 }

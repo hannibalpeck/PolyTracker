@@ -23,6 +23,18 @@ void ProTrackerStream::requestStop()
     command_ = kStop;
 }
 
+void ProTrackerStream::requestPreview(int sampleIndex, uint16_t period)
+{
+    cmdArgA_ = sampleIndex;
+    cmdArgB_ = period;
+    command_ = kPreview;
+}
+
+void ProTrackerStream::requestPreviewStop()
+{
+    command_ = kPreviewStop;
+}
+
 void ProTrackerStream::pause()
 {
     pauseRequested_ = true;
@@ -61,12 +73,17 @@ void ProTrackerStream::update(void)
         {
             case kPlay: replayer_->play(cmdArgA_, cmdArgB_); break;
             case kPlayPattern: replayer_->playPattern(cmdArgA_, cmdArgB_); break;
-            case kStop: replayer_->stop(); break;
+            case kStop:
+                replayer_->stop();
+                replayer_->previewStop();
+                break;
+            case kPreview: replayer_->previewStart(cmdArgA_, (uint16_t)cmdArgB_); break;
+            case kPreviewStop: replayer_->previewStop(); break;
             default: break;
         }
     }
 
-    if (!enabled_ || !replayer_->isPlaying())
+    if (!enabled_ || (!replayer_->isPlaying() && !replayer_->isPreviewing()))
         return;
 
     audio_block_t* left = allocate();

@@ -35,6 +35,13 @@ class Replayer
     void stop();
     bool isPlaying() const { return playing_; }
 
+    // Audition a sample outside the song, like pressing a key in the editor. Only sounds while the
+    // song is not playing; starting playback ends it. A looping sample sustains until
+    // previewStop(), others play to their end. `period` is a ProTracker period value.
+    void previewStart(int sampleIndex, uint16_t period);
+    void previewStop() { previewActive_ = false; }
+    bool isPreviewing() const { return previewActive_; }
+
     // Mixes `frames` stereo samples into left/right (overwrites the buffers).
     void render(int16_t* left, int16_t* right, uint32_t frames);
 
@@ -82,6 +89,7 @@ class Replayer
     void paulaDmaOn(int v);
     void paulaDmaOff(int v);
     void mix(int16_t* left, int16_t* right, uint32_t frames);
+    void mixPreview(int16_t* left, int16_t* right, uint32_t frames);
 
     // -------------------------------------------------------------- replayer
     struct Channel
@@ -184,6 +192,17 @@ class Replayer
     int weightL_[kChannelCount] = {};
     int weightR_[kChannelCount] = {};
     bool linear_ = true;
+
+    // sample audition
+    const int8_t* previewPtr_ = nullptr;
+    uint32_t previewLen_ = 0;
+    uint32_t previewLoopStart_ = 0;
+    uint32_t previewLoopEnd_ = 0; // 0 = no loop
+    uint32_t previewPos_ = 0;
+    uint32_t previewFrac_ = 0;
+    uint32_t previewDelta_ = 0;
+    uint8_t previewVolume_ = 0;
+    volatile bool previewActive_ = false;
 
     // "LED" filter (E0x): 2-pole Butterworth low-pass
     bool ledFilter_ = false;

@@ -29,6 +29,9 @@ class ProTrackerStream : public AudioStream
     void requestPlay(int position, int row);
     void requestPlayPattern(int pattern, int row);
     void requestStop();
+    // audition a sample (0 based index) at a period, see Replayer::previewStart
+    void requestPreview(int sampleIndex, uint16_t period);
+    void requestPreviewStop();
 
     // Ask the audio update to leave the module alone, and wait (briefly) until it has. Needed
     // before replacing the module's contents (load / new). Call resume() when done.
@@ -42,6 +45,8 @@ class ProTrackerStream : public AudioStream
         kPlay,
         kPlayPattern,
         kStop,
+        kPreview,
+        kPreviewStop,
     };
 
     virtual void update(void) override;
