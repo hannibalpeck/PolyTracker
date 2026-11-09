@@ -25,7 +25,7 @@ jobs:
           g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined \
             -I../../core/protracker test_protracker.cpp \
             ../../core/protracker/ptModule.cpp ../../core/protracker/ptReplayer.cpp \
-            ../../core/protracker/ptTables.cpp -o test_protracker
+            ../../core/protracker/ptTables.cpp ../../core/protracker/ptSamples.cpp -o test_protracker
           ./test_protracker
 
       - name: Cache GNU Arm Embedded Toolchain 10.3-2021.10
