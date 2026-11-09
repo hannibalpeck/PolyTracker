@@ -4,6 +4,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ---
 
+## [0.9.3 beta]
+
+* VU meter runs from the cursor row to the top, split evenly in green, yellow and red.
+
 ## [0.9.2 beta]
 
 * Pattern: the unused second effect lane is a classic ProTracker VU meter per track (jumps up with a note, falls back; greyed when muted).

@@ -1195,10 +1195,12 @@ void cTracker::fxes2()
 
     if (tracks->vuLane)
     {
-        // classic ProTracker VU meter: a bar that jumps up with a note and falls back, one segment
-        // per row, green at the bottom, yellow and red towards the top
+        // classic ProTracker VU meter: a bar that jumps up with a note and falls back. It runs from
+        // the cursor row (row 7) to the top, split evenly in green, yellow and red segments.
         const uint16_t barW = param_length[3] * fonts[text_font].width;
         const uint16_t segH = stepHight - 4;
+        const uint16_t cursorRow = 7;
+        const uint16_t total = cursorRow + 1; // 8 segments: 3 green, 3 yellow, 2 red
         API_COLOR(colors[5]);
         API_LINE_WIDTH(16);
         API_BEGIN(RECTS);
@@ -1206,16 +1208,15 @@ void cTracker::fxes2()
         {
             const uint8_t level = tracks->vu[tracks->firstVisibleTrack + i];
             const bool muted = tracks->inactive[tracks->firstVisibleTrack + i] != 0;
-            const uint16_t segs = (uint16_t)((level * rowCount + 63) / 64);
+            const uint16_t segs = (uint16_t)((level * total + 63) / 64);
             const int16_t x = offset_x + i * tracksWidth;
-            for (uint16_t s = 0; s < segs && s < rowCount; s++)
+            for (uint16_t s = 0; s < segs && s < total; s++)
             {
-                const uint16_t row = rowCount - 1 - s;
-                const int16_t y = posY + row * stepHight + 2;
+                const int16_t y = posY + (cursorRow - s) * stepHight + 2;
                 uint32_t c = 0x30C040;
-                if (s * 15 >= rowCount * 13)
+                if (s >= 6)
                     c = 0xE03020;
-                else if (s * 15 >= rowCount * 9)
+                else if (s >= 3)
                     c = 0xE0C020;
                 API_COLOR(muted ? colors[12] : c);
                 API_VERTEX2F(x, y);
