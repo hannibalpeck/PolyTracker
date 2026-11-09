@@ -23,7 +23,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 | **File** | New Song, Open, Save, Save As (SD browser, on-screen keyboard), Clear Song (samples stay) and **Export WAV**. |
 | **Sample Load** | Loads WAV files into the 31 sample slots (converted to 8-bit mono), with Add, Import, Delete, Delete Unused, Copy/Paste and Rename. |
 | **Sample Edit** | The stock Polyend sample editor on the current sample: Start/End/Zoom selection, Undo, Preview/Apply, a playback line, and the effects Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In and Fade Out. |
-| **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, live loop editing while a pad is held and a playback line. |
+| **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, an Octave up/down (resamples the sample), live loop editing while a pad is held and a playback line. |
 | **Sample Rec** | The stock recorder (sources, gain, monitor, crop, undo). **To slot** records into the first free sample slot, **Save** writes a WAV. |
 | **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources). |
 

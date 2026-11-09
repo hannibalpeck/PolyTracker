@@ -28,17 +28,27 @@ static strSpectrumParams s_spectrumParams;
 static strZoomParams s_zoom;
 
 static char s_text2[cProTrackerSampleParams::kParamCount][16];
+static int s_octaveShift = 0; // octaves moved since this sample was selected
+// what the last octave change replaced, for undo
+static struct
+{
+    bool valid = false;
+    int sample = 0;
+    uint32_t length = 0, loopStart = 0, loopLength = 2;
+    int shift = 0;
+} s_octaveUndo;
+#define octaveBackup ((int8_t*)(externalRamEffectsBuff + 786432))
 static char s_rightLabel[8];
 
-static const uint16_t kFramePlaces[7][4] = {
+static const uint16_t kFramePlaces[8][4] = {
     { (800 / 8) * 0 + 1, 424, 800 / 8 - 3, 55 }, { (800 / 8) * 1 + 1, 424, 800 / 8 - 3, 55 },
     { (800 / 8) * 2 + 1, 424, 800 / 8 - 3, 55 }, { (800 / 8) * 3 + 1, 424, 800 / 8 - 3, 55 },
     { (800 / 8) * 4 + 1, 424, 800 / 8 - 3, 55 }, { (800 / 8) * 5 + 1, 424, 800 / 8 - 3, 55 },
-    { (800 / 8) * 6 + 1, 424, 800 / 8 - 3, 55 },
+    { (800 / 8) * 6 + 1, 424, 800 / 8 - 3, 55 }, { (800 / 8) * 7 + 1, 424, 800 / 8 - 3, 55 },
 };
 
 static const char* const kTitles[cProTrackerSampleParams::kParamCount] = {
-    "Sample", "Volume", "Finetune", "Loop", "Loop start", "Loop end", "Length"
+    "Sample", "Volume", "Finetune", "Loop", "Loop start", "Loop end", "Length", "Octave"
 };
 
 static void functSwitchModule(uint8_t button);
@@ -64,8 +74,8 @@ static bool shiftHeld()
 
 void cProTrackerSampleParams::initDisplayControls()
 {
-    frameData.placesCount = 7;
-    for (uint8_t i = 0; i < 7; i++)
+    frameData.placesCount = 8;
+    for (uint8_t i = 0; i < 8; i++)
         frameData.places[i] = &kFramePlaces[i][0];
 
     strControlProperties prop;
@@ -119,7 +129,7 @@ void cProTrackerSampleParams::bindButtons()
     ip->clearAllPots();
     ip->clearGlobalPads();
 
-    for (uint8_t b = interfaceButton0; b <= interfaceButton6; b++)
+    for (uint8_t b = interfaceButton0; b <= interfaceButton7; b++)
         ip->setButtonObj(b, buttonPress, functSelect);
 
     ip->setButtonObj(interfaceButtonUp, buttonPress, functUp);
@@ -160,8 +170,6 @@ void cProTrackerSampleParams::start(uint32_t)
         display.setControlValue(label[i], 1);
         display.setControlShow(label[i]);
     }
-    display.setControlText(label[7], "");
-    display.setControlText2(label[7], "");
     display.setControlShow(bgLabel);
     display.refreshControl(bgLabel);
     display.setControlShow(spectrum);
@@ -284,6 +292,7 @@ void cProTrackerSampleParams::refreshTexts()
              "%u",
              looping ? (unsigned)(s.loopStart + s.loopLength) : (unsigned)s.length);
     snprintf(s_text2[kLength], sizeof(s_text2[kLength]), "%u", (unsigned)s.length);
+    snprintf(s_text2[kOctave], sizeof(s_text2[kOctave]), "%+d", s_octaveShift);
 
     for (uint8_t i = 0; i < kParamCount; i++)
     {
@@ -330,6 +339,8 @@ void cProTrackerSampleParams::change(int delta, bool big)
             if (n == PT->sample)
                 return;
             PT->sample = n;
+            s_octaveShift = 0;
+            s_octaveUndo.valid = false;
             wave = true;
             break;
         }
@@ -400,6 +411,9 @@ void cProTrackerSampleParams::change(int delta, bool big)
             wave = true;
             break;
         }
+        case kOctave:
+            octave(delta > 0 ? 1 : -1);
+            return;
         default: return;
     }
 
@@ -419,6 +433,7 @@ void cProTrackerSampleParams::resetParam()
     {
         case kVolume: s.volume = 64; break;
         case kFineTune: s.fineTune = 0; break;
+        case kOctave: undoOctave(); return;
         case kLoop:
         case kLoopStart:
         case kLoopEnd:
@@ -428,6 +443,96 @@ void cProTrackerSampleParams::resetParam()
         default: return;
     }
     PT->module.fixSample(PT->sample - 1);
+    PT->dirty = true;
+    refreshTexts();
+    needRefreshWave = true;
+}
+
+// One octave up halves the sample (neighbours averaged), one octave down doubles it (new points
+// interpolated), so the note it plays at C-3 changes by an octave and the file stays a plain .mod.
+// The loop is scaled with it. The last change can be taken back with Delete.
+void cProTrackerSampleParams::octave(int direction)
+{
+    protracker::Sample& s = smp();
+    if (s.length < 4)
+        return;
+
+    const uint32_t newLength = direction > 0 ? (s.length / 2) & ~1u : s.length * 2;
+    if (newLength < 2)
+        return;
+    if (newLength > protracker::kMaxSampleBytes)
+    {
+        mtPopups.show(0, "Too long for an octave down");
+        return;
+    }
+
+    int8_t* data = PT->module.sampleData(PT->sample - 1);
+    PT->stopPreview();
+    if (PT->stream != nullptr)
+        PT->stream->pause();
+
+    memcpy(octaveBackup, data, s.length);
+    s_octaveUndo = { true, PT->sample, s.length, s.loopStart, s.loopLength, s_octaveShift };
+
+    if (direction > 0)
+    {
+        for (uint32_t i = 0; i < newLength; i++)
+            data[i] = (int8_t)(((int)data[2 * i] + (int)data[2 * i + 1]) / 2);
+        s.loopStart = (s.loopStart / 2) & ~1u;
+        s.loopLength = (s.loopLength / 2) & ~1u;
+    }
+    else
+    {
+        for (int32_t i = (int32_t)s.length - 1; i >= 0; i--)
+        {
+            const int next = (i + 1 < (int32_t)s.length) ? data[i + 1] : data[i];
+            data[2 * i + 1] = (int8_t)(((int)data[i] + next) / 2);
+            data[2 * i] = data[i];
+        }
+        s.loopStart *= 2;
+        s.loopLength *= 2;
+    }
+    if (s.loopLength <= 2)
+    {
+        s.loopStart = 0;
+        s.loopLength = 2;
+    }
+    if (newLength < protracker::kSampleSlotBytes)
+        memset(data + newLength, 0, protracker::kSampleSlotBytes - newLength);
+    s.length = newLength;
+    s_octaveShift += direction;
+
+    PT->module.fixSample(PT->sample - 1);
+    if (PT->stream != nullptr)
+        PT->stream->resume();
+    PT->dirty = true;
+    refreshTexts();
+    needRefreshWave = true;
+}
+
+void cProTrackerSampleParams::undoOctave()
+{
+    if (!s_octaveUndo.valid || s_octaveUndo.sample != PT->sample)
+        return;
+
+    protracker::Sample& s = smp();
+    int8_t* data = PT->module.sampleData(PT->sample - 1);
+    PT->stopPreview();
+    if (PT->stream != nullptr)
+        PT->stream->pause();
+
+    memcpy(data, octaveBackup, s_octaveUndo.length);
+    if (s_octaveUndo.length < protracker::kSampleSlotBytes)
+        memset(data + s_octaveUndo.length, 0, protracker::kSampleSlotBytes - s_octaveUndo.length);
+    s.length = s_octaveUndo.length;
+    s.loopStart = s_octaveUndo.loopStart;
+    s.loopLength = s_octaveUndo.loopLength;
+    s_octaveShift = s_octaveUndo.shift;
+    s_octaveUndo.valid = false;
+
+    PT->module.fixSample(PT->sample - 1);
+    if (PT->stream != nullptr)
+        PT->stream->resume();
     PT->dirty = true;
     refreshTexts();
     needRefreshWave = true;

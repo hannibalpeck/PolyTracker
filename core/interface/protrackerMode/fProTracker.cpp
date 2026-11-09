@@ -609,7 +609,10 @@ void cProTrackerMode::showMuteButtons(bool show)
 
         display.setControlText(label[i], track ? names[i] : "");
         display.setControlText2(label[i], track ? (replayer.isMuted(i) ? "Unmute" : "Mute") : "");
-        display.setControlColors(label[i], display.getTheme().activeLabelsColors);
+        // a muted track's name is greyed out
+        display.setControlColors(label[i],
+                                 (track && replayer.isMuted(i)) ? display.getTheme().inactiveLabelsColors
+                                                                : display.getTheme().activeLabelsColors);
         display.setControlValue(label[i], 0);
         display.refreshControl(label[i]);
         ip->setButtonObj(i, functMuteTrack);
