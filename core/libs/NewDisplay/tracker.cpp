@@ -1200,8 +1200,8 @@ void cTracker::fxes2()
         // exactly the width the four characters of the lane take
         const uint16_t barW = param_length[3] * fonts[text_font].data['0'] - 4;
         const uint16_t segH = stepHight - 4;
-        const uint16_t cursorRow = 7;
-        const uint16_t total = cursorRow + 1; // 8 segments: 3 green, 3 yellow, 2 red
+        const uint16_t cursorRow = 6; // one row above the cursor (row 7)
+        const uint16_t total = cursorRow + 1; // 7 segments: 3 green, 2 yellow, 2 red
         API_COLOR(colors[5]);
         API_LINE_WIDTH(16);
         API_BEGIN(RECTS);
@@ -1215,7 +1215,7 @@ void cTracker::fxes2()
             {
                 const int16_t y = posY + (cursorRow - s) * stepHight + 2;
                 uint32_t c = 0x30C040;
-                if (s >= 6)
+                if (s >= 5)
                     c = 0xE03020;
                 else if (s >= 3)
                     c = 0xE0C020;

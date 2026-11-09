@@ -2,11 +2,11 @@
 
 A ProTracker (Amiga) mode for the **Polyend Tracker+**, built from the open-source Polyend Tracker CE firmware. It boots straight into a four-channel, 64-row, 31-sample ProTracker 2.3D style editor and player, and loads and saves genuine Amiga `.mod` files. The replayer is ported from [pt2-clone](https://github.com/8bitbubsy/pt2-clone) by Olav Sorensen (BSD 3-Clause, see [`NOTICE.md`](NOTICE.md)).
 
-> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). It is still a beta (0.9.4), so keep the recovery steps below in mind when flashing.
+> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). It is still a beta (0.9.5), so keep the recovery steps below in mind when flashing.
 
 This firmware is Tracker+ only. Support for the Original Tracker and Tracker Mini was removed, along with the stock pattern, song, sample editing, instrument, performance and project screens. What is kept: the ProTracker screen, Config, Master, the sample recorder and the sample loader.
 
-## What it does (version 0.9.4 beta)
+## What it does (version 0.9.5 beta)
 
 * Boots directly into the ProTracker screen. Songs live in `/Mod` on the SD card; saving never overwrites an existing file (`name-N.mod`). The last song is loaded again after a restart, unsaved changes included when the unit was shut down with the power button.
 * Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
