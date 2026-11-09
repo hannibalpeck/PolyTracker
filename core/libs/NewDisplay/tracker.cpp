@@ -1197,7 +1197,8 @@ void cTracker::fxes2()
     {
         // classic ProTracker VU meter: a bar that jumps up with a note and falls back. It runs from
         // the cursor row (row 7) to the top, split evenly in green, yellow and red segments.
-        const uint16_t barW = param_length[3] * fonts[text_font].width;
+        // exactly the width the four characters of the lane take
+        const uint16_t barW = param_length[3] * fonts[text_font].data['0'] - 4;
         const uint16_t segH = stepHight - 4;
         const uint16_t cursorRow = 7;
         const uint16_t total = cursorRow + 1; // 8 segments: 3 green, 3 yellow, 2 red
@@ -1209,7 +1210,7 @@ void cTracker::fxes2()
             const uint8_t level = tracks->vu[tracks->firstVisibleTrack + i];
             const bool muted = tracks->inactive[tracks->firstVisibleTrack + i] != 0;
             const uint16_t segs = (uint16_t)((level * total + 63) / 64);
-            const int16_t x = offset_x + i * tracksWidth;
+            const int16_t x = offset_x + i * tracksWidth + 2;
             for (uint16_t s = 0; s < segs && s < total; s++)
             {
                 const int16_t y = posY + (cursorRow - s) * stepHight + 2;

@@ -10,7 +10,7 @@ The firmware boots into a ProTracker 2.3D style editor. The code is split in two
 The screen is the stock Polyend pattern editor: four tracks of note, instrument and effect, 15 visible rows with the cursor in the middle, eight bottom buttons with two pages ("More" switches).
 
 * **Rec** switches between green (pads only play, cursor follows playback) and red (pads write). **Play + Rec** (hold one, press the other) plays the pattern and records: pads write the note on the row that is playing, in the track the cursor is in, and the cursor runs with the song. The whole take is one Undo step. Rec while playing punches in and out the same way.
-* **Note / Instr / Fx1 / Fx2** tap to choose the column. Holding Note, Instr or Fx opens the stock popup (pads or encoder choose, release applies). The Fx popup lists the 29 ProTracker effects (0xy Arpeggio … Fxx Speed/Tempo, with the E-commands separately) and puts the chosen one in the effect lane with a starting value. A step has one effect, so Fx1 and Fx2 do the same.
+* **Note / Instr / Fx1** tap to choose the column. Holding Note, Instr or Fx opens the stock popup (pads or encoder choose, release applies). The Fx popup lists the 29 ProTracker effects (0xy Arpeggio … Fxx Speed/Tempo, with the E-commands separately) and puts the chosen one in the effect lane with a starting value. A step has one effect, so there is only one effect lane; **Fx2** switches the VU meters on and off.
 * **Effect values:** with the cursor on the effect lane press **Rec** (red) and turn the jogwheel. Ranges are the usual ProTracker ones: Cxx 00-40, Bxx 00-7F, Dxx 00-63, Exy changes y only, Fxx 01-1F speed, 20-FF tempo, the rest 00-FF.
 * **Pads** (48): when the note column is active, pad 13 is C-3. A .mod has three octaves, so pads 1-12 are C-2..B-2, pads 13-24 C-3..B-3, and the pads above fold down: 25-36 are C-1..B-1, 37-48 C-2..B-2. Red: note or instrument (pad 1 = sample 1; a new instrument on a step without a note also writes C-3) is written and the cursor moves by the step jump. Green: preview only. Pads sound over a running song.
 * **Bottom buttons, page 1:** Pattern, Position, Step jump: each is active while its button is held; turn the jogwheel (or use the arrows or pads) to change the value. Copy Track, Paste Track, Copy Pattern, Paste Pattern (pastes need red mode). **Page 2 (More):** Preview, Undo, Redo.
@@ -70,7 +70,7 @@ Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing 
 
 ## Known limits
 
-* Beta (0.9.3). Tested on actual Tracker+ hardware.
+* Beta (0.9.4). Tested on actual Tracker+ hardware.
 * Some `#ifdef` code for other devices is still in the tree.
 
 ## Settings, restart and credits

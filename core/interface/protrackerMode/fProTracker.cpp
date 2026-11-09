@@ -67,6 +67,7 @@ static void functRecAction();
 static void functNote(uint8_t state);
 static void functInstr(uint8_t state);
 static void functFx(uint8_t state);
+static void functVuToggle(uint8_t state);
 static void functShift(uint8_t state);
 static void functUp();
 static void functDown();
@@ -233,8 +234,7 @@ void protrackerPopupPad(uint8_t pad, uint8_t pressed)
 // ---------------------------------------------------------------------------------------------
 bool cProTrackerMode::isFxHeld()
 {
-    return platform->getButtons()->isButtonPressed(interfaceButtonFx1) ||
-           platform->getButtons()->isButtonPressed(interfaceButtonFx2);
+    return platform->getButtons()->isButtonPressed(interfaceButtonFx1);
 }
 
 bool cProTrackerMode::isHeld(int button)
@@ -385,7 +385,7 @@ void cProTrackerMode::update()
             vuMoved = true;
         }
     }
-    if (vuMoved && !changed)
+    if (vuMoved && !changed && trackerPattern.vuLane)
         display.refreshControl(patternControl);
 }
 
@@ -652,7 +652,7 @@ void cProTrackerMode::bindButtons()
     ip->setButtonObj(interfaceButtonNote, functNote);
     ip->setButtonObj(interfaceButtonInstr, functInstr);
     ip->setButtonObj(interfaceButtonFx1, functFx);
-    ip->setButtonObj(interfaceButtonFx2, functFx);
+    ip->setButtonObj(interfaceButtonFx2, functVuToggle);
     ip->setButtonObj(interfaceButtonPattern, functPattern);
     ip->setButtonObj(interfaceButtonShift, functShift);
     ip->setButtonObj(interfaceButtonUp, buttonPress, functUp);
@@ -973,8 +973,7 @@ void cProTrackerMode::changeValue(int delta)
     int t0, r0, t1, r1;
     selectionRect(t0, r0, t1, r1);
 
-    const bool fxType = platform->getButtons()->isButtonPressed(interfaceButtonFx1) ||
-                        platform->getButtons()->isButtonPressed(interfaceButtonFx2);
+    const bool fxType = platform->getButtons()->isButtonPressed(interfaceButtonFx1);
 
     for (int t = t0; t <= t1; t++)
     {
@@ -1822,7 +1821,16 @@ static void functInstr(uint8_t state)
     }
 }
 
-// Fx1 and Fx2 both select the effect: a ProTracker step has one effect command with its value
+// Fx2 switches the VU meters in the second effect lane on and off
+static void functVuToggle(uint8_t state)
+{
+    if (PT->mode != cProTrackerMode::kModeEdit || state != buttonPress)
+        return;
+    PT->trackerPattern.vuLane = !PT->trackerPattern.vuLane;
+    PT->refreshPattern();
+}
+
+// Fx1 selects the effect: a ProTracker step has one effect command with its value
 static void functFx(uint8_t state)
 {
     if (PT->mode != cProTrackerMode::kModeEdit || state == buttonHold)

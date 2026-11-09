@@ -4,6 +4,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ---
 
+## [0.9.4 beta]
+
+* VU meters fit the width of the second effect lane; the Fx2 button switches them on and off (Fx1 still opens the effect popup).
+
 ## [0.9.3 beta]
 
 * VU meter runs from the cursor row to the top, split evenly in green, yellow and red.
