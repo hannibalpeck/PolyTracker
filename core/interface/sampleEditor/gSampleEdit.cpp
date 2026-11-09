@@ -406,6 +406,22 @@ void cSampleEditor::showEffectParamsScreen()
     display.setControlValue(label[6], 0);
     display.setControlValue(label[7], 0);
 
+    if (currentEffectIdx == editorEffectOctave)
+    {
+        static char octaveText[16];
+        snprintf(octaveText, sizeof(octaveText), "%+d", octaveShift);
+        display.setControlText(label[0], "Octave up");
+        display.setControlText2(label[0], "");
+        display.setControlText(label[1], "Octave down");
+        display.setControlText2(label[1], "");
+        display.setControlText(label[2], "Restore");
+        display.setControlText2(label[2], "");
+        display.setControlText(label[3], "Octave");
+        display.setControlText2(label[3], octaveText);
+        for (uint8_t i = 0; i < 4; i++)
+            display.setControlValue(label[i], 1);
+    }
+
     display.setControlText(label[5], "Back");
     display.setControlText2(label[5], "");
 
@@ -464,7 +480,10 @@ void cSampleEditor::showEffectParamsScreen()
     // empty space cover
     display.setControlSize(blankSpaceCover, (800 / 8) * (8 - visibleParamsCount) - 2, -1);
     display.setControlPosition(blankSpaceCover, (800 / 8) * visibleParamsCount + 1, -1);
-    display.setControlShow(blankSpaceCover);
+    if (currentEffectIdx == editorEffectOctave)
+        display.setControlHide(blankSpaceCover);
+    else
+        display.setControlShow(blankSpaceCover);
     display.refreshControl(blankSpaceCover);
 
     // background label

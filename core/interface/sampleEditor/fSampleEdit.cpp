@@ -3,6 +3,7 @@
 // 8 bit mono, the effects work on a 16 bit copy that is converted back to 8 bit when it is applied.
 #include "core/graphicProcessing.h"
 #include "core/interfacePopups.h"
+#include "mtEffectOctave.h"
 #include "mtSampleEditorEngine.h"
 #include "protrackerMode/protrackerMode.h"
 #include "ptTables.h"
@@ -44,6 +45,9 @@ static const uint16_t paramsScreenFramePlaces[6][4] = {
 static void functSwitchModule(uint8_t button);
 static void functInstrument(uint8_t state);
 static void functPads(uint8_t pad, uint8_t state, int16_t velo);
+static void functOctaveUp();
+static void functOctaveDown();
+static void functOctaveRestore();
 
 static void functMainScreenLeft();
 static void functMainScreenRight();
@@ -74,6 +78,16 @@ static void functPlay();
 static void functStop();
 static void functSave();
 static void functTooLongProcessedSampleOk();
+
+// How the sample was when the editor was opened, for Restore (external RAM is full, so the copy of
+// the data lives in the effect buffer, behind the preview buffer)
+#define originalData ((int8_t*)(externalRamEffectsBuff + 786432))
+static struct
+{
+    bool valid = false;
+    uint8_t slot = 0;
+    uint32_t length = 0, loopStart = 0, loopLength = 2;
+} s_original;
 
 // ---------------------------------------------------------------------------------------------
 // helpers
@@ -121,12 +135,25 @@ static void commitToModule()
     if (PT->stream != nullptr)
         PT->stream->pause();
 
+    const uint32_t oldLength = s.length;
     uint32_t n = SE->currentEffect->storeToMemory(data, protracker::kMaxSampleBytes);
     n &= ~1u;
     if (n < protracker::kSampleSlotBytes)
         memset(data + n, 0, protracker::kSampleSlotBytes - n);
 
     s.length = n;
+    if (SE->currentEffectIdx == editorEffectOctave && oldLength > 0 && n != oldLength &&
+        s.loopLength > 2)
+    {
+        // the loop moves with the octave
+        s.loopStart = (uint32_t)(((uint64_t)s.loopStart * n) / oldLength) & ~1u;
+        s.loopLength = (uint32_t)(((uint64_t)s.loopLength * n) / oldLength) & ~1u;
+        if (s.loopLength <= 2)
+        {
+            s.loopStart = 0;
+            s.loopLength = 2;
+        }
+    }
     if (s.loopLength > 2 && s.loopStart + s.loopLength > n)
     {
         s.loopStart = 0;
@@ -170,6 +197,11 @@ void cSampleEditor::start([[maybe_unused]] uint32_t options)
 
     currentEffect->loadFromMemory(PT->module.sampleData(slot - 1), length);
     currentEffect->clearProcessedData();
+
+    // what Restore goes back to
+    memcpy(originalData, PT->module.sampleData(slot - 1), length);
+    s_original = { true, slot, length, slotSample().loopStart, slotSample().loopLength };
+    octaveShift = 0;
 
     editorInstrument->isActive = length > 0;
     editorInstrument->sample.length = length;
@@ -395,6 +427,20 @@ void cSampleEditor::setParamsScreenFunctions()
     ip->setButtonObj(interfaceButton7, buttonPress, functSave);
 
     ip->setPotObj(interfacePot0, functParamsScreenEncoder);
+
+    if (currentEffectIdx == editorEffectOctave)
+    {
+        // no parameters and no jogwheel: octave up, down, Restore, Preview and Apply
+        ip->clearAllPots();
+        ip->clearButton(interfaceButtonLeft);
+        ip->clearButton(interfaceButtonRight);
+        ip->clearButton(interfaceButtonDelete);
+        ip->setButtonObj(interfaceButtonUp, buttonPress, functOctaveUp);
+        ip->setButtonObj(interfaceButtonDown, buttonPress, functOctaveDown);
+        ip->setButtonObj(interfaceButton0, buttonPress, functOctaveUp);
+        ip->setButtonObj(interfaceButton1, buttonPress, functOctaveDown);
+        ip->setButtonObj(interfaceButton2, buttonPress, functOctaveRestore);
+    }
 }
 
 void cSampleEditor::setTooLongProcessedSampleFunctions()
@@ -554,6 +600,75 @@ void cSampleEditor::reloadSpectrumData()
     spectrumParams[mtEffect::Channel::kRight].length = 0;
 }
 
+// Octave screen
+void cSampleEditor::setOctave(int shift)
+{
+    shift = clamp<int>(shift, -mtEffectOctave::kMaxShift, mtEffectOctave::kMaxShift);
+    octaveShift = (int8_t)shift;
+
+    float value = (float)shift;
+    currentEffect->setParameter(value, 0);
+    currentEffect->clearProcessedData();
+
+    if (previewState != previewStatePreview)
+        setPreviewFunction();
+    refreshOctaveLabels();
+}
+
+void cSampleEditor::refreshOctaveLabels()
+{
+    if (screenType != effectScreen || currentEffectIdx != editorEffectOctave)
+        return;
+
+    static char text[16];
+    snprintf(text, sizeof(text), "%+d", octaveShift);
+    display.setControlText(label[3], "Octave");
+    display.setControlText2(label[3], text);
+    display.setControlValue(label[3], 1);
+    display.refreshControl(label[3]);
+    display.synchronizeRefresh();
+}
+
+// the sample as it was when the editor was opened
+void cSampleEditor::restoreOriginal()
+{
+    if (!s_original.valid || s_original.slot != slot)
+        return;
+
+    protracker::Sample& s = slotSample();
+    int8_t* data = PT->module.sampleData(slot - 1);
+
+    stopAudition();
+    if (PT->stream != nullptr)
+        PT->stream->pause();
+
+    memcpy(data, originalData, s_original.length);
+    if (s_original.length < protracker::kSampleSlotBytes)
+        memset(data + s_original.length, 0, protracker::kSampleSlotBytes - s_original.length);
+    s.length = s_original.length;
+    s.loopStart = s_original.loopStart;
+    s.loopLength = s_original.loopLength;
+    PT->module.fixSample(slot - 1);
+
+    if (PT->stream != nullptr)
+        PT->stream->resume();
+    PT->dirty = true;
+
+    currentEffect->loadFromMemory(data, s.length);
+    currentEffect->clearProcessedData();
+    editorInstrument->isActive = s.length > 0;
+    editorInstrument->sample.length = s.length;
+    reloadSpectrumData();
+    GP.spectrumResetZoom(0, s.length, &zoom);
+
+    selection.startPoint = 0;
+    selection.endPoint = MAX_16BIT;
+    currentEffect->changeSelectionRange(selection.startPoint, selection.endPoint);
+    needRefreshSpectrum = 1;
+    previewState = previewStatePreview;
+    setOctave(0);
+}
+
 // popups
 void cSampleEditor::reloadApplyingProgress()
 {
@@ -626,6 +741,15 @@ void cSampleEditor::prepareDisplayDataParamsScreen()
 {
     selectedPlace[effectScreen] = 0;
     effectScreenPage = 0;
+
+    if (currentEffectIdx == editorEffectOctave)
+    {
+        octaveShift = 0;
+        float none = 0.0f;
+        currentEffect->setParameter(none, 0);
+        currentEffect->clearProcessedData();
+        previewState = previewStatePreview;
+    }
 
     snprintf(paramsScreenLabel, 40, "Sample Editor %s", effectNamesLabels[currentEffectIdx]);
     paramsScreenLabel[39] = 0;
@@ -1333,6 +1457,21 @@ static void functApply()
 }
 
 // Parameter screen functions
+static void functOctaveUp()
+{
+    SE->setOctave(SE->octaveShift + 1);
+}
+
+static void functOctaveDown()
+{
+    SE->setOctave(SE->octaveShift - 1);
+}
+
+static void functOctaveRestore()
+{
+    SE->restoreOriginal();
+}
+
 static void functParamsScreenLeft()
 {
     if (SE->selectedPlace[cSampleEditor::effectScreen] > 0)

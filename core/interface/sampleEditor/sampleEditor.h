@@ -11,7 +11,7 @@ char* const effectNamesLabels[editorEffectMax] = {
     (char*)"Normalizer", (char*)"Crop",       (char*)"Reverse",    (char*)"Amplifier",
     (char*)"Overdrive",  (char*)"Delay",      (char*)"Bitcrusher", (char*)"Chorus",
     (char*)"Flanger",    (char*)"Equalizer",  (char*)"Limiter",    (char*)"Compressor",
-    (char*)"Fade In",    (char*)"Fade Out"
+    (char*)"Fade In",    (char*)"Fade Out",   (char*)"Octave"
 };
 
 struct strEffectDisplayParams
@@ -120,7 +120,8 @@ const strEffectDisplayConstantParams effectDisplayConstantParams[editorEffectMax
       compressorParams::afterValueText,
       compressorParams::displayType },
     {}, // fade in  -  brak drugiego ekranu
-    {}  // fade out - brak drugiego ekranu
+    {}, // fade out - brak drugiego ekranu
+    {}  // octave - own button screen (up, down, restore), no parameter bars
 };
 
 const strEffectDefaultParams effectDefaultParamsTable[editorEffectMax] = {
@@ -137,7 +138,8 @@ const strEffectDefaultParams effectDefaultParamsTable[editorEffectMax] = {
     { { -6.0f, 3.0f, 300.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f } },     // limiter
     { { -12.0f, 4.0f, 10.0f, 50.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f } },    // compressor
     {}, // fade in - brak drugiego ekranu
-    {}  // fade out - brak drugiego ekranu
+    {}, // fade out - brak drugiego ekranu
+    {}  // octave
 };
 
 class cSampleEditor : public ModuleBase
@@ -280,6 +282,9 @@ class cSampleEditor : public ModuleBase
     void refreshPlayhead();
     void refreshUndoState();
     void refreshParameter(uint8_t n);
+    void refreshOctaveLabels();
+    void setOctave(int shift);
+    void restoreOriginal();
 
     // popups
     void refreshApplyingProgress();
@@ -434,6 +439,7 @@ class cSampleEditor : public ModuleBase
     mtEffect* lastEffect = nullptr;
 
     uint16_t selectedEffectListIdx = 0;
+    int8_t octaveShift = 0; // the octave screen: how far the selection will be moved
     uint8_t slot = 1; // the song slot (1..31) that is being edited
     elapsedMillis playTimer;
     elapsedMillis playheadTimer;

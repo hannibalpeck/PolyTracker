@@ -22,7 +22,6 @@ class cProTrackerSampleParams : public ModuleBase
         kLoopStart,
         kLoopEnd,
         kLength,
-        kOctave,
         kParamCount
     };
 
@@ -44,8 +43,6 @@ class cProTrackerSampleParams : public ModuleBase
     void refreshPoints();
     void refreshTexts();
     void playNote(int note, bool on);
-    void octave(int direction);
-    void undoOctave();
 
     uint8_t selectedParam = kVolume;
     bool needRefreshWave = false;

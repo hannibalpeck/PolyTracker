@@ -1893,8 +1893,9 @@ static void moveCursor(int dTrack, int dStep)
     PT->refreshPattern();
 }
 
-// Shift+Up selects the whole track, Shift+Up again the whole pattern. Shift+Down goes back.
-static void growSelection(bool up)
+// At the top of the pattern Shift+Up selects the whole track, Shift+Up again the whole pattern.
+// Shift+Down goes back down through those; it returns false when there is nothing to step back.
+static bool growSelection(bool up)
 {
     strTrackerPattern& t = PT->trackerPattern;
 
@@ -1909,7 +1910,7 @@ static void growSelection(bool up)
     if (up)
     {
         if (fullPattern)
-            return;
+            return true;
 
         t.selectState = 2;
         t.selectColumn = 0;
@@ -1937,12 +1938,13 @@ static void growSelection(bool up)
         }
         else
         {
-            return;
+            return false;
         }
     }
 
     PT->isSelectingNow = true;
     PT->refreshPattern();
+    return true;
 }
 
 static void functUp()
@@ -1961,6 +1963,19 @@ static void functUp()
 
     if (PT->isShiftPressed())
     {
+        // Shift+Up selects from the cursor, one step at a time. At the top the first press selects
+        // the row, the next ones the whole track and then the whole pattern.
+        if (PT->trackerPattern.actualStep > 0)
+        {
+            moveCursor(0, -1);
+            return;
+        }
+        if (PT->trackerPattern.selectState != 2)
+        {
+            PT->startSelection();
+            PT->refreshPattern();
+            return;
+        }
         growSelection(true);
         return;
     }
@@ -1984,7 +1999,8 @@ static void functDown()
 
     if (PT->isShiftPressed())
     {
-        growSelection(false);
+        if (!growSelection(false))
+            moveCursor(0, 1);
         return;
     }
 

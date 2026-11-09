@@ -12,6 +12,7 @@
 #include "mtEffectFlanger.h"
 #include "mtEffectLimiter.h"
 #include "mtEffectNormalizer.h"
+#include "mtEffectOctave.h"
 #include "mtEffectOverdrive.h"
 #include "mtEffectReverse.h"
 
@@ -28,7 +29,8 @@ mtEffect* sampleEditorEffect[editorEffectMax] = { &sampleEditorNormalizer,
                                                   &sampleEditorLimiter,
                                                   &sampleEditorCompresor,
                                                   &sampleEditorFadeIn,
-                                                  &sampleEditorFadeOut };
+                                                  &sampleEditorFadeOut,
+                                                  &sampleEditorOctave };
 
 //******************************DELAY
 

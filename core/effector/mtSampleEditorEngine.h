@@ -18,6 +18,7 @@ enum enSampleEditorEffect
     editorEffectCompresor,
     editorEffectFadeIn,
     editorEffectFadeOut,
+    editorEffectOctave,
 
     //**********************//
     editorEffectMax
