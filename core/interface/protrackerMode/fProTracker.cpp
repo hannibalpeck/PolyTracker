@@ -1677,6 +1677,20 @@ bool cProTrackerMode::writeModule(const char* path, const char** error)
 
 bool cProTrackerMode::saveFile(const char* path, const char** error)
 {
+    // a song without a title (the title is stored in the .mod header) takes the file name
+    if (module.title[0] == '\0')
+    {
+        const char* base = strrchr(path, '/');
+        base = base != nullptr ? base + 1 : path;
+        size_t n = 0;
+        while (base[n] != '\0' && base[n] != '.' && n < 20)
+        {
+            module.title[n] = (base[n] >= 0x20 && base[n] <= 0x7E) ? base[n] : '_';
+            n++;
+        }
+        module.title[n] = '\0';
+    }
+
     if (!writeModule(path, error))
         return false;
 
