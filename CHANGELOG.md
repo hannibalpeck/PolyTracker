@@ -4,6 +4,13 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ---
 
+## [0.9.1 beta]
+
+* Sample Edit: new Octave effect (Octave up / Octave down, Preview, Apply, Restore); 15 effects.
+* Sample Play: Instr picker, live loop editing, playback line, loop fields greyed out for 1-Shot.
+* Sample recorder "To slot" stores into the first free slot.
+* Pattern: Shift+Up selects from the cursor in single steps (top row: row, track, pattern); muted track names are greyed out; saved .mod keeps the file name as title.
+
 ## [0.9.0 beta] - ProTracker for Tracker+
 
 Tested on actual Tracker+ hardware.
