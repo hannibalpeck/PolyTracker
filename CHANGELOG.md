@@ -4,6 +4,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ---
 
+## [0.9.2 beta]
+
+* Pattern: the unused second effect lane is a classic ProTracker VU meter per track (jumps up with a note, falls back; greyed when muted).
+
 ## [0.9.1 beta]
 
 * Sample Edit: new Octave effect (Octave up / Octave down, Preview, Apply, Restore); 15 effects.

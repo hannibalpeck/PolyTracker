@@ -267,6 +267,7 @@ void cProTrackerMode::start(uint32_t options)
         trackerPattern.patternLength = kRows;
         trackerPattern.selectState = 1;
         trackerPattern.showPlayhead = true;
+        trackerPattern.vuLane = true; // the second effect lane is a VU meter
         initialised = true;
         loadLastSong();
     }
@@ -372,6 +373,20 @@ void cProTrackerMode::update()
         refreshPattern();
         refreshLabels();
     }
+
+    // VU meters: a redraw only when a bar moved
+    bool vuMoved = false;
+    for (int t = 0; t < kTracks; t++)
+    {
+        const uint8_t v = (uint8_t)(replayer.isMuted(t) ? 0 : replayer.channelVu(t));
+        if (trackerPattern.vu[t] != v)
+        {
+            trackerPattern.vu[t] = v;
+            vuMoved = true;
+        }
+    }
+    if (vuMoved && !changed)
+        display.refreshControl(patternControl);
 }
 
 // ---------------------------------------------------------------------------------------------

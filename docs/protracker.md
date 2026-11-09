@@ -15,7 +15,7 @@ The screen is the stock Polyend pattern editor: four tracks of note, instrument 
 * **Pads** (48): when the note column is active, pad 13 is C-3. A .mod has three octaves, so pads 1-12 are C-2..B-2, pads 13-24 C-3..B-3, and the pads above fold down: 25-36 are C-1..B-1, 37-48 C-2..B-2. Red: note or instrument (pad 1 = sample 1; a new instrument on a step without a note also writes C-3) is written and the cursor moves by the step jump. Green: preview only. Pads sound over a running song.
 * **Bottom buttons, page 1:** Pattern, Position, Step jump: each is active while its button is held; turn the jogwheel (or use the arrows or pads) to change the value. Copy Track, Paste Track, Copy Pattern, Paste Pattern (pastes need red mode). **Page 2 (More):** Preview, Undo, Redo.
 * **Pattern** (held) + arrows or encoder picks the pattern of the current position; pressing it on another screen returns here.
-* **Play** loops the current pattern (on the song screen it plays the song from the selected position, and stops it again). A song keeps playing when you switch between the Pattern and Song screens, and the pattern screen shows the pattern it is in, Shift+Play starts at the cursor. **Shift** + bottom buttons 1-4 mutes tracks. Shift+Arrows select from the cursor in steps of one row or track; Shift+Up on the top row selects that row, again the whole track, and once more the whole pattern (Shift+Down goes back the same way). The selection stays after Shift is released until the cursor is moved. Copy copies the selection, Shift+Copy pastes at its top left, Delete clears only the lane under the cursor, note, instrument or effect (Shift+Delete is backspace); Insert inserts a row, Shift+Insert goes to the first row.
+* **Play** loops the current pattern (on the song screen it plays the song from the selected position, and stops it again). A song keeps playing when you switch between the Pattern and Song screens, and the pattern screen shows the pattern it is in, Shift+Play starts at the cursor. **Shift** + bottom buttons 1-4 mutes tracks. The right-hand lane of every track is a VU meter that shows the volume of the note playing, as in ProTracker. Shift+Arrows select from the cursor in steps of one row or track; Shift+Up on the top row selects that row, again the whole track, and once more the whole pattern (Shift+Down goes back the same way). The selection stays after Shift is released until the cursor is moved. Copy copies the selection, Shift+Copy pastes at its top left, Delete clears only the lane under the cursor, note, instrument or effect (Shift+Delete is backspace); Insert inserts a row, Shift+Insert goes to the first row.
 * **File** opens the file screen.
 
 Limits follow the .mod format: 4 tracks, 64 rows, 31 samples, patterns 0-99, ProTracker effects 0-F.
@@ -70,7 +70,7 @@ Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing 
 
 ## Known limits
 
-* Beta (0.9.1). Tested on actual Tracker+ hardware.
+* Beta (0.9.2). Tested on actual Tracker+ hardware.
 * Some `#ifdef` code for other devices is still in the tree.
 
 ## Settings, restart and credits

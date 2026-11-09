@@ -1193,6 +1193,40 @@ void cTracker::fxes2()
     else if (paramCount == 2)
         offset_x = rightOffset + twoParamsOffsetSecond[3];
 
+    if (tracks->vuLane)
+    {
+        // classic ProTracker VU meter: a bar that jumps up with a note and falls back, one segment
+        // per row, green at the bottom, yellow and red towards the top
+        const uint16_t barW = param_length[3] * fonts[text_font].width;
+        const uint16_t segH = stepHight - 4;
+        API_COLOR(colors[5]);
+        API_LINE_WIDTH(16);
+        API_BEGIN(RECTS);
+        for (uint16_t i = 0; i < columnsCount; i++)
+        {
+            const uint8_t level = tracks->vu[tracks->firstVisibleTrack + i];
+            const bool muted = tracks->inactive[tracks->firstVisibleTrack + i] != 0;
+            const uint16_t segs = (uint16_t)((level * rowCount + 63) / 64);
+            const int16_t x = offset_x + i * tracksWidth;
+            for (uint16_t s = 0; s < segs && s < rowCount; s++)
+            {
+                const uint16_t row = rowCount - 1 - s;
+                const int16_t y = posY + row * stepHight + 2;
+                uint32_t c = 0x30C040;
+                if (s * 15 >= rowCount * 13)
+                    c = 0xE03020;
+                else if (s * 15 >= rowCount * 9)
+                    c = 0xE0C020;
+                API_COLOR(muted ? colors[12] : c);
+                API_VERTEX2F(x, y);
+                API_VERTEX2F(x + barW, y + segH);
+            }
+        }
+        API_END();
+        API_RESTORE_CONTEXT();
+        return;
+    }
+
     int8_t mark = -1;
     if ((tracks->selectedParam == 3 /*|| tracks->selectedParam == 4*/) && tracks->selectState)
     {

@@ -54,6 +54,9 @@ struct strTrackerPattern
 
     uint8_t inactive[kTrackCount];
 
+    bool vuLane;                // draw the second effect lane as a VU meter instead of text
+    uint8_t vu[kTrackCount];    // 0..64 per track
+
     bool showTrackNames;
     const char* tracksNames[kTrackCount];
 
@@ -75,6 +78,7 @@ struct strTrackerPattern
                 }
             }
             inactive[t] = 0;
+            vu[t] = 0;
             tracksNames[t] = nullptr;
         }
         actualTrack = 0;
@@ -97,6 +101,7 @@ struct strTrackerPattern
         selectColumn = 0;
         popupMode = 0;
         showTrackNames = false;
+        vuLane = false;
     }
 };
 
