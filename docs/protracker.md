@@ -76,3 +76,7 @@ Songs are stored in `/Mod` on the SD card. Saving never overwrites: an existing 
 ## Settings, restart and credits
 
 The **Config** screen has no MIDI section. **Info → About** lists the sources this firmware is built on: Polyend Tracker CE and the ProTracker 2.3D replayer as implemented in pt2-clone. The song is loaded again after a restart. When the unit is shut down with the power button, the current song, unsaved changes included, is written to `/Mod/.lastsong` (with `/Mod/.lastinfo` holding its file name and whether it has unsaved changes) and loaded again at the next start. After a power cut without the shutdown sequence, the last song that was opened or saved is loaded instead. The **File** button works from the Song screen too.
+
+## Themes
+
+The `themes/` folder in the repository holds four ready-made colour themes: **ProTracker** (grey and blue, after the Amiga tracker), **Workbench** (blue and orange), **MonoGreen** and **MonoAmber**. Copy the `.json` files to `/Themes/` on the SD card and choose one under **Config > Display theme**. They are made for the stock Polyend theme format ([`custom_themes_and_fonts.md`](custom_themes_and_fonts.md)) and can be changed with the web theme editor. They have not been looked at on the unit yet, so some colours may need adjusting. The VU meter colours (green, yellow, red) are fixed and do not follow the theme.

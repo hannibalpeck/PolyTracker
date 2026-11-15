@@ -37,6 +37,8 @@ The **Sample Rec** screen records from the inputs as before; after recording, **
 
 Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
+Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`themes/`](themes); copy them to `/Themes/` on the SD card.
+
 ## Repository structure
 
 ```text

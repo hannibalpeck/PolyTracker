@@ -1,0 +1,58 @@
+{
+  "name": "MonoAmber",
+  "base": "Original",
+  "background": "#0c0600",
+  "topBar": {
+    "text": "#ffb000",
+    "background": "#1e0f00",
+    "frame": "#1e0f00",
+    "text2": "#ffb000"
+  },
+  "labels": {
+    "active": "#ffb000",
+    "inactive": "#7a4a00",
+    "activeButton": "#3d2400",
+    "inactiveButton": "#241400",
+    "defaultText": "#ffb000"
+  },
+  "patternTracker": {
+    "trackName": "#7a4a00",
+    "background": "#0c0600",
+    "note": "#ffb000",
+    "instrument": "#ffb000",
+    "fx1": "#ffb000",
+    "fx2": "#ffb000",
+    "inactiveNote": "#7a4a00",
+    "inactiveInstrument": "#7a4a00",
+    "inactiveFx1": "#7a4a00",
+    "inactiveFx2": "#7a4a00",
+    "selection": "#ffb000",
+    "selectionText": "#0c0600",
+    "playhead": "#3d2400",
+    "gridDivider": "#2a1800",
+    "verticalDivider": "#2a1800",
+    "stepNumber": "#b87800"
+  },
+  "lists": {
+    "active": "#ffb000",
+    "inactive": "#7a4a00"
+  },
+  "bars": {
+    "active": "#ffd980",
+    "inactive": "#2a1800"
+  },
+  "waveform": {
+    "audio": "#ffb000",
+    "background": "#0c0600",
+    "progress": "#3d2400"
+  },
+  "accents": {
+    "white": "#ffd980",
+    "red": "#ffd980",
+    "orange": "#ffb000",
+    "yellow": "#ffd980",
+    "green": "#ffb000",
+    "cyan": "#ffb000",
+    "grey": "#7a4a00"
+  }
+}

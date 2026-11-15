@@ -1,0 +1,58 @@
+{
+  "name": "Workbench",
+  "base": "Original",
+  "background": "#0055aa",
+  "topBar": {
+    "text": "#0055aa",
+    "background": "#ffffff",
+    "frame": "#ffffff",
+    "text2": "#0055aa"
+  },
+  "labels": {
+    "active": "#ffffff",
+    "inactive": "#7fa8d4",
+    "activeButton": "#ff8800",
+    "inactiveButton": "#3377bb",
+    "defaultText": "#ffffff"
+  },
+  "patternTracker": {
+    "trackName": "#ffffff",
+    "background": "#0055aa",
+    "note": "#ffffff",
+    "instrument": "#ff8800",
+    "fx1": "#ffffff",
+    "fx2": "#ffffff",
+    "inactiveNote": "#5588cc",
+    "inactiveInstrument": "#5588cc",
+    "inactiveFx1": "#5588cc",
+    "inactiveFx2": "#5588cc",
+    "selection": "#ff8800",
+    "selectionText": "#000000",
+    "playhead": "#ffffff",
+    "gridDivider": "#2266aa",
+    "verticalDivider": "#2266aa",
+    "stepNumber": "#99ccff"
+  },
+  "lists": {
+    "active": "#ff8800",
+    "inactive": "#7fa8d4"
+  },
+  "bars": {
+    "active": "#ff8800",
+    "inactive": "#2266aa"
+  },
+  "waveform": {
+    "audio": "#ffffff",
+    "background": "#003d7a",
+    "progress": "#ffffff"
+  },
+  "accents": {
+    "white": "#ffffff",
+    "red": "#ee3322",
+    "orange": "#ff8800",
+    "yellow": "#ffee00",
+    "green": "#22cc55",
+    "cyan": "#66ccff",
+    "grey": "#8899aa"
+  }
+}

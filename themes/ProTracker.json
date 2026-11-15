@@ -1,0 +1,58 @@
+{
+  "name": "ProTracker",
+  "base": "Original",
+  "background": "#6f6f6f",
+  "topBar": {
+    "text": "#000000",
+    "background": "#aaaaaa",
+    "frame": "#aaaaaa",
+    "text2": "#000000"
+  },
+  "labels": {
+    "active": "#ffffff",
+    "inactive": "#505050",
+    "activeButton": "#bbbbbb",
+    "inactiveButton": "#7a7a7a",
+    "defaultText": "#ffffff"
+  },
+  "patternTracker": {
+    "trackName": "#000000",
+    "background": "#9a9a9a",
+    "note": "#000000",
+    "instrument": "#0000aa",
+    "fx1": "#aa0000",
+    "fx2": "#aa0000",
+    "inactiveNote": "#5a5a5a",
+    "inactiveInstrument": "#5a5a5a",
+    "inactiveFx1": "#5a5a5a",
+    "inactiveFx2": "#5a5a5a",
+    "selection": "#ffff66",
+    "selectionText": "#000000",
+    "playhead": "#e0e0e0",
+    "gridDivider": "#7a7a7a",
+    "verticalDivider": "#7a7a7a",
+    "stepNumber": "#303030"
+  },
+  "lists": {
+    "active": "#ffffff",
+    "inactive": "#555555"
+  },
+  "bars": {
+    "active": "#0000aa",
+    "inactive": "#7a7a7a"
+  },
+  "waveform": {
+    "audio": "#000000",
+    "background": "#bbbbbb",
+    "progress": "#e0e0e0"
+  },
+  "accents": {
+    "white": "#ffffff",
+    "red": "#aa0000",
+    "orange": "#dd8800",
+    "yellow": "#ffff66",
+    "green": "#00aa00",
+    "cyan": "#0088cc",
+    "grey": "#888888"
+  }
+}

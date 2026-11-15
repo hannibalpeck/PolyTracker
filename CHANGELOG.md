@@ -4,6 +4,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ---
 
+## Unreleased
+
+* Four extra colour themes in `themes/` (no firmware change).
+
 ## [0.9.5 beta]
 
 * Fx1 toggles the VU meters and Fx2 opens the effect popup (they were the wrong way round); the meters start one row above the cursor.
