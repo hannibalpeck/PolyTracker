@@ -6,7 +6,7 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 ## Unreleased
 
-* Four extra colour themes in `themes/` (no firmware change).
+* Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
 ## [0.9.5 beta]
 

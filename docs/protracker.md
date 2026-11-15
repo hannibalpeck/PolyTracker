@@ -80,3 +80,7 @@ The **Config** screen has no MIDI section. **Info → About** lists the sources 
 ## Themes
 
 The `themes/` folder in the repository holds four ready-made colour themes: **ProTracker** (grey and blue, after the Amiga tracker), **Workbench** (blue and orange), **MonoGreen** and **MonoAmber**. Copy the `.json` files to `/Themes/` on the SD card and choose one under **Config > Display theme**. They are made for the stock Polyend theme format ([`custom_themes_and_fonts.md`](custom_themes_and_fonts.md)) and can be changed with the web theme editor. They have not been looked at on the unit yet, so some colours may need adjusting. The VU meter colours (green, yellow, red) are fixed and do not follow the theme.
+
+## Font
+
+`fonts/PixelAmiga.ptfont` is a pixel font in the style of the Amiga bitmap fonts: a monospaced 5x7 pixel design scaled to the five sizes the Tracker uses (it is an original drawing, not the Amiga Topaz font). Copy it to `/Fonts/` on the SD card and choose it under **Config > Display font**. The generator is in `tools/pixelfont/` (`python3 gen.py`, needs Pillow only for the preview). It has not been tried on the unit yet. If the screen is unreadable after choosing it, remove the file from the SD card or select another font in Config.
