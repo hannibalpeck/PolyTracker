@@ -8,6 +8,7 @@
 #include "core/interfaceMenuPopup.h"
 #include "core/interfacePopups.h"
 #include "core/songTimer.h"
+#include "demoPlayer/demoPlayer.h"
 #include "fileManager.h"
 #include "mtAudioEngine.h"
 #include "mtConfig.h"
@@ -997,6 +998,11 @@ static void functCloseCreditsButton()
 void openCreditsAction()
 {
     CE->openCredits();
+}
+
+void openDemosAction()
+{
+    demoPlayer.open(CE);
 }
 
 void startFileTransferMode()

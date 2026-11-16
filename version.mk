@@ -6,7 +6,7 @@ BUILD_TAG    ?= $(shell git -C "$(VER_ROOT_DIR)" rev-parse --short=7 HEAD 2>/dev
 
 PLUS_VER_MAJOR     := 0
 PLUS_VER_MINOR     := 9
-PLUS_VER_PATCH     := 5
+PLUS_VER_PATCH     := 6
 PLUS_VER_BETA      := 1
 
 FW_VER_1    := $(PLUS_VER_MAJOR)

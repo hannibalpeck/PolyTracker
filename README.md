@@ -2,11 +2,11 @@
 
 A ProTracker (Amiga) mode for the **Polyend Tracker+**, built from the open-source Polyend Tracker CE firmware. It boots straight into a four-channel, 64-row, 31-sample ProTracker 2.3D style editor and player, and loads and saves genuine Amiga `.mod` files. The replayer is ported from [pt2-clone](https://github.com/8bitbubsy/pt2-clone) by Olav Sorensen (BSD 3-Clause, see [`NOTICE.md`](NOTICE.md)).
 
-> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). It is still a beta (0.9.5), so keep the recovery steps below in mind when flashing.
+> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). It is still a beta (0.9.6), so keep the recovery steps below in mind when flashing.
 
 This firmware is Tracker+ only. Support for the Original Tracker and Tracker Mini was removed, along with the stock pattern, song, sample editing, instrument, performance and project screens. What is kept: the ProTracker screen, Config, Master, the sample recorder and the sample loader.
 
-## What it does (version 0.9.5 beta)
+## What it does (version 0.9.6 beta)
 
 * Boots directly into the ProTracker screen. Songs live in `/Mod` on the SD card; saving never overwrites an existing file (`name-N.mod`). The last song is loaded again after a restart, unsaved changes included when the unit was shut down with the power button.
 * Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
@@ -25,7 +25,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 | **Sample Edit** | The stock Polyend sample editor on the current sample: Start/End/Zoom selection, Undo, Preview/Apply, a playback line, and the effects Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In, Fade Out and Octave (up/down, Preview, Apply, Restore). |
 | **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, live loop editing while a pad is held and a playback line. |
 | **Sample Rec** | The stock recorder (sources, gain, monitor, crop, undo). **To slot** records into the first free sample slot, **Save** writes a WAV. |
-| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources). |
+| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources, **Info > Demos** runs demos from the SD card). |
 
 Hold **Instr** in the sample editor or the sample parameters to pick another sample with the encoder.
 
@@ -36,6 +36,12 @@ Hold **Instr** in the sample editor or the sample parameters to pick another sam
 The **Sample Rec** screen records from the inputs as before; after recording, **Save** writes a WAV to `Recordings/` and **To slot** puts the recording (8-bit mono, channels averaged, cut at 65534 bytes) in the first free sample slot of the song under the name you type. Neither WAV import nor recording resamples, so a 44.1 kHz recording plays high at C-3.
 
 Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
+
+### Demos
+
+**Config > Info > Demos** lists the `.ptdemo` files in `/Demos` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The demo takes over the whole screen and the pads, and a song that is playing keeps playing under it. While a demo runs only **Shift** does anything: it ends the demo and goes back to Config.
+
+Demos are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`demo-sdk/`](demo-sdk) has the API header, a builder and an example (`demos/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller); see [`demo-sdk/README.md`](demo-sdk/README.md).
 
 Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`themes/`](themes); copy them to `/Themes/` on the SD card. A pixel font, `fonts/PixelAmiga.ptfont`, goes in `/Fonts/`.
 
@@ -51,6 +57,7 @@ Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`
 ├── platforms/imx/          # Tracker+ (i.MX RT1050) HAL, drivers and linker script
 ├── synth/                  # PolySynth headers and precompiled libraries (see License)
 ├── util/                   # Shared utility headers
+├── demo-sdk/               # Host API, builder and example for SD card demos (.ptdemo)
 ├── tests/protracker/       # Host unit tests
 └── docs/
 ```

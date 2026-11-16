@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.6 beta]
+
+* Config > Info > Demos: runs demos (`.ptdemo` files) from `/Demos` on the SD card full screen; Shift ends the demo and returns to Config. The demos are separate files built with the new `demo-sdk/` (host API, builder, example demo).
+
 ## [0.9.5 beta]
 
 * Fx1 toggles the VU meters and Fx2 opens the effect popup (they were the wrong way round); the meters start one row above the cursor.

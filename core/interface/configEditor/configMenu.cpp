@@ -54,7 +54,7 @@ cMenuGroup menuFirmware(menuBase, "Firmware", 4);
 cMenuGroup menuFunctionButtons(menuBase, "Fn buttons binding", 8);
 #endif
 
-cMenuGroup menuCredits(menuBase, "Info", 1);
+cMenuGroup menuCredits(menuBase, "Info", 2);
 
 // elementy/////////
 
@@ -272,12 +272,19 @@ cMenuItem melUsbAudio(menuUsb,
 // Credits & Info
 
 const strItemTypeActionButton creditsSetup{ openCreditsAction, nullptr };
+const strItemTypeActionButton demosSetup{ openDemosAction, nullptr };
 
 cMenuItem melOpenCredits(menuCredits,
                          "About",
                          nullptr,
                          menuTypeItemActionButton,
                          &creditsSetup);
+
+cMenuItem melOpenDemos(menuCredits,
+                       "Demos",
+                       nullptr,
+                       menuTypeItemActionButton,
+                       &demosSetup);
 
 
 //==================================================================================================================================================================
