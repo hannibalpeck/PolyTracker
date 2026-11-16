@@ -1,9 +1,13 @@
 // PTDEMO_NAME: Oldskool
 // PTDEMO_AUTHOR: Tracker CE
 // PTDEMO_SCRATCH: 8192
+// PTDEMO_MOD: oldskool.mod
 //
-// Rotozoomer, copper bars, vector-ball cube and a sine scroller.
-// Build:  python3 ptdemo_builder.py demos/oldskool.c -o Demos/oldskool.ptdemo
+// Rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to
+// the music: kick drums flash the copper bars, snares pump the cube, the
+// arpeggio channel swings the scroller.
+// Build:  python3 ptdemo_builder.py demos/oldskool.c -o build/Demos/oldskool.ptdemo
+// (oldskool.mod is made by tools/make_oldskool_mod.py)
 
 #include "tracker_demo.h"
 
@@ -36,6 +40,12 @@ static const char kScrollText[] =
   "PRESS SHIFT TO EXIT    GREETINGS TO ALL TRACKER CE HACKERS ...    ";
 
 static uint8_t padState[48];
+
+/* music sync: decaying pulses, set when a channel starts a note */
+static PtDemoModState mod;
+static uint8_t lastHits[4];
+static float kickPulse, snarePulse, arpPulse;
+static uint32_t lastTimeMs;
 
 static uint32_t read32(const uint8_t* p)
 {
@@ -92,6 +102,10 @@ int32_t demo_init(const PtDemoHostApi* host, void* scratch, uint32_t scratch_siz
 
     for (int i = 0; i < 48; i++)
         padState[i] = 0;
+    for (int c = 0; c < 4; c++)
+        lastHits[c] = 0;
+    kickPulse = snarePulse = arpPulse = 0.0f;
+    lastTimeMs = 0;
     return 0;
 }
 
@@ -140,6 +154,7 @@ static const uint8_t kBarColors[3][3] = { { 255, 60, 40 }, { 60, 255, 90 }, { 70
 static void copperBars(float t)
 {
     const int rows = 16;
+    const float boost = 1.0f + 0.9f * kickPulse;
     DL(PTD_SAVE_CONTEXT());
     DL(PTD_BLEND_FUNC(PTD_SRC_ALPHA, PTD_ONE));
     DL(PTD_LINE_WIDTH(16));
@@ -150,7 +165,9 @@ static void copperBars(float t)
         int y0 = yc - rows;
         for (int k = 0; k < rows; k++)
         {
-            float i = H->sinf(kPi * (k + 0.5f) / rows);
+            float i = H->sinf(kPi * (k + 0.5f) / rows) * boost;
+            if (i > 1.0f)
+                i = 1.0f;
             DL(PTD_COLOR_RGB((int)(kBarColors[bar][0] * i), (int)(kBarColors[bar][1] * i),
                              (int)(kBarColors[bar][2] * i)));
             DL(PTD_VERTEX2F(0, y0 + k * 2));
@@ -168,7 +185,8 @@ static const uint8_t kEdges[12][2] = { { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 }, {
 
 static void cube(float t)
 {
-    const float size = 70.0f, dist = 420.0f, focal = 420.0f, ball = 16.0f;
+    const float size = 70.0f * (1.0f + 0.25f * snarePulse), dist = 420.0f, focal = 420.0f,
+                ball = 16.0f;
     float cx = H->screen_width / 2 + 150.0f * H->sinf(t * 0.6f);
     float cy = 180.0f + 20.0f * H->sinf(t * 1.7f);
     float sx = H->sinf(t * 0.9f), cxr = H->cosf(t * 0.9f);
@@ -264,7 +282,8 @@ static void scroller(float t)
         if (c != ' ')
         {
             glyphX[count] = (int16_t)x;
-            glyphY[count] = (int16_t)(baseY + (int)(42.0f * H->sinf(x * 0.011f + t * 3.2f)));
+            glyphY[count] =
+              (int16_t)(baseY + (int)((34.0f + 20.0f * arpPulse) * H->sinf(x * 0.011f + t * 3.2f)));
             glyphC[count] = c;
             count++;
         }
@@ -323,9 +342,42 @@ static void pads(float t)
 
 /* -------------------------------------------------------------- entry points */
 
+static void syncToMusic(uint32_t time_ms)
+{
+    float dt = (time_ms - lastTimeMs) * 0.001f;
+    lastTimeMs = time_ms;
+    float decay = 1.0f - 6.0f * dt; /* pulses fade in ~1/6 s */
+    if (decay < 0.0f)
+        decay = 0.0f;
+    kickPulse *= decay;
+    snarePulse *= decay;
+    arpPulse *= decay;
+
+    if (H->api_version < 2)
+        return; /* older firmware: no music, effects run unsynced */
+    H->mod_state(&mod);
+    if (!mod.playing)
+        return;
+
+    /* channel 0 carries kick and snare: tell them apart by the row in the bar */
+    if (mod.hits[0] != lastHits[0])
+    {
+        int step = mod.row % 16;
+        if (step == 4 || step == 12)
+            snarePulse = 1.0f;
+        else
+            kickPulse = 1.0f;
+    }
+    if (mod.hits[2] != lastHits[2])
+        arpPulse = 1.0f;
+    for (int c = 0; c < 4; c++)
+        lastHits[c] = mod.hits[c];
+}
+
 void demo_frame(uint32_t time_ms)
 {
     float t = time_ms * 0.001f;
+    syncToMusic(time_ms);
     rotozoomer(t);
     copperBars(t);
     cube(t);

@@ -8,6 +8,11 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.8 beta]
+
+* Demos can carry their own music: a ProTracker .mod packed into the `.ptdemo` (`// PTDEMO_MOD:` in the source), played by the firmware's ProTracker replayer from a second module memory (2.125 MB, taken from the sample memory), so the song being edited is never touched. Host API version 2 adds `mod_state` (position, row, tick, VU and note hits per channel, for syncing), `mod_play`, `mod_stop` and `mod_load`; demos that need it are refused by older firmware.
+* The example demo plays an original chiptune (`demo-sdk/tools/make_oldskool_mod.py`) and syncs its effects to it.
+
 ## [0.9.7 beta]
 
 * Starting a demo stops the song (demos bring their own music).

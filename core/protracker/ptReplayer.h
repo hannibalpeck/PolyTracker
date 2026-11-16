@@ -58,6 +58,7 @@ class Replayer
     int row() const { return curRow_; }
     int pattern() const { return curPattern_; }
     int speed() const { return speed_; }
+    int currentTick() const { return tick_; }
     int bpm() const { return modBpm_; }
     uint32_t songLoops() const { return songLoops_; }
 
@@ -71,6 +72,8 @@ class Replayer
     // 0..64, set when a note triggers and decays while playing (for VU meters)
     uint8_t channelVu(int channel) const { return vu_[channel & 3]; }
     uint16_t channelPeriod(int channel) const { return voice_[channel & 3].period; }
+    // Counts the notes started on a channel (wraps at 255): lets a demo sync to the music.
+    uint8_t channelHits(int channel) const { return hits_[channel & 3]; }
 
   private:
     // ---------------------------------------------------------------- Paula
@@ -168,6 +171,7 @@ class Replayer
     Voice voice_[kChannelCount];
     Channel ch_[kChannelCount];
     uint8_t vu_[kChannelCount] = {};
+    uint8_t hits_[kChannelCount] = {};
     bool muted_[kChannelCount] = {};
 
     bool playing_ = false;

@@ -493,7 +493,9 @@ void Replayer::render(int16_t* left, int16_t* right, uint32_t frames)
 
 void Replayer::setVu(Channel& ch)
 {
+    // called whenever a note starts on the channel
     vu_[ch.index] = (uint8_t)(ch.volume > 0 ? ch.volume : 0);
+    hits_[ch.index]++;
 }
 
 void Replayer::tick()

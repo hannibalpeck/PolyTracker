@@ -2,17 +2,17 @@
 
 A ProTracker (Amiga) mode for the **Polyend Tracker+**, built from the open-source Polyend Tracker CE firmware. It boots straight into a four-channel, 64-row, 31-sample ProTracker 2.3D style editor and player, and loads and saves genuine Amiga `.mod` files. The replayer is ported from [pt2-clone](https://github.com/8bitbubsy/pt2-clone) by Olav Sorensen (BSD 3-Clause, see [`NOTICE.md`](NOTICE.md)).
 
-> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). It is still a beta (0.9.7), so keep the recovery steps below in mind when flashing.
+> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). It is still a beta (0.9.8), so keep the recovery steps below in mind when flashing.
 
 This firmware is Tracker+ only. Support for the Original Tracker and Tracker Mini was removed, along with the stock pattern, song, sample editing, instrument, performance and project screens. What is kept: the ProTracker screen, Config, Master, the sample recorder and the sample loader.
 
-## What it does (version 0.9.7 beta)
+## What it does (version 0.9.8 beta)
 
 * Boots directly into the ProTracker screen. Songs live in `/Mod` on the SD card; saving never overwrites an existing file (`name-N.mod`). The last song is loaded again after a restart, unsaved changes included when the unit was shut down with the power button.
 * Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
 * Reads `M.K.`, `M!K!`, `FLT4`, `4CHN` and `N.T.` modules (6 and 8 channel modules are refused). Writes `M.K.` (or `M!K!` above 64 patterns).
 * Limits follow the .mod format: 4 tracks, 64 rows, 31 samples (8 bit, at most 65534 bytes), patterns 0-99, 128 order slots, the 29 ProTracker effects.
-* Module memory is reserved from external RAM, which makes the stock sample memory about 2.1 MB smaller.
+* Module memory is reserved from external RAM, which makes the stock sample memory about 2.1 MB smaller, and another 2.1 MB for the music of SD card demos.
 
 ### Screens
 
@@ -39,9 +39,9 @@ Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
 ### Demos
 
-**Config > Info > Demos** lists the `.ptdemo` files in `/Demos` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The demo takes over the whole screen and the pads; a song that is playing is stopped first. While a demo runs only **Shift** does anything: it ends the demo and goes back to Config.
+**Config > Info > Demos** lists the `.ptdemo` files in `/Demos` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The demo takes over the whole screen and the pads. A song that is playing is stopped first, and a demo can bring its own music: a .mod packed into the demo file, played by the same ProTracker replayer from separate memory, so your song is never touched. While a demo runs only **Shift** does anything: it ends the demo and goes back to Config.
 
-Demos are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`demo-sdk/`](demo-sdk) has the API header, a builder and an example (`demos/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller); see [`demo-sdk/README.md`](demo-sdk/README.md).
+Demos are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`demo-sdk/`](demo-sdk) has the API header, a builder and an example (`demos/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to its own chiptune); see [`demo-sdk/README.md`](demo-sdk/README.md).
 
 Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`themes/`](themes); copy them to `/Themes/` on the SD card. A pixel font, `fonts/PixelAmiga.ptfont`, goes in `/Fonts/`.
 

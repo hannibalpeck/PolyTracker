@@ -11,6 +11,8 @@ Metadata comes from comments in the source:
     // PTDEMO_AUTHOR: someone
     // PTDEMO_SCRATCH: 8192          (bytes of working RAM, max 393216)
     // PTDEMO_FLAGS: IMX_ONLY        (optional)
+    // PTDEMO_MOD: tune.mod          (optional music, path relative to the source;
+                                       appended to the .ptdemo and played by the firmware)
 
 Usage:
     python3 ptdemo_builder.py demos/oldskool.c -o Demos/oldskool.ptdemo
@@ -27,6 +29,9 @@ import tempfile
 PTDEMO_MAGIC = 0x4F4D4450  # "PDMO"
 PTDEMO_FORMAT_VERSION = 1
 HEADER_SIZE = 128
+API_VERSION = 2
+MOD_TAGS = (b"M.K.", b"M!K!", b"FLT4", b"4CHN")
+MAX_MOD_PATTERNS = 100  # what the firmware's module memory holds
 EXIT_ABSENT = 0xFFFFFFFF
 MAX_CODE_MK66 = 32 * 1024
 MAX_CODE_IMX = 128 * 1024
@@ -75,6 +80,21 @@ def parse_meta(source):
     return meta
 
 
+def read_mod(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    if len(data) < 1084:
+        sys.exit(f"{path}: too short to be a .mod")
+    tag = data[1080:1084]
+    if tag not in MOD_TAGS:
+        sys.exit(f"{path}: not a 4-channel ProTracker module (tag {tag!r})")
+    song_length = data[950]
+    patterns = max(data[952:952 + 128][:max(song_length, 1)]) + 1
+    if patterns > MAX_MOD_PATTERNS:
+        sys.exit(f"{path}: uses {patterns} patterns, the firmware holds {MAX_MOD_PATTERNS}")
+    return data
+
+
 def build(c_file, out_file, toolchain):
     with open(c_file) as f:
         source = f.read()
@@ -91,6 +111,13 @@ def build(c_file, out_file, toolchain):
             flags |= FLAG_MAP[token.upper()]
     if scratch > MAX_SCRATCH:
         sys.exit(f"PTDEMO_SCRATCH {scratch} is over the {MAX_SCRATCH} byte limit")
+
+    mod = b""
+    if meta.get("MOD"):
+        mod = read_mod(os.path.join(os.path.dirname(os.path.abspath(c_file)), meta["MOD"]))
+    # API 2 brought the music: a demo that has or drives a module needs it.
+    uses_music = bool(mod) or re.search(r"\bmod_(state|play|stop|load)\b", source)
+    required_api = 2 if uses_music else 1
 
     sdk_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -159,8 +186,11 @@ def build(c_file, out_file, toolchain):
             sys.exit(f"Code+bss is {total} bytes: over 32 KB, add '// PTDEMO_FLAGS: IMX_ONLY'")
         sys.exit(f"Code+bss is {total} bytes, over the {limit} byte limit")
 
+    code = code.ljust((len(code) + 3) & ~3, b"\0")  # keep the module 4-byte aligned
+    mod_offset = HEADER_SIZE + len(code) if mod else 0
+
     header = struct.pack(
-        "<IHH32s16sIIIIIII44s",
+        "<IHH32s16sIIIIIIIIII32s",
         PTDEMO_MAGIC,
         PTDEMO_FORMAT_VERSION,
         flags,
@@ -173,16 +203,20 @@ def build(c_file, out_file, toolchain):
         symbols["demo_init"] & ~1,
         symbols["demo_frame"] & ~1,
         (symbols["demo_exit"] & ~1) if "demo_exit" in symbols else EXIT_ABSENT,
-        b"\0" * 44,
+        mod_offset,
+        len(mod),
+        required_api,
+        b"\0" * 32,
     )
     assert len(header) == HEADER_SIZE
 
     os.makedirs(os.path.dirname(os.path.abspath(out_file)), exist_ok=True)
     with open(out_file, "wb") as f:
-        f.write(header + code)
+        f.write(header + code + mod)
 
-    print(f"{out_file}: '{name}'  code {code_size} B  bss {bss_size} B  scratch {scratch} B"
-          f"  {'IMX only' if flags & 1 else 'all Trackers'}")
+    music = f"  music {len(mod)} B" if mod else ""
+    print(f"{out_file}: '{name}'  code {code_size} B  bss {bss_size} B  scratch {scratch} B{music}"
+          f"  API {required_api}  {'IMX only' if flags & 1 else 'all Trackers'}")
 
 
 def main():

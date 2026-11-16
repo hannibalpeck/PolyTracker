@@ -327,6 +327,31 @@ static void testOversizedSample()
     CHECK(b.mod.sampleData(0)[1000] == (1000 & 0x7F));
 }
 
+// channelHits() counts started notes per channel (demo sync), currentTick() stays below the speed
+static void testHitsAndTick()
+{
+    printf("hits and tick\n");
+    Fixture a;
+    a.makeSquare(0);
+    a.mod.songLength = 1;
+    a.note(0, 0, 0, 1, 428);
+    a.note(0, 4, 0, 1, 428);
+    a.note(0, 8, 0, 1, 428);
+    a.note(0, 2, 2, 1, 214);
+    CHECK(a.rep.channelHits(0) == 0);
+    a.rep.play(0, 0);
+
+    // speed 6 at 125 BPM: a tick is 882 samples, a row 5292. Render to the middle of row 9.
+    const uint32_t row = 5292;
+    renderLeft(a.rep, row * 9 + row / 2);
+    CHECK(a.rep.row() == 9);
+    CHECK(a.rep.channelHits(0) == 3);
+    CHECK(a.rep.channelHits(1) == 0);
+    CHECK(a.rep.channelHits(2) == 1);
+    CHECK(a.rep.channelHits(3) == 0);
+    CHECK(a.rep.currentTick() >= 0 && a.rep.currentTick() < a.rep.speed());
+}
+
 static void testPitch()
 {
     printf("pitch\n");
@@ -949,6 +974,7 @@ int main()
     testLedFilter();
     testPreview();
     testWavSlots();
+    testHitsAndTick();
 
     printf("\n%d checks, %d failures\n", gChecks, gFailures);
     return gFailures == 0 ? 0 : 1;

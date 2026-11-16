@@ -65,6 +65,14 @@ void ProTrackerStream::resume()
     pauseRequested_ = false;
 }
 
+void ProTrackerStream::switchTo(protracker::Replayer* replayer)
+{
+    pause();
+    command_ = kNone;
+    replayer_ = replayer;
+    resume();
+}
+
 void ProTrackerStream::update(void)
 {
     if (pauseRequested_)

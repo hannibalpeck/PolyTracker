@@ -20,6 +20,10 @@ class ProTrackerStream : public AudioStream
     }
 
     void attach(protracker::Replayer* replayer) { replayer_ = replayer; }
+    // Switch to another replayer while audio is running: the audio update is paused around the
+    // switch and a request still pending for the old replayer is dropped.
+    void switchTo(protracker::Replayer* replayer);
+    protracker::Replayer* attached() const { return replayer_; }
 
     // While not enabled the stream costs (almost) no CPU and produces no audio.
     void setEnabled(bool enabled) { enabled_ = enabled; }

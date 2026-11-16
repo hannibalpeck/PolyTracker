@@ -10,7 +10,11 @@
 #include "FT812.h"
 #include "FT81x.h"
 #include "displayStructs.h"
+#include "AudioOutput.h"
 #include "mtAudioEngine.h"
+#include "ptAudioStream.h"
+#include "ptModule.h"
+#include "ptReplayer.h"
 #include "mtPadsBacklight.h"
 #include "mtStructs.h"
 
@@ -84,6 +88,137 @@ static void flushBurstIfFull(uint32_t nextWords)
         driver()->beginCoProList(); // waits until the FIFO has been read
         s_burstWords = 0;
     }
+}
+
+//==============================================================================================
+// Demo music: a second ProTracker module and replayer
+//==============================================================================================
+
+// Its own memory (mtStructs.h), so the song being edited is never touched.
+__NOINIT(EXTERNAL_RAM) static uint8_t s_demoPool[DEMO_MOD_POOL_SIZE];
+static_assert(DEMO_MOD_POOL_SIZE >= protracker::kPoolBytes, "DEMO_MOD_POOL_SIZE is too small");
+
+static protracker::Module s_demoModule;
+static protracker::Replayer s_demoReplayer;
+static bool s_musicReady = false;  // module memory attached, replayer initialised
+static bool s_hasModule = false;   // a module is loaded
+static bool s_musicActive = false; // the stream plays the demo's replayer
+static protracker::Replayer* s_prevReplayer = nullptr;
+static bool s_prevStreamEnabled = false;
+
+static ProTrackerStream* ptStream()
+{
+    return engine.getAudioOutput()->getProTrackerStream();
+}
+
+static void initMusic()
+{
+    if (s_musicReady)
+        return;
+    s_demoModule.attach(s_demoPool, sizeof(s_demoPool));
+    s_demoReplayer.init(&s_demoModule, AUDIO_SAMPLE_RATE_EXACT);
+    s_musicReady = true;
+}
+
+// Module::load reads through this: a window [base, base + size) of an open file.
+struct ModWindow
+{
+    FileSystem* fs;
+    FileSystem::FileHandle handle;
+    uint32_t base;
+    uint32_t size;
+    uint32_t pos;
+};
+
+static uint32_t modRead(void* ctx, void* dst, uint32_t count)
+{
+    ModWindow* w = static_cast<ModWindow*>(ctx);
+    if (w->pos >= w->size)
+        return 0;
+    if (count > w->size - w->pos)
+        count = w->size - w->pos;
+    uint32_t total = 0;
+    while (total < count)
+    {
+        int32_t got = w->fs->readFile(static_cast<uint8_t*>(dst) + total, count - total, w->handle);
+        if (got <= 0)
+            break;
+        total += static_cast<uint32_t>(got);
+    }
+    w->pos += total;
+    return total;
+}
+
+static bool modSeek(void* ctx, uint32_t offset)
+{
+    ModWindow* w = static_cast<ModWindow*>(ctx);
+    if (offset > w->size || !w->fs->seekFile(w->base + offset, w->handle))
+        return false;
+    w->pos = offset;
+    return true;
+}
+
+// Loads a module from part of a file. size 0 = to the end of the file. The demo's replayer must
+// not be playing it meanwhile (the caller pauses the stream when it is attached).
+static bool loadModule(const char* path, uint32_t base, uint32_t size)
+{
+    initMusic();
+    s_hasModule = false;
+
+    FileSystem* fs = TrackerImpl::getInstance()->getPlatform()->getFileSystem();
+    if (fs == nullptr)
+        return false;
+    auto [isOpen, handle] = fs->openFile(path, FileSystem::FileOpenMode::kRead);
+    if (!isOpen)
+        return false;
+
+    ModWindow window = { fs, handle, base, size == 0 ? 0xFFFFFFFFu - base : size, 0 };
+    protracker::FileIo io;
+    io.ctx = &window;
+    io.read = modRead;
+    io.seek = modSeek;
+
+    s_demoReplayer.stop();
+    const protracker::Result result = s_demoModule.load(io);
+    fs->closeFile(handle);
+
+    if (result != protracker::Result::kOk)
+    {
+        s_demoModule.clear();
+        return false;
+    }
+    s_hasModule = true;
+    return true;
+}
+
+// The stream plays the demo's replayer while a demo runs, and the song's replayer again after.
+static void startMusicOutput()
+{
+    initMusic();
+    ProTrackerStream* stream = ptStream();
+    s_prevReplayer = stream->attached();
+    s_prevStreamEnabled = stream->isEnabled();
+    stream->switchTo(&s_demoReplayer);
+    // switchTo() drops a stop still pending for the song, so stop it here; it is detached now.
+    if (s_prevReplayer != nullptr && s_prevReplayer != &s_demoReplayer)
+    {
+        s_prevReplayer->stop();
+        s_prevReplayer->previewStop();
+    }
+    stream->setEnabled(true);
+    s_musicActive = true;
+}
+
+static void stopMusicOutput()
+{
+    if (!s_musicActive)
+        return;
+    ProTrackerStream* stream = ptStream();
+    stream->switchTo(s_prevReplayer);
+    stream->setEnabled(s_prevStreamEnabled);
+    s_demoReplayer.stop(); // detached now, safe to touch
+    s_demoReplayer.previewStop();
+    s_musicActive = false;
 }
 
 //==============================================================================================
@@ -235,6 +370,64 @@ static uint8_t hostIsSongPlaying()
     return protrackerMode.isPlaying() ? 1 : 0;
 }
 
+static void hostModState(PtDemoModState* out)
+{
+    if (out == nullptr)
+        return;
+    memset(out, 0, sizeof(*out));
+    if (!s_hasModule)
+        return;
+    const protracker::Replayer& r = s_demoReplayer;
+    out->playing = r.isPlaying() ? 1 : 0;
+    out->position = (uint8_t)r.position();
+    out->pattern = (uint8_t)r.pattern();
+    out->row = (uint8_t)r.row();
+    out->tick = (uint8_t)r.currentTick();
+    out->speed = (uint8_t)r.speed();
+    out->bpm = (uint16_t)r.bpm();
+    for (int c = 0; c < 4; c++)
+    {
+        out->vu[c] = r.channelVu(c);
+        out->hits[c] = r.channelHits(c);
+    }
+    out->loops = r.songLoops();
+}
+
+static uint8_t hostModPlay(uint8_t position)
+{
+    if (!s_hasModule || !s_musicActive)
+        return 0;
+    if (position >= s_demoModule.songLength)
+        position = 0;
+    ptStream()->requestPlay(position, 0);
+    return 1;
+}
+
+static void hostModStop()
+{
+    if (s_musicActive)
+        ptStream()->requestStop();
+}
+
+static int32_t hostModLoad(const char* path)
+{
+    if (path == nullptr)
+        return -1;
+    char fullPath[kMaxFilePathLen + 1];
+    if (path[0] == '/')
+        snprintf(fullPath, sizeof(fullPath), "%s", path);
+    else
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", DP->demoFolder, path);
+
+    ProTrackerStream* stream = ptStream();
+    if (s_musicActive)
+        stream->pause();
+    const bool ok = loadModule(fullPath, 0, 0);
+    if (s_musicActive)
+        stream->resume();
+    return ok ? 0 : -1;
+}
+
 static const PtDemoHostApi s_hostApi = {
     PTDEMO_API_VERSION,
     800,
@@ -265,6 +458,10 @@ static const PtDemoHostApi s_hostApi = {
     hostReadFile,
     hostPadLight,
     hostIsSongPlaying,
+    hostModState,
+    hostModPlay,
+    hostModStop,
+    hostModLoad,
 };
 
 //==============================================================================================
@@ -328,8 +525,12 @@ bool cDemoPlayer::load(const char* path, const char** error)
         problem = "Unsupported demo version";
     else if (h.code_size == 0 || total < h.code_size || total > kCodeBufferSize)
         problem = "Demo code too big";
+    else if (h.required_api > PTDEMO_API_VERSION)
+        problem = "Needs newer firmware";
     else if (h.scratch_size > kScratchSize)
         problem = "Demo needs too much RAM";
+    else if (h.mod_size != 0 && h.mod_offset < h.code_offset + h.code_size)
+        problem = "Corrupt demo file";
     else if (h.code_offset < sizeof(PtDemoHeader) || h.init_offset >= h.code_size ||
              h.frame_offset >= h.code_size ||
              (h.exit_offset != kExitAbsent && h.exit_offset >= h.code_size))
@@ -372,6 +573,14 @@ bool cDemoPlayer::load(const char* path, const char** error)
         memset(externalRamScratchBuff + kScratchOffset, 0, h.scratch_size);
 
     syncInstructionCache(codeBuf, total);
+
+    // The demo's music, if it carries any. Nothing plays it yet.
+    s_hasModule = false;
+    if (h.mod_size != 0 && !loadModule(path, h.mod_offset, h.mod_size))
+    {
+        *error = "Bad module in demo";
+        return false;
+    }
 
     // Thumb entry points: base + offset with bit 0 set.
     const uintptr_t base = reinterpret_cast<uintptr_t>(codeBuf);
@@ -642,11 +851,15 @@ void cDemoPlayer::beginDemo()
     driver()->awaitCoProEmpty();
 
     memset(s_padLevel, 0, sizeof(s_padLevel));
+    startMusicOutput();
     if (initFunc(&s_hostApi, externalRamScratchBuff + kScratchOffset, header.scratch_size) != 0)
     {
         initFailed = true;
         return;
     }
+    // The music starts with the first frame, so time 0 and position 0 line up.
+    if (s_hasModule)
+        ptStream()->requestPlay(0, 0);
     startMs = hostMillis();
     running = true;
 }
@@ -659,6 +872,10 @@ void cDemoPlayer::stop()
         exitFunc();
     running = false;
     initFailed = false;
+
+    // The song's replayer gets the output back; the tracker song stays stopped.
+    stopMusicOutput();
+    s_hasModule = false;
 
     // The code buffer is shared: forget the entry points.
     initFunc = nullptr;

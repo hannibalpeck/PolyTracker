@@ -26,6 +26,13 @@
  *   void demo_exit(void);
  *       Optional. Called when the user leaves (Shift).
  *
+ * Music: a demo can carry a ProTracker .mod (`// PTDEMO_MOD: tune.mod` in
+ * the source; the builder appends it to the .ptdemo). The firmware plays it
+ * with its own ProTracker 2.3D replayer, starting right after demo_init
+ * returns, and stops it when the demo ends. The tracker's own song is
+ * stopped before a demo starts and is never touched. Use host->mod_state()
+ * to sync effects to the music (API version 2).
+ *
  * Rules for the code (the builder enforces what it can):
  *   - no libc: use the host functions for math, memory and files
  *   - keep globals `static` (or build with the builder, which hides them),
@@ -46,7 +53,7 @@ extern "C" {
 
 #define PTDEMO_MAGIC 0x4F4D4450u /* "PDMO" little endian */
 #define PTDEMO_FORMAT_VERSION 1
-#define PTDEMO_API_VERSION 1
+#define PTDEMO_API_VERSION 2
 #define PTDEMO_HEADER_SIZE 128
 
 #define PTDEMO_FLAG_IMX_ONLY 0x0001 /* needs Tracker+/Mini (code > 32 KB, or M7 speed) */
@@ -65,8 +72,26 @@ typedef struct __attribute__((packed, aligned(4)))
     uint32_t init_offset;    /* +0x48 demo_init, relative to code base */
     uint32_t frame_offset;   /* +0x4C demo_frame */
     uint32_t exit_offset;    /* +0x50 demo_exit, 0xFFFFFFFF if absent */
-    uint8_t reserved[44];    /* +0x54 */
+    uint32_t mod_offset;     /* +0x54 file offset of an embedded .mod, 0 if none */
+    uint32_t mod_size;       /* +0x58 its size in bytes */
+    uint32_t required_api;   /* +0x5C lowest host API version the demo needs (0 = 1) */
+    uint8_t reserved[32];    /* +0x60 */
 } PtDemoHeader;
+
+/* What the music is doing, for syncing effects. */
+typedef struct
+{
+    uint8_t playing;   /* 1 while the demo's module plays */
+    uint8_t position;  /* order list position */
+    uint8_t pattern;
+    uint8_t row;       /* 0-63 */
+    uint8_t tick;      /* 0 .. speed-1 */
+    uint8_t speed;     /* ticks per row */
+    uint16_t bpm;
+    uint8_t vu[4];     /* per channel: jumps to the note's volume (0-64), falls back */
+    uint8_t hits[4];   /* per channel: +1 for every note started (wraps at 255) */
+    uint32_t loops;    /* times the song has wrapped to its restart */
+} PtDemoModState;
 
 typedef struct
 {
@@ -118,8 +143,22 @@ typedef struct
        (scaled to the user's pad brightness setting). */
     void (*pad_light)(uint8_t pad, uint8_t level);
 
-    /* 1 while the tracker song is playing (the firmware stops it before a demo starts) */
+    /* API 1 meaning: the tracker song. The firmware stops it before a demo
+       starts, so this is 0 from API version 2 on; use mod_state(). */
     uint8_t (*is_song_playing)(void);
+
+    /* ---- API version 2: the demo's music ---------------------------------- */
+
+    /* Fills `out`. Fields are zero when the demo has no module. */
+    void (*mod_state)(PtDemoModState* out);
+    /* Start the module at an order position (0 = from the top), or stop it.
+       mod_play returns 0 if there is no module. */
+    uint8_t (*mod_play)(uint8_t position);
+    void (*mod_stop)(void);
+    /* Load another .mod (path as for read_file) in place of the current one;
+       it is not started. Returns 0 on success. Stalls a moment: call it
+       between parts, not every frame. */
+    int32_t (*mod_load)(const char* path);
 } PtDemoHostApi;
 
 typedef int32_t (*PtDemoInitFunc)(const PtDemoHostApi* host, void* scratch, uint32_t scratch_size);
