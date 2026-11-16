@@ -618,6 +618,12 @@ void cDemoPlayer::runSelected()
         return;
     }
     strcpy(demoFolder, "/Demos");
+
+    // A demo brings its own music, if any: the song stops and stays stopped.
+    protrackerMode.stopPreview();
+    if (protrackerMode.isPlaying())
+        protrackerMode.togglePlay(false);
+
     beginDemo();
 }
 

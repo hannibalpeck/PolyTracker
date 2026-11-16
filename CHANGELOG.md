@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.7 beta]
+
+* Starting a demo stops the song (demos bring their own music).
+
 ## [0.9.6 beta]
 
 * Config > Info > Demos: runs demos (`.ptdemo` files) from `/Demos` on the SD card full screen; Shift ends the demo and returns to Config. The demos are separate files built with the new `demo-sdk/` (host API, builder, example demo).

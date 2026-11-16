@@ -8,7 +8,7 @@ Full-screen demoscene effects that live on the SD card, not in the firmware.
 2. On the Tracker: **Config → Info → Demos**, pick a file with the jog wheel or Up/Down, press **Run** (Cancel goes back).
 3. **Shift** leaves the demo and returns to Config. Nothing else responds while a demo runs (the power button still works).
 
-A song that is playing keeps playing under the demo; `host->is_song_playing()` tells the demo.
+The firmware stops the current song before a demo starts.
 
 ## Writing a demo
 

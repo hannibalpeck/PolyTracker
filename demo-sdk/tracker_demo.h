@@ -118,7 +118,7 @@ typedef struct
        (scaled to the user's pad brightness setting). */
     void (*pad_light)(uint8_t pad, uint8_t level);
 
-    /* 1 while the sequencer is playing (the song keeps running under the demo) */
+    /* 1 while the tracker song is playing (the firmware stops it before a demo starts) */
     uint8_t (*is_song_playing)(void);
 } PtDemoHostApi;
 
