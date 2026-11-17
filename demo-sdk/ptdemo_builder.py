@@ -10,7 +10,8 @@ Metadata comes from comments in the source:
     // PTDEMO_NAME: Oldskool
     // PTDEMO_AUTHOR: someone
     // PTDEMO_SCRATCH: 8192          (bytes of working RAM, max 393216)
-    // PTDEMO_FLAGS: IMX_ONLY        (optional)
+    // PTDEMO_FLAGS: IMX_ONLY        (optional; INPUT = gets all buttons/pads/jog,
+                                       left with Shift+Pattern, API 3)
     // PTDEMO_MOD: tune.mod          (optional music, path relative to the source;
                                        appended to the .ptdemo and played by the firmware)
 
@@ -29,7 +30,7 @@ import tempfile
 PTDEMO_MAGIC = 0x4F4D4450  # "PDMO"
 PTDEMO_FORMAT_VERSION = 1
 HEADER_SIZE = 128
-API_VERSION = 2
+API_VERSION = 3
 MOD_TAGS = (b"M.K.", b"M!K!", b"FLT4", b"4CHN")
 MAX_MOD_PATTERNS = 100  # what the firmware's module memory holds
 EXIT_ABSENT = 0xFFFFFFFF
@@ -37,7 +38,7 @@ MAX_CODE_MK66 = 32 * 1024
 MAX_CODE_IMX = 128 * 1024
 MAX_SCRATCH = 384 * 1024
 
-FLAG_MAP = {"IMX_ONLY": 0x0001}
+FLAG_MAP = {"IMX_ONLY": 0x0001, "INPUT": 0x0002}
 
 LINKER_SCRIPT = """
 SECTIONS
@@ -117,7 +118,10 @@ def build(c_file, out_file, toolchain):
         mod = read_mod(os.path.join(os.path.dirname(os.path.abspath(c_file)), meta["MOD"]))
     # API 2 brought the music: a demo that has or drives a module needs it.
     uses_music = bool(mod) or re.search(r"\bmod_(state|play|stop|load)\b", source)
-    required_api = 2 if uses_music else 1
+    # API 3 brought input and file writing.
+    uses_v3 = (flags & FLAG_MAP["INPUT"]) or re.search(
+        r"\b(poll_input|write_file|list_dir|file_exists|make_dir)\b", source)
+    required_api = 3 if uses_v3 else (2 if uses_music else 1)
 
     sdk_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -135,7 +139,8 @@ def build(c_file, out_file, toolchain):
             "-ffreestanding", "-fno-builtin", "-fno-tree-loop-distribute-patterns",
             "-fPIC", "-mpic-data-is-text-relative", "-fvisibility=hidden",
             "-fno-common", "-fno-asynchronous-unwind-tables",
-            "-nostdlib", f"-I{sdk_dir}", "-c", c_file, "-o", obj,
+            "-nostdlib", f"-I{sdk_dir}", f"-I{os.path.dirname(os.path.abspath(c_file))}",
+            "-c", c_file, "-o", obj,
         ])
 
         # Anything that needs patching at load time can't work: there is no

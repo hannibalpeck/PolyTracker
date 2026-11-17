@@ -24,7 +24,9 @@
  *       2000 words per frame. time_ms counts from demo start.
  *
  *   void demo_exit(void);
- *       Optional. Called when the user leaves (Shift).
+ *       Optional. Called when the user leaves (Shift, or Shift+Pattern for
+ *       input demos) and when the Tracker is switched off while the demo
+ *       runs, so it can save its work with write_file().
  *
  * Music: a demo can carry a ProTracker .mod (`// PTDEMO_MOD: tune.mod` in
  * the source; the builder appends it to the .ptdemo). The firmware plays it
@@ -32,6 +34,11 @@
  * returns, and stops it when the demo ends. The tracker's own song is
  * stopped before a demo starts and is never touched. Use host->mod_state()
  * to sync effects to the music (API version 2).
+ *
+ * Input (API version 3): a demo built with `// PTDEMO_FLAGS: INPUT` gets
+ * every button, pad and the jog wheel through host->poll_input(), and can
+ * write files. Shift is then an ordinary button for the demo; such a demo
+ * is left with Shift+Pattern (hold Shift, press Pattern).
  *
  * Rules for the code (the builder enforces what it can):
  *   - no libc: use the host functions for math, memory and files
@@ -53,10 +60,46 @@ extern "C" {
 
 #define PTDEMO_MAGIC 0x4F4D4450u /* "PDMO" little endian */
 #define PTDEMO_FORMAT_VERSION 1
-#define PTDEMO_API_VERSION 2
+#define PTDEMO_API_VERSION 3
 #define PTDEMO_HEADER_SIZE 128
 
 #define PTDEMO_FLAG_IMX_ONLY 0x0001 /* needs Tracker+/Mini (code > 32 KB, or M7 speed) */
+#define PTDEMO_FLAG_INPUT 0x0002    /* wants all input (API 3); left with Shift+Pattern */
+
+/* host->poll_input() event types (API version 3) */
+#define PTD_INPUT_BUTTON_PRESS 1   /* index = button number, see below */
+#define PTD_INPUT_BUTTON_RELEASE 2
+#define PTD_INPUT_PAD_PRESS 3      /* index = pad 0-47, row by row from the top left */
+#define PTD_INPUT_PAD_RELEASE 4
+#define PTD_INPUT_JOG 5            /* value = steps, + clockwise */
+
+/* Button numbers (same as the firmware's interfaceButtonN) */
+#define PTD_BUTTON_F1 0            /* F1..F8 = 0..7, the keys under the screen */
+#define PTD_BUTTON_PARAMS 8
+#define PTD_BUTTON_PERFORMANCE 9
+#define PTD_BUTTON_FILE 10
+#define PTD_BUTTON_CONFIG 11
+#define PTD_BUTTON_MASTER 12
+#define PTD_BUTTON_SAMPLE_LOAD 13
+#define PTD_BUTTON_SAMPLE_PLAY 14
+#define PTD_BUTTON_SAMPLE_EDIT 15
+#define PTD_BUTTON_SAMPLE_REC 16
+#define PTD_BUTTON_SONG 17
+#define PTD_BUTTON_NOTE 18
+#define PTD_BUTTON_INSTR 19
+#define PTD_BUTTON_FX2 20
+#define PTD_BUTTON_FX1 21
+#define PTD_BUTTON_PATTERN 22
+#define PTD_BUTTON_PLAY 23
+#define PTD_BUTTON_COPY 24
+#define PTD_BUTTON_INSERT 25
+#define PTD_BUTTON_UP 26
+#define PTD_BUTTON_DELETE 27
+#define PTD_BUTTON_REC 28
+#define PTD_BUTTON_SHIFT 29
+#define PTD_BUTTON_LEFT 30
+#define PTD_BUTTON_DOWN 31
+#define PTD_BUTTON_RIGHT 32
 
 typedef struct __attribute__((packed, aligned(4)))
 {
@@ -77,6 +120,14 @@ typedef struct __attribute__((packed, aligned(4)))
     uint32_t required_api;   /* +0x5C lowest host API version the demo needs (0 = 1) */
     uint8_t reserved[32];    /* +0x60 */
 } PtDemoHeader;
+
+/* One input event (API version 3) */
+typedef struct
+{
+    uint8_t type;  /* PTD_INPUT_* */
+    uint8_t index; /* button or pad number */
+    int16_t value; /* jog steps */
+} PtDemoInput;
 
 /* What the music is doing, for syncing effects. */
 typedef struct
@@ -159,6 +210,23 @@ typedef struct
        it is not started. Returns 0 on success. Stalls a moment: call it
        between parts, not every frame. */
     int32_t (*mod_load)(const char* path);
+
+    /* ---- API version 3: input and saving --------------------------------- */
+
+    /* Next input event: returns 1 and fills `out`, or 0 when there is none.
+       Only demos with PTDEMO_FLAG_INPUT get events. */
+    int32_t (*poll_input)(PtDemoInput* out);
+    /* Files; paths as for read_file. These may be called from demo_frame and
+       demo_exit too (the frame stalls while the SD card works). */
+    /* Creates or replaces a file. Returns bytes written or -1. */
+    int32_t (*write_file)(const char* path, const void* data, uint32_t size);
+    /* Names of the files (not folders) in a folder, each ending in a 0 byte,
+       packed into `names`. Returns how many, or -1 if the folder is missing. */
+    int32_t (*list_dir)(const char* path, char* names, uint32_t names_size, uint32_t max_names);
+    /* 1 if the file or folder exists */
+    int32_t (*file_exists)(const char* path);
+    /* Creates a folder; 0 on success or if it already exists */
+    int32_t (*make_dir)(const char* path);
 } PtDemoHostApi;
 
 typedef int32_t (*PtDemoInitFunc)(const PtDemoHostApi* host, void* scratch, uint32_t scratch_size);

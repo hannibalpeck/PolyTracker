@@ -15,7 +15,8 @@
 //
 // Config > Info > Demos opens a list of /Demos/*.ptdemo. Run starts the
 // picked demo full screen; from then on only Shift does anything, and it
-// returns to Config.
+// returns to Config. Demos with PTDEMO_FLAG_INPUT get all input instead and
+// are left with Shift+Pattern.
 class cDemoPlayer : public ModuleBase
 {
   public:
@@ -34,6 +35,8 @@ class cDemoPlayer : public ModuleBase
     void moveList(int delta);
     void runSelected();
     void leave();
+    // Power-off: runs the demo's demo_exit (so it can save) and leaves.
+    void endForShutdown();
 
     // Relative paths in host->read_file resolve against this folder.
     char demoFolder[96] = "/Demos";

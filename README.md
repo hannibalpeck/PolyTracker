@@ -39,7 +39,7 @@ Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
 ### Demos
 
-**Config > Info > Demos** lists the `.ptdemo` files in `/Demos` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The demo takes over the whole screen and the pads. A song that is playing is stopped first, and a demo can bring its own music: a .mod packed into the demo file, played by the same ProTracker replayer from separate memory, so your song is never touched. While a demo runs only **Shift** does anything: it ends the demo and goes back to Config.
+**Config > Info > Demos** lists the `.ptdemo` files in `/Demos` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The demo takes over the whole screen and the pads. A song that is playing is stopped first, and a demo can bring its own music: a .mod packed into the demo file, played by the same ProTracker replayer from separate memory, so your song is never touched. While a demo runs only **Shift** does anything: it ends the demo and goes back to Config. Interactive demos (built with the `INPUT` flag, host API 3) are the exception: they get every button, pad and the jog wheel, can save files, and are left with **Shift+Pattern** (hold Shift, press Pattern). Switching off while such a demo runs lets it save its work first.
 
 Demos are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`demo-sdk/`](demo-sdk) has the API header, a builder and an example (`demos/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to its own chiptune); see [`demo-sdk/README.md`](demo-sdk/README.md).
 

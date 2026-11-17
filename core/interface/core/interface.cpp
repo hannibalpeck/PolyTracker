@@ -10,6 +10,7 @@
 #include "core/titleBar.h"
 
 #include "masterParams/masterParams.h"
+#include "demoPlayer/demoPlayer.h"
 #include "protrackerMode/protrackerMode.h"
 #include "protrackerMode/ptFile.h"
 #include "protrackerMode/ptSampleParams.h"
@@ -284,6 +285,9 @@ void Interface::processPowerOffSequence()
 {
     if (lowPower.getLowPowerState() == shutdownStateStart)
     {
+#ifdef PLATFORM_IMX
+        demoPlayer.endForShutdown();
+#endif
         refreshDisplayShutdown();
 
         if (shutdownSaveFlag == 0 && lowPower.getShutdownProgress() > 10 &&

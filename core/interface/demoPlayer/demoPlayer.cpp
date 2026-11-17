@@ -264,6 +264,26 @@ static void hostText(int16_t x, int16_t y, uint8_t font, uint16_t options, const
     s_frameWords += listWords;
 }
 
+// Inside demo_frame the coprocessor command stream is open. RAM_G writes and
+// SD card work in the middle of a frame close the current burst first and
+// open a new one after, the same way a full burst is flushed.
+static void pauseFrameStream()
+{
+    if (s_frameOpen)
+    {
+        driver()->endCoProList();
+    }
+}
+
+static void resumeFrameStream()
+{
+    if (s_frameOpen)
+    {
+        driver()->beginCoProList();
+        s_burstWords = 0;
+    }
+}
+
 static void hostRamgWrite(uint32_t addr, const void* data, uint32_t size)
 {
     if (data == nullptr || size == 0 || addr < kDemoRamgBase ||
@@ -271,6 +291,7 @@ static void hostRamgWrite(uint32_t addr, const void* data, uint32_t size)
     {
         return;
     }
+    pauseFrameStream();
     // The driver's write loop counts with 16 bits: send at most 32 KB a time.
     const uint8_t* src = static_cast<const uint8_t*>(data);
     while (size > 0)
@@ -281,13 +302,16 @@ static void hostRamgWrite(uint32_t addr, const void* data, uint32_t size)
         addr += chunk;
         size -= chunk;
     }
+    resumeFrameStream();
 }
 
 static void hostRamgRead(uint32_t addr, void* data, uint32_t size)
 {
     if (data == nullptr || size == 0 || size > 32768)
         return;
+    pauseFrameStream();
     driver()->readDataRAMG(static_cast<uint8_t*>(data), size, addr);
+    resumeFrameStream();
 }
 
 static uint32_t hostMillis()
@@ -312,17 +336,33 @@ static void* hostMemcpy(void* d, const void* s, size_t n) { return memcpy(d, s, 
 static void* hostMemset(void* d, int v, size_t n) { return memset(d, v, n); }
 static int hostRand() { return rand(); }
 
+// A path without a leading '/' is relative to the demo's folder.
+static void demoPath(const char* path, char* out, size_t outSize)
+{
+    if (path[0] == '/')
+        snprintf(out, outSize, "%s", path);
+    else
+        snprintf(out, outSize, "%s/%s", DP->demoFolder, path);
+}
+
+static int32_t readFileImpl(const char* path, void* buffer, uint32_t maxBytes);
+
 static int32_t hostReadFile(const char* path, void* buffer, uint32_t maxBytes)
+{
+    pauseFrameStream();
+    const int32_t result = readFileImpl(path, buffer, maxBytes);
+    resumeFrameStream();
+    return result;
+}
+
+static int32_t readFileImpl(const char* path, void* buffer, uint32_t maxBytes)
 {
     FileSystem* fs = platformPtr()->getFileSystem();
     if (fs == nullptr || path == nullptr || buffer == nullptr || maxBytes == 0)
         return -1;
 
     char fullPath[kMaxFilePathLen + 1];
-    if (path[0] == '/')
-        snprintf(fullPath, sizeof(fullPath), "%s", path);
-    else
-        snprintf(fullPath, sizeof(fullPath), "%s/%s", DP->demoFolder, path);
+    demoPath(path, fullPath, sizeof(fullPath));
 
     auto [isOpen, fileHandle] = fs->openFile(fullPath, FileSystem::FileOpenMode::kRead);
     if (!isOpen)
@@ -428,6 +468,156 @@ static int32_t hostModLoad(const char* path)
     return ok ? 0 : -1;
 }
 
+// ---- API version 3: input and saving
+
+static constexpr uint32_t kInputQueueSize = 64;
+static PtDemoInput s_inputQueue[kInputQueueSize];
+static volatile uint32_t s_inputHead = 0;
+static volatile uint32_t s_inputTail = 0;
+static bool s_inputDemo = false; // the running demo has PTDEMO_FLAG_INPUT
+static bool s_shiftDown = false;
+
+static void pushInput(uint8_t type, uint8_t index, int16_t value)
+{
+    const uint32_t next = (s_inputHead + 1) % kInputQueueSize;
+    if (next == s_inputTail)
+        return; // full: drop
+    s_inputQueue[s_inputHead] = PtDemoInput{ type, index, value };
+    s_inputHead = next;
+}
+
+static int32_t hostPollInput(PtDemoInput* out)
+{
+    if (out == nullptr || s_inputTail == s_inputHead)
+        return 0;
+    *out = s_inputQueue[s_inputTail];
+    s_inputTail = (s_inputTail + 1) % kInputQueueSize;
+    return 1;
+}
+
+static int32_t writeFileImpl(const char* path, const void* data, uint32_t size)
+{
+    FileSystem* fs = platformPtr()->getFileSystem();
+    if (fs == nullptr || path == nullptr || (data == nullptr && size > 0))
+        return -1;
+
+    char fullPath[kMaxFilePathLen + 1];
+    demoPath(path, fullPath, sizeof(fullPath));
+
+    auto [isOpen, fileHandle] = fs->openFile(fullPath, FileSystem::FileOpenMode::kWriteCreateNew);
+    if (!isOpen)
+        return -1;
+
+    // Small writes from a stack buffer: the source may be in cached external RAM.
+    const uint8_t* src = static_cast<const uint8_t*>(data);
+    uint32_t total = 0;
+    uint8_t chunkBuf[256];
+    while (total < size)
+    {
+        uint32_t chunk = size - total;
+        if (chunk > sizeof(chunkBuf))
+            chunk = sizeof(chunkBuf);
+        memcpy(chunkBuf, src + total, chunk);
+        const int32_t n = fs->writeFile(chunkBuf, chunk, fileHandle);
+        if (n != static_cast<int32_t>(chunk))
+        {
+            fs->closeFile(fileHandle);
+            return -1;
+        }
+        total += chunk;
+    }
+    fs->closeFile(fileHandle);
+    return static_cast<int32_t>(total);
+}
+
+static int32_t hostWriteFile(const char* path, const void* data, uint32_t size)
+{
+    pauseFrameStream();
+    const int32_t result = writeFileImpl(path, data, size);
+    resumeFrameStream();
+    return result;
+}
+
+static int32_t listDirImpl(const char* path, char* names, uint32_t namesSize, uint32_t maxNames)
+{
+    FileSystem* fs = platformPtr()->getFileSystem();
+    if (fs == nullptr || path == nullptr || names == nullptr || namesSize == 0 || maxNames == 0)
+        return -1;
+
+    char fullPath[kMaxFilePathLen + 1];
+    demoPath(path, fullPath, sizeof(fullPath));
+    if (!fs->exists(fullPath))
+        return -1;
+
+    static constexpr int kMaxList = 128;
+    static char* list[kMaxList];
+    int count = maxNames > kMaxList ? kMaxList : static_cast<int>(maxNames);
+    fs->listDirContents(fullPath,
+                        FileSystem::DirContentType::kFiles,
+                        nullptr,
+                        names,
+                        static_cast<int>(namesSize),
+                        kMaxFileNameLen,
+                        count,
+                        list);
+    if (count < 0)
+        return -1;
+
+    // listDirContents packs the names into `names` in order; make sure they
+    // sit back to back from the start, as the API promises.
+    uint32_t used = 0;
+    static char tmp[kMaxFileNameLen + 1];
+    for (int i = 0; i < count; i++)
+    {
+        const size_t len = strlen(list[i]) + 1;
+        if (used + len > namesSize || len > sizeof(tmp))
+        {
+            count = i;
+            break;
+        }
+        memcpy(tmp, list[i], len);
+        memmove(names + used, tmp, len);
+        used += len;
+    }
+    return count;
+}
+
+static int32_t hostListDir(const char* path, char* names, uint32_t namesSize, uint32_t maxNames)
+{
+    pauseFrameStream();
+    const int32_t result = listDirImpl(path, names, namesSize, maxNames);
+    resumeFrameStream();
+    return result;
+}
+
+static int32_t hostFileExists(const char* path)
+{
+    FileSystem* fs = platformPtr()->getFileSystem();
+    if (fs == nullptr || path == nullptr)
+        return 0;
+    char fullPath[kMaxFilePathLen + 1];
+    demoPath(path, fullPath, sizeof(fullPath));
+    pauseFrameStream();
+    const bool exists = fs->exists(fullPath);
+    resumeFrameStream();
+    return exists ? 1 : 0;
+}
+
+static int32_t hostMakeDir(const char* path)
+{
+    FileSystem* fs = platformPtr()->getFileSystem();
+    if (fs == nullptr || path == nullptr)
+        return -1;
+    char fullPath[kMaxFilePathLen + 1];
+    demoPath(path, fullPath, sizeof(fullPath));
+    pauseFrameStream();
+    int32_t result = 0;
+    if (!fs->exists(fullPath) && !fs->mkdir(0, fullPath))
+        result = -1;
+    resumeFrameStream();
+    return result;
+}
+
 static const PtDemoHostApi s_hostApi = {
     PTDEMO_API_VERSION,
     800,
@@ -462,6 +652,11 @@ static const PtDemoHostApi s_hostApi = {
     hostModPlay,
     hostModStop,
     hostModLoad,
+    hostPollInput,
+    hostWriteFile,
+    hostListDir,
+    hostFileExists,
+    hostMakeDir,
 };
 
 //==============================================================================================
@@ -777,6 +972,36 @@ static void functMiniMiddle(uint8_t state)
 static void functCancel() { DP->leave(); }
 static void functShift() { DP->leave(); }
 
+// Input demos get everything; Shift+Pattern leaves.
+static void functDemoButton(uint8_t button, uint8_t state)
+{
+    if (state != buttonPress && state != buttonRelease)
+        return;
+    if (button == interfaceButtonShift)
+        s_shiftDown = state == buttonPress;
+    if (button == interfaceButtonPattern && state == buttonPress && s_shiftDown)
+    {
+        DP->leave();
+        return;
+    }
+    pushInput(state == buttonPress ? PTD_INPUT_BUTTON_PRESS : PTD_INPUT_BUTTON_RELEASE, button, 0);
+}
+
+static void functDemoPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
+{
+    if (pad >= 48)
+        return;
+    if (state == buttonPress)
+        pushInput(PTD_INPUT_PAD_PRESS, pad, 0);
+    else if (state == buttonRelease)
+        pushInput(PTD_INPUT_PAD_RELEASE, pad, 0);
+}
+
+static void functDemoEncoder(int16_t value)
+{
+    pushInput(PTD_INPUT_JOG, 0, value);
+}
+
 void cDemoPlayer::open(ModuleBase* caller)
 {
     s_caller = caller;
@@ -839,11 +1064,28 @@ void cDemoPlayer::runSelected()
 void cDemoPlayer::beginDemo()
 {
     // From here on only Shift does anything (the power button is handled
-    // outside the input table and keeps working).
+    // outside the input table and keeps working). Input demos get every
+    // button, pad and the jog wheel instead, and are left with Shift+Pattern.
     ip->clearAllButtons();
     ip->clearAllPots();
     ip->clearGlobalPads();
-    ip->setButtonObj(interfaceButtonShift, buttonPress, functShift);
+    s_inputDemo = (header.flags & PTDEMO_FLAG_INPUT) != 0;
+    s_inputHead = 0;
+    s_inputTail = 0;
+    s_shiftDown = false;
+    if (s_inputDemo)
+    {
+        for (uint8_t b = 0; b < interfaceButtonsCount; b++)
+        {
+            ip->setButtonObj(b, functDemoButton);
+        }
+        ip->setPadsGlobal(functDemoPads);
+        ip->setPotObj(interfacePot0, functDemoEncoder, false);
+    }
+    else
+    {
+        ip->setButtonObj(interfaceButtonShift, buttonPress, functShift);
+    }
 
     // Take the screen from the GUI. Let the FIFO drain first so no half-sent
     // GUI frame is mixed with ours.
@@ -872,6 +1114,7 @@ void cDemoPlayer::stop()
         exitFunc();
     running = false;
     initFailed = false;
+    s_inputDemo = false;
 
     // The song's replayer gets the output back; the tracker song stays stopped.
     stopMusicOutput();
@@ -893,6 +1136,22 @@ void cDemoPlayer::stop()
     driver()->awaitCoProEmpty();
     display.enable();
     songTimer.show();
+}
+
+void cDemoPlayer::endForShutdown()
+{
+    // The unit is switching off: let the demo save its work, then give the
+    // screen back so the shutdown screen shows.
+    if (!running)
+        return;
+    if (exitFunc != nullptr)
+        exitFunc();
+    exitFunc = nullptr;
+    running = false;
+    stopMusicOutput();
+    driver()->awaitCoProEmpty();
+    display.enable();
+    leave();
 }
 
 void cDemoPlayer::update()
