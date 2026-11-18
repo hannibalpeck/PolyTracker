@@ -1,0 +1,100 @@
+name: Release Tracker+ firmware
+
+# Push a tag like PolyTracker0.9.14 to build the firmware and publish a GitHub
+# release with TrackerPlus_PT_<version>.ptf attached. The release notes are
+# taken from the matching CHANGELOG.md section.
+on:
+  push:
+    tags: [ 'PolyTracker[0-9]*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. PolyTracker0.9.14)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    env:
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout the tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+
+      - name: Work out the version
+        run: |
+          VER="${TAG#PolyTracker}"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+          echo "Releasing version $VER"
+
+      - name: Host tests
+        run: |
+          cd tests/protracker
+          g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined \
+            -I../../core/protracker test_protracker.cpp \
+            ../../core/protracker/ptModule.cpp ../../core/protracker/ptReplayer.cpp \
+            ../../core/protracker/ptTables.cpp ../../core/protracker/ptSamples.cpp -o test_protracker
+          ./test_protracker
+
+      - name: Cache GNU Arm Embedded Toolchain 10.3-2021.10
+        id: cache-toolchain
+        uses: actions/cache@v4
+        with:
+          path: agt/10.3
+          key: arm-none-eabi-10.3-2021.10-linux-x86_64
+
+      - name: Install GNU Arm Embedded Toolchain 10.3-2021.10
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget bzip2 make python3
+          wget -q https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+          mkdir -p agt/10.3
+          tar -xjf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 -C agt/10.3 --strip-components=1
+          rm gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+
+      - name: Build the Tracker+ firmware
+        run: make plus
+
+      - name: Name the firmware and check the version
+        run: |
+          mkdir -p dist
+          SRC=$(ls build/TrackerPlus_CE_*.ptf | head -n1)
+          case "$SRC" in
+            *"_CE_${VER}.ptf") ;;
+            *) echo "Built $SRC does not match tag version $VER (check version.mk)"; exit 1 ;;
+          esac
+          cp "$SRC" "dist/TrackerPlus_PT_${VER}.ptf"
+          ls -l dist
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          awk -v v="$VER" '
+            /^## \[/ { if (on) exit; if (index($0, "[" v " ")) on=1; next }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Tracker+ firmware $VER." > notes.md
+          {
+            echo
+            echo "Install: copy the .ptf to the SD card and update via Config > Firmware."
+          } >> notes.md
+          cat notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRE=""
+          case "$VER" in 0.*) PRE="--prerelease" ;; esac
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "dist/TrackerPlus_PT_${VER}.ptf" --clobber
+          else
+            gh release create "$TAG" "dist/TrackerPlus_PT_${VER}.ptf" \
+              --title "Polytracker ${VER} beta" --notes-file notes.md $PRE
+          fi
