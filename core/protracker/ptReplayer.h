@@ -72,7 +72,7 @@ class Replayer
     // 0..64, set when a note triggers and decays while playing (for VU meters)
     uint8_t channelVu(int channel) const { return vu_[channel & 3]; }
     uint16_t channelPeriod(int channel) const { return voice_[channel & 3].period; }
-    // Counts the notes started on a channel (wraps at 255): lets a demo sync to the music.
+    // Counts the notes started on a channel (wraps at 255): lets an extra sync to the music.
     uint8_t channelHits(int channel) const { return hits_[channel & 3]; }
 
   private:

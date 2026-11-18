@@ -1,43 +1,43 @@
-#ifndef TRACKER_DEMO_H_
-#define TRACKER_DEMO_H_
+#ifndef TRACKER_EXTRA_H_
+#define TRACKER_EXTRA_H_
 
 /*
- * Polyend Tracker CE - loadable demos (.ptdemo)
+ * Polyend Tracker CE - loadable extras (.ptextra)
  *
- * A .ptdemo is a position-independent ARM Thumb-2 binary with a 128-byte
- * header, placed on the SD card under /Demos. Config > Info > Demos opens a
- * file browser on that folder; the picked demo is loaded into executable RAM
+ * A .ptextra is a position-independent ARM Thumb-2 binary with a 128-byte
+ * header, placed on the SD card under /Extras. Config > Info > Extras opens a
+ * file browser on that folder; the picked extra is loaded into executable RAM
  * (external RAM, executable) and runs full screen until Shift is
- * pressed. Shift is handled by the firmware, so a demo can never lock you in.
+ * pressed. Shift is handled by the firmware, so an extra can never lock you in.
  *
- * A demo exports three C functions:
+ * An extra exports three C functions:
  *
- *   int32_t demo_init(const PtDemoHostApi* host, void* scratch, uint32_t scratch_size);
+ *   int32_t extra_init(const PtExtraHostApi* host, void* scratch, uint32_t scratch_size);
  *       Called once after loading. Upload textures to RAM_G here. Return 0
  *       to start, anything else to abort (the firmware shows an error).
  *
- *   void demo_frame(uint32_t time_ms);
+ *   void extra_frame(uint32_t time_ms);
  *       Called once per panel frame (~60 Hz). The firmware has already
  *       opened a display list with VERTEX_FORMAT(0) and a black CLEAR, and
  *       closes and shows it after you return. Emit FT81x display-list words
  *       with host->dl() (the PTD_* macros below build them). Budget: about
- *       2000 words per frame. time_ms counts from demo start.
+ *       2000 words per frame. time_ms counts from extra start.
  *
- *   void demo_exit(void);
+ *   void extra_exit(void);
  *       Optional. Called when the user leaves (Shift, or Shift+Pattern for
- *       input demos) and when the Tracker is switched off while the demo
+ *       input extras) and when the Tracker is switched off while the extra
  *       runs, so it can save its work with write_file().
  *
- * Music: a demo can carry a ProTracker .mod (`// PTDEMO_MOD: tune.mod` in
- * the source; the builder appends it to the .ptdemo). The firmware plays it
- * with its own ProTracker 2.3D replayer, starting right after demo_init
- * returns, and stops it when the demo ends. The tracker's own song is
- * stopped before a demo starts and is never touched. Use host->mod_state()
+ * Music: an extra can carry a ProTracker .mod (`// PTEXTRA_MOD: tune.mod` in
+ * the source; the builder appends it to the .ptextra). The firmware plays it
+ * with its own ProTracker 2.3D replayer, starting right after extra_init
+ * returns, and stops it when the extra ends. The tracker's own song is
+ * stopped before an extra starts and is never touched. Use host->mod_state()
  * to sync effects to the music (API version 2).
  *
- * Input (API version 3): a demo built with `// PTDEMO_FLAGS: INPUT` gets
+ * Input (API version 3): an extra built with `// PTEXTRA_FLAGS: INPUT` gets
  * every button, pad and the jog wheel through host->poll_input(), and can
- * write files. Shift is then an ordinary button for the demo; such a demo
+ * write files. Shift is then an ordinary button for the extra; such an extra
  * is left with Shift+Pattern (hold Shift, press Pattern).
  *
  * Rules for the code (the builder enforces what it can):
@@ -58,13 +58,13 @@
 extern "C" {
 #endif
 
-#define PTDEMO_MAGIC 0x4F4D4450u /* "PDMO" little endian */
-#define PTDEMO_FORMAT_VERSION 1
-#define PTDEMO_API_VERSION 3
-#define PTDEMO_HEADER_SIZE 128
+#define PTEXTRA_MAGIC 0x52545850u /* "PXTR" little endian */
+#define PTEXTRA_FORMAT_VERSION 1
+#define PTEXTRA_API_VERSION 3
+#define PTEXTRA_HEADER_SIZE 128
 
-#define PTDEMO_FLAG_IMX_ONLY 0x0001 /* needs Tracker+/Mini (code > 32 KB, or M7 speed) */
-#define PTDEMO_FLAG_INPUT 0x0002    /* wants all input (API 3); left with Shift+Pattern */
+#define PTEXTRA_FLAG_IMX_ONLY 0x0001 /* needs Tracker+/Mini (code > 32 KB, or M7 speed) */
+#define PTEXTRA_FLAG_INPUT 0x0002    /* wants all input (API 3); left with Shift+Pattern */
 
 /* host->poll_input() event types (API version 3) */
 #define PTD_INPUT_BUTTON_PRESS 1   /* index = button number, see below */
@@ -103,23 +103,23 @@ extern "C" {
 
 typedef struct __attribute__((packed, aligned(4)))
 {
-    uint32_t magic;          /* +0x00 PTDEMO_MAGIC */
-    uint16_t format_version; /* +0x04 PTDEMO_FORMAT_VERSION */
-    uint16_t flags;          /* +0x06 PTDEMO_FLAG_* */
+    uint32_t magic;          /* +0x00 PTEXTRA_MAGIC */
+    uint16_t format_version; /* +0x04 PTEXTRA_FORMAT_VERSION */
+    uint16_t flags;          /* +0x06 PTEXTRA_FLAG_* */
     char name[32];           /* +0x08 */
     char author[16];         /* +0x28 */
     uint32_t scratch_size;   /* +0x38 working RAM requested, bytes */
     uint32_t code_offset;    /* +0x3C file offset of the code (128) */
     uint32_t code_size;      /* +0x40 .text + .rodata + .data */
     uint32_t bss_size;       /* +0x44 zeroed after the code */
-    uint32_t init_offset;    /* +0x48 demo_init, relative to code base */
-    uint32_t frame_offset;   /* +0x4C demo_frame */
-    uint32_t exit_offset;    /* +0x50 demo_exit, 0xFFFFFFFF if absent */
+    uint32_t init_offset;    /* +0x48 extra_init, relative to code base */
+    uint32_t frame_offset;   /* +0x4C extra_frame */
+    uint32_t exit_offset;    /* +0x50 extra_exit, 0xFFFFFFFF if absent */
     uint32_t mod_offset;     /* +0x54 file offset of an embedded .mod, 0 if none */
     uint32_t mod_size;       /* +0x58 its size in bytes */
-    uint32_t required_api;   /* +0x5C lowest host API version the demo needs (0 = 1) */
+    uint32_t required_api;   /* +0x5C lowest host API version the extra needs (0 = 1) */
     uint8_t reserved[32];    /* +0x60 */
-} PtDemoHeader;
+} PtExtraHeader;
 
 /* One input event (API version 3) */
 typedef struct
@@ -127,12 +127,12 @@ typedef struct
     uint8_t type;  /* PTD_INPUT_* */
     uint8_t index; /* button or pad number */
     int16_t value; /* jog steps */
-} PtDemoInput;
+} PtExtraInput;
 
 /* What the music is doing, for syncing effects. */
 typedef struct
 {
-    uint8_t playing;   /* 1 while the demo's module plays */
+    uint8_t playing;   /* 1 while the extra's module plays */
     uint8_t position;  /* order list position */
     uint8_t pattern;
     uint8_t row;       /* 0-63 */
@@ -142,11 +142,11 @@ typedef struct
     uint8_t vu[4];     /* per channel: jumps to the note's volume (0-64), falls back */
     uint8_t hits[4];   /* per channel: +1 for every note started (wraps at 255) */
     uint32_t loops;    /* times the song has wrapped to its restart */
-} PtDemoModState;
+} PtExtraModState;
 
 typedef struct
 {
-    uint32_t api_version;   /* PTDEMO_API_VERSION */
+    uint32_t api_version;   /* PTEXTRA_API_VERSION */
     uint16_t screen_width;  /* 800 */
     uint16_t screen_height; /* 480 */
     uint8_t platform;       /* 0 = original Tracker (MK66), 1 = Tracker+ / Mini (IMX) */
@@ -154,16 +154,16 @@ typedef struct
     uint8_t bitmap_handle_count;
     uint8_t pad_count; /* 48 */
 
-    /* FT812 graphics memory the demo owns while it runs */
+    /* FT812 graphics memory the extra owns while it runs */
     uint32_t ramg_base;
     uint32_t ramg_size;
 
-    /* Display list (only valid inside demo_frame) */
+    /* Display list (only valid inside extra_frame) */
     void (*dl)(uint32_t word);
     /* Text in a GUI font (1-5) or a ROM font (16-31), like CMD_TEXT */
     void (*text)(int16_t x, int16_t y, uint8_t font, uint16_t options, const char* s);
 
-    /* Graphics memory. Writes outside the demo's region are ignored.
+    /* Graphics memory. Writes outside the extra's region are ignored.
        Reads may go anywhere, e.g. the ROM font table pointer at 0x2FFFFC. */
     void (*ramg_write)(uint32_t addr, const void* data, uint32_t size);
     void (*ramg_read)(uint32_t addr, void* data, uint32_t size);
@@ -185,8 +185,8 @@ typedef struct
     int (*rand)(void);
 
     /* Read a file. A path without a leading '/' is relative to the folder
-       the .ptdemo was loaded from, so assets can sit next to the demo.
-       Returns bytes read or -1. Only call from demo_init: SD access stalls
+       the .ptextra was loaded from, so assets can sit next to the extra.
+       Returns bytes read or -1. Only call from extra_init: SD access stalls
        the frame. */
     int32_t (*read_file)(const char* path, void* buffer, uint32_t max_bytes);
 
@@ -194,14 +194,14 @@ typedef struct
        (scaled to the user's pad brightness setting). */
     void (*pad_light)(uint8_t pad, uint8_t level);
 
-    /* API 1 meaning: the tracker song. The firmware stops it before a demo
+    /* API 1 meaning: the tracker song. The firmware stops it before an extra
        starts, so this is 0 from API version 2 on; use mod_state(). */
     uint8_t (*is_song_playing)(void);
 
-    /* ---- API version 2: the demo's music ---------------------------------- */
+    /* ---- API version 2: the extra's music ---------------------------------- */
 
-    /* Fills `out`. Fields are zero when the demo has no module. */
-    void (*mod_state)(PtDemoModState* out);
+    /* Fills `out`. Fields are zero when the extra has no module. */
+    void (*mod_state)(PtExtraModState* out);
     /* Start the module at an order position (0 = from the top), or stop it.
        mod_play returns 0 if there is no module. */
     uint8_t (*mod_play)(uint8_t position);
@@ -214,10 +214,10 @@ typedef struct
     /* ---- API version 3: input and saving --------------------------------- */
 
     /* Next input event: returns 1 and fills `out`, or 0 when there is none.
-       Only demos with PTDEMO_FLAG_INPUT get events. */
-    int32_t (*poll_input)(PtDemoInput* out);
-    /* Files; paths as for read_file. These may be called from demo_frame and
-       demo_exit too (the frame stalls while the SD card works). */
+       Only extras with PTEXTRA_FLAG_INPUT get events. */
+    int32_t (*poll_input)(PtExtraInput* out);
+    /* Files; paths as for read_file. These may be called from extra_frame and
+       extra_exit too (the frame stalls while the SD card works). */
     /* Creates or replaces a file. Returns bytes written or -1. */
     int32_t (*write_file)(const char* path, const void* data, uint32_t size);
     /* Names of the files (not folders) in a folder, each ending in a 0 byte,
@@ -227,11 +227,11 @@ typedef struct
     int32_t (*file_exists)(const char* path);
     /* Creates a folder; 0 on success or if it already exists */
     int32_t (*make_dir)(const char* path);
-} PtDemoHostApi;
+} PtExtraHostApi;
 
-typedef int32_t (*PtDemoInitFunc)(const PtDemoHostApi* host, void* scratch, uint32_t scratch_size);
-typedef void (*PtDemoFrameFunc)(uint32_t time_ms);
-typedef void (*PtDemoExitFunc)(void);
+typedef int32_t (*PtExtraInitFunc)(const PtExtraHostApi* host, void* scratch, uint32_t scratch_size);
+typedef void (*PtExtraFrameFunc)(uint32_t time_ms);
+typedef void (*PtExtraExitFunc)(void);
 
 /* --------------------------------------------------------------------------
  * FT81x display-list words (same encoding as the FT81x programmer's guide).
@@ -336,4 +336,4 @@ typedef void (*PtDemoExitFunc)(void);
 }
 #endif
 
-#endif /* TRACKER_DEMO_H_ */
+#endif /* TRACKER_EXTRA_H_ */

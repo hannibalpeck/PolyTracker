@@ -1,6 +1,6 @@
 #ifdef PLATFORM_IMX
 
-#include "demoPlayer.h"
+#include "extrasPlayer.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -29,13 +29,13 @@
 #include "TrackerImpl.h"
 #include "cr_section_macros.h"
 
-cDemoPlayer demoPlayer;
-static cDemoPlayer* DP = &demoPlayer;
+cExtrasPlayer extrasPlayer;
+static cExtrasPlayer* DP = &extrasPlayer;
 
 extern uint8_t externalRamScratchBuff[]; // 768 KB, executable external RAM (MPU region 8)
 
 //==============================================================================================
-// What a demo gets
+// What an extra gets
 //==============================================================================================
 
 // Shared scratch buffer, split like the stock .ptfx loader did it:
@@ -48,21 +48,21 @@ static constexpr uint32_t kScratchSize = 512 * 1024 - kScratchOffset;
 // FT812 RAM_G: fonts and icons sit below 150000, the controls' display lists
 // take 150000 + 65 * 8192 = 682480. Nothing in PolyTracker uses the rest
 // (the old JPEG and video-stream areas are unused here).
-static constexpr uint32_t kDemoRamgBase = 700000;
-static constexpr uint32_t kDemoRamgSize = 1040000 - kDemoRamgBase;
-static_assert(controlsRamStartAddress + controlsCount * controlsRamAddressStep <= kDemoRamgBase,
-              "demo RAM_G area overlaps the controls' display lists");
+static constexpr uint32_t kExtraRamgBase = 700000;
+static constexpr uint32_t kExtraRamgSize = 1040000 - kExtraRamgBase;
+static_assert(controlsRamStartAddress + controlsCount * controlsRamAddressStep <= kExtraRamgBase,
+              "extra RAM_G area overlaps the controls' display lists");
 
 // Handles 1-5 are the GUI fonts, 0 is borrowed by the controls, 15 is the
 // coprocessor's scratch handle and 16-31 are the ROM fonts.
-static constexpr uint8_t kFirstDemoHandle = 8;
-static constexpr uint8_t kDemoHandleCount = 7;
+static constexpr uint8_t kFirstExtraHandle = 8;
+static constexpr uint8_t kExtraHandleCount = 7;
 
 static constexpr uint32_t kExitAbsent = 0xFFFFFFFFu;
 
 // The frame goes through the coprocessor's 4 KB command FIFO. The words are
 // sent in bursts and the FIFO is drained between them; the chip's display
-// list holds 2048 words, so a demo gets a little under that.
+// list holds 2048 words, so an extra gets a little under that.
 static constexpr uint32_t kBurstWords = 768;
 static constexpr uint32_t kMaxFrameWords = 2000;
 
@@ -91,18 +91,18 @@ static void flushBurstIfFull(uint32_t nextWords)
 }
 
 //==============================================================================================
-// Demo music: a second ProTracker module and replayer
+// Extra music: a second ProTracker module and replayer
 //==============================================================================================
 
 // Its own memory (mtStructs.h), so the song being edited is never touched.
-__NOINIT(EXTERNAL_RAM) static uint8_t s_demoPool[DEMO_MOD_POOL_SIZE];
-static_assert(DEMO_MOD_POOL_SIZE >= protracker::kPoolBytes, "DEMO_MOD_POOL_SIZE is too small");
+__NOINIT(EXTERNAL_RAM) static uint8_t s_extraPool[EXTRA_MOD_POOL_SIZE];
+static_assert(EXTRA_MOD_POOL_SIZE >= protracker::kPoolBytes, "EXTRA_MOD_POOL_SIZE is too small");
 
-static protracker::Module s_demoModule;
-static protracker::Replayer s_demoReplayer;
+static protracker::Module s_extraModule;
+static protracker::Replayer s_extraReplayer;
 static bool s_musicReady = false;  // module memory attached, replayer initialised
 static bool s_hasModule = false;   // a module is loaded
-static bool s_musicActive = false; // the stream plays the demo's replayer
+static bool s_musicActive = false; // the stream plays the extra's replayer
 static protracker::Replayer* s_prevReplayer = nullptr;
 static bool s_prevStreamEnabled = false;
 
@@ -115,8 +115,8 @@ static void initMusic()
 {
     if (s_musicReady)
         return;
-    s_demoModule.attach(s_demoPool, sizeof(s_demoPool));
-    s_demoReplayer.init(&s_demoModule, AUDIO_SAMPLE_RATE_EXACT);
+    s_extraModule.attach(s_extraPool, sizeof(s_extraPool));
+    s_extraReplayer.init(&s_extraModule, AUDIO_SAMPLE_RATE_EXACT);
     s_musicReady = true;
 }
 
@@ -158,7 +158,7 @@ static bool modSeek(void* ctx, uint32_t offset)
     return true;
 }
 
-// Loads a module from part of a file. size 0 = to the end of the file. The demo's replayer must
+// Loads a module from part of a file. size 0 = to the end of the file. The extra's replayer must
 // not be playing it meanwhile (the caller pauses the stream when it is attached).
 static bool loadModule(const char* path, uint32_t base, uint32_t size)
 {
@@ -178,29 +178,29 @@ static bool loadModule(const char* path, uint32_t base, uint32_t size)
     io.read = modRead;
     io.seek = modSeek;
 
-    s_demoReplayer.stop();
-    const protracker::Result result = s_demoModule.load(io);
+    s_extraReplayer.stop();
+    const protracker::Result result = s_extraModule.load(io);
     fs->closeFile(handle);
 
     if (result != protracker::Result::kOk)
     {
-        s_demoModule.clear();
+        s_extraModule.clear();
         return false;
     }
     s_hasModule = true;
     return true;
 }
 
-// The stream plays the demo's replayer while a demo runs, and the song's replayer again after.
+// The stream plays the extra's replayer while an extra runs, and the song's replayer again after.
 static void startMusicOutput()
 {
     initMusic();
     ProTrackerStream* stream = ptStream();
     s_prevReplayer = stream->attached();
     s_prevStreamEnabled = stream->isEnabled();
-    stream->switchTo(&s_demoReplayer);
+    stream->switchTo(&s_extraReplayer);
     // switchTo() drops a stop still pending for the song, so stop it here; it is detached now.
-    if (s_prevReplayer != nullptr && s_prevReplayer != &s_demoReplayer)
+    if (s_prevReplayer != nullptr && s_prevReplayer != &s_extraReplayer)
     {
         s_prevReplayer->stop();
         s_prevReplayer->previewStop();
@@ -216,8 +216,8 @@ static void stopMusicOutput()
     ProTrackerStream* stream = ptStream();
     stream->switchTo(s_prevReplayer);
     stream->setEnabled(s_prevStreamEnabled);
-    s_demoReplayer.stop(); // detached now, safe to touch
-    s_demoReplayer.previewStop();
+    s_extraReplayer.stop(); // detached now, safe to touch
+    s_extraReplayer.previewStop();
     s_musicActive = false;
 }
 
@@ -264,7 +264,7 @@ static void hostText(int16_t x, int16_t y, uint8_t font, uint16_t options, const
     s_frameWords += listWords;
 }
 
-// Inside demo_frame the coprocessor command stream is open. RAM_G writes and
+// Inside extra_frame the coprocessor command stream is open. RAM_G writes and
 // SD card work in the middle of a frame close the current burst first and
 // open a new one after, the same way a full burst is flushed.
 static void pauseFrameStream()
@@ -286,8 +286,8 @@ static void resumeFrameStream()
 
 static void hostRamgWrite(uint32_t addr, const void* data, uint32_t size)
 {
-    if (data == nullptr || size == 0 || addr < kDemoRamgBase ||
-        addr + size > kDemoRamgBase + kDemoRamgSize || addr + size < addr)
+    if (data == nullptr || size == 0 || addr < kExtraRamgBase ||
+        addr + size > kExtraRamgBase + kExtraRamgSize || addr + size < addr)
     {
         return;
     }
@@ -336,13 +336,13 @@ static void* hostMemcpy(void* d, const void* s, size_t n) { return memcpy(d, s, 
 static void* hostMemset(void* d, int v, size_t n) { return memset(d, v, n); }
 static int hostRand() { return rand(); }
 
-// A path without a leading '/' is relative to the demo's folder.
-static void demoPath(const char* path, char* out, size_t outSize)
+// A path without a leading '/' is relative to the extra's folder.
+static void extraPath(const char* path, char* out, size_t outSize)
 {
     if (path[0] == '/')
         snprintf(out, outSize, "%s", path);
     else
-        snprintf(out, outSize, "%s/%s", DP->demoFolder, path);
+        snprintf(out, outSize, "%s/%s", DP->extraFolder, path);
 }
 
 static int32_t readFileImpl(const char* path, void* buffer, uint32_t maxBytes);
@@ -362,7 +362,7 @@ static int32_t readFileImpl(const char* path, void* buffer, uint32_t maxBytes)
         return -1;
 
     char fullPath[kMaxFilePathLen + 1];
-    demoPath(path, fullPath, sizeof(fullPath));
+    extraPath(path, fullPath, sizeof(fullPath));
 
     auto [isOpen, fileHandle] = fs->openFile(fullPath, FileSystem::FileOpenMode::kRead);
     if (!isOpen)
@@ -410,14 +410,14 @@ static uint8_t hostIsSongPlaying()
     return protrackerMode.isPlaying() ? 1 : 0;
 }
 
-static void hostModState(PtDemoModState* out)
+static void hostModState(PtExtraModState* out)
 {
     if (out == nullptr)
         return;
     memset(out, 0, sizeof(*out));
     if (!s_hasModule)
         return;
-    const protracker::Replayer& r = s_demoReplayer;
+    const protracker::Replayer& r = s_extraReplayer;
     out->playing = r.isPlaying() ? 1 : 0;
     out->position = (uint8_t)r.position();
     out->pattern = (uint8_t)r.pattern();
@@ -437,7 +437,7 @@ static uint8_t hostModPlay(uint8_t position)
 {
     if (!s_hasModule || !s_musicActive)
         return 0;
-    if (position >= s_demoModule.songLength)
+    if (position >= s_extraModule.songLength)
         position = 0;
     ptStream()->requestPlay(position, 0);
     return 1;
@@ -457,7 +457,7 @@ static int32_t hostModLoad(const char* path)
     if (path[0] == '/')
         snprintf(fullPath, sizeof(fullPath), "%s", path);
     else
-        snprintf(fullPath, sizeof(fullPath), "%s/%s", DP->demoFolder, path);
+        snprintf(fullPath, sizeof(fullPath), "%s/%s", DP->extraFolder, path);
 
     ProTrackerStream* stream = ptStream();
     if (s_musicActive)
@@ -471,10 +471,10 @@ static int32_t hostModLoad(const char* path)
 // ---- API version 3: input and saving
 
 static constexpr uint32_t kInputQueueSize = 64;
-static PtDemoInput s_inputQueue[kInputQueueSize];
+static PtExtraInput s_inputQueue[kInputQueueSize];
 static volatile uint32_t s_inputHead = 0;
 static volatile uint32_t s_inputTail = 0;
-static bool s_inputDemo = false; // the running demo has PTDEMO_FLAG_INPUT
+static bool s_inputExtra = false; // the running extra has PTEXTRA_FLAG_INPUT
 static bool s_shiftDown = false;
 
 static void pushInput(uint8_t type, uint8_t index, int16_t value)
@@ -482,11 +482,11 @@ static void pushInput(uint8_t type, uint8_t index, int16_t value)
     const uint32_t next = (s_inputHead + 1) % kInputQueueSize;
     if (next == s_inputTail)
         return; // full: drop
-    s_inputQueue[s_inputHead] = PtDemoInput{ type, index, value };
+    s_inputQueue[s_inputHead] = PtExtraInput{ type, index, value };
     s_inputHead = next;
 }
 
-static int32_t hostPollInput(PtDemoInput* out)
+static int32_t hostPollInput(PtExtraInput* out)
 {
     if (out == nullptr || s_inputTail == s_inputHead)
         return 0;
@@ -502,7 +502,7 @@ static int32_t writeFileImpl(const char* path, const void* data, uint32_t size)
         return -1;
 
     char fullPath[kMaxFilePathLen + 1];
-    demoPath(path, fullPath, sizeof(fullPath));
+    extraPath(path, fullPath, sizeof(fullPath));
 
     auto [isOpen, fileHandle] = fs->openFile(fullPath, FileSystem::FileOpenMode::kWriteCreateNew);
     if (!isOpen)
@@ -545,7 +545,7 @@ static int32_t listDirImpl(const char* path, char* names, uint32_t namesSize, ui
         return -1;
 
     char fullPath[kMaxFilePathLen + 1];
-    demoPath(path, fullPath, sizeof(fullPath));
+    extraPath(path, fullPath, sizeof(fullPath));
     if (!fs->exists(fullPath))
         return -1;
 
@@ -596,7 +596,7 @@ static int32_t hostFileExists(const char* path)
     if (fs == nullptr || path == nullptr)
         return 0;
     char fullPath[kMaxFilePathLen + 1];
-    demoPath(path, fullPath, sizeof(fullPath));
+    extraPath(path, fullPath, sizeof(fullPath));
     pauseFrameStream();
     const bool exists = fs->exists(fullPath);
     resumeFrameStream();
@@ -609,7 +609,7 @@ static int32_t hostMakeDir(const char* path)
     if (fs == nullptr || path == nullptr)
         return -1;
     char fullPath[kMaxFilePathLen + 1];
-    demoPath(path, fullPath, sizeof(fullPath));
+    extraPath(path, fullPath, sizeof(fullPath));
     pauseFrameStream();
     int32_t result = 0;
     if (!fs->exists(fullPath) && !fs->mkdir(0, fullPath))
@@ -618,16 +618,16 @@ static int32_t hostMakeDir(const char* path)
     return result;
 }
 
-static const PtDemoHostApi s_hostApi = {
-    PTDEMO_API_VERSION,
+static const PtExtraHostApi s_hostApi = {
+    PTEXTRA_API_VERSION,
     800,
     480,
     1, // Tracker+ (IMX)
-    kFirstDemoHandle,
-    kDemoHandleCount,
+    kFirstExtraHandle,
+    kExtraHandleCount,
     48,
-    kDemoRamgBase,
-    kDemoRamgSize,
+    kExtraRamgBase,
+    kExtraRamgSize,
     hostDl,
     hostText,
     hostRamgWrite,
@@ -685,7 +685,7 @@ static void syncInstructionCache(void* addr, uint32_t size)
     asm volatile("isb 0xf" ::: "memory");
 }
 
-bool cDemoPlayer::load(const char* path, const char** error)
+bool cExtrasPlayer::load(const char* path, const char** error)
 {
     initFunc = nullptr;
     frameFunc = nullptr;
@@ -705,33 +705,33 @@ bool cDemoPlayer::load(const char* path, const char** error)
         return false;
     }
 
-    alignas(4) PtDemoHeader h;
+    alignas(4) PtExtraHeader h;
     if (fs->readFile(&h, sizeof(h), fileHandle) != static_cast<int32_t>(sizeof(h)) ||
-        h.magic != PTDEMO_MAGIC)
+        h.magic != PTEXTRA_MAGIC)
     {
         fs->closeFile(fileHandle);
-        *error = "Not a .ptdemo file";
+        *error = "Not a .ptextra file";
         return false;
     }
 
     const char* problem = nullptr;
     const uint32_t total = h.code_size + h.bss_size;
-    if (h.format_version != PTDEMO_FORMAT_VERSION)
-        problem = "Unsupported demo version";
+    if (h.format_version != PTEXTRA_FORMAT_VERSION)
+        problem = "Unsupported extra version";
     else if (h.code_size == 0 || total < h.code_size || total > kCodeBufferSize)
-        problem = "Demo code too big";
-    else if (h.required_api > PTDEMO_API_VERSION)
+        problem = "Extra code too big";
+    else if (h.required_api > PTEXTRA_API_VERSION)
         problem = "Needs newer firmware";
     else if (h.scratch_size > kScratchSize)
-        problem = "Demo needs too much RAM";
+        problem = "Extra needs too much RAM";
     else if (h.mod_size != 0 && h.mod_offset < h.code_offset + h.code_size)
-        problem = "Corrupt demo file";
-    else if (h.code_offset < sizeof(PtDemoHeader) || h.init_offset >= h.code_size ||
+        problem = "Corrupt extra file";
+    else if (h.code_offset < sizeof(PtExtraHeader) || h.init_offset >= h.code_size ||
              h.frame_offset >= h.code_size ||
              (h.exit_offset != kExitAbsent && h.exit_offset >= h.code_size))
-        problem = "Corrupt demo file";
+        problem = "Corrupt extra file";
     else if (!fs->seekFile(h.code_offset, fileHandle))
-        problem = "Corrupt demo file";
+        problem = "Corrupt extra file";
 
     if (problem != nullptr)
     {
@@ -769,65 +769,65 @@ bool cDemoPlayer::load(const char* path, const char** error)
 
     syncInstructionCache(codeBuf, total);
 
-    // The demo's music, if it carries any. Nothing plays it yet.
+    // The extra's music, if it carries any. Nothing plays it yet.
     s_hasModule = false;
     if (h.mod_size != 0 && !loadModule(path, h.mod_offset, h.mod_size))
     {
-        *error = "Bad module in demo";
+        *error = "Bad module in extra";
         return false;
     }
 
     // Thumb entry points: base + offset with bit 0 set.
     const uintptr_t base = reinterpret_cast<uintptr_t>(codeBuf);
-    initFunc = reinterpret_cast<PtDemoInitFunc>((base + h.init_offset) | 1u);
-    frameFunc = reinterpret_cast<PtDemoFrameFunc>((base + h.frame_offset) | 1u);
+    initFunc = reinterpret_cast<PtExtraInitFunc>((base + h.init_offset) | 1u);
+    frameFunc = reinterpret_cast<PtExtraFrameFunc>((base + h.frame_offset) | 1u);
     exitFunc = h.exit_offset == kExitAbsent
                  ? nullptr
-                 : reinterpret_cast<PtDemoExitFunc>((base + h.exit_offset) | 1u);
+                 : reinterpret_cast<PtExtraExitFunc>((base + h.exit_offset) | 1u);
     header = h;
     return true;
 }
 
 //==============================================================================================
-// The /Demos list
+// The /Extras list
 //==============================================================================================
 
-static constexpr int kMaxDemos = 64;
-__NOINIT(EXTERNAL_RAM) static char s_names[kMaxDemos * (kMaxFileNameLen + 1)];
-static char* s_nameList[kMaxDemos];
-static char s_emptyLine[] = "(no demos in /Demos)";
+static constexpr int kMaxExtras = 64;
+__NOINIT(EXTERNAL_RAM) static char s_names[kMaxExtras * (kMaxFileNameLen + 1)];
+static char* s_nameList[kMaxExtras];
+static char s_emptyLine[] = "(no extras in /Extras)";
 static char* s_emptyList[1] = { s_emptyLine };
 
-static bool isPtdemo(const char* name)
+static bool isPtextra(const char* name)
 {
     const size_t len = strlen(name);
-    return len > 7 && strcasecmp(name + len - 7, ".ptdemo") == 0;
+    return len > 7 && strcasecmp(name + len - 7, ".ptextra") == 0;
 }
 
-void cDemoPlayer::scanDemos()
+void cExtrasPlayer::scanExtras()
 {
     listCount = 0;
     FileSystem* fs = platformPtr()->getFileSystem();
     if (fs == nullptr)
         return;
-    if (!fs->exists("/Demos"))
-        fs->mkdir(0, "/Demos");
+    if (!fs->exists("/Extras"))
+        fs->mkdir(0, "/Extras");
 
-    int count = kMaxDemos;
-    fs->listDirContents("/Demos",
+    int count = kMaxExtras;
+    fs->listDirContents("/Extras",
                         FileSystem::DirContentType::kFiles,
-                        [](const char* name) { return isPtdemo(name); },
+                        [](const char* name) { return isPtextra(name); },
                         s_names,
                         sizeof(s_names),
                         kMaxFileNameLen,
                         count,
                         s_nameList);
-    listCount = count < 0 ? 0 : (count > kMaxDemos ? kMaxDemos : count);
+    listCount = count < 0 ? 0 : (count > kMaxExtras ? kMaxExtras : count);
     if (listPos >= listCount)
         listPos = 0;
 }
 
-void cDemoPlayer::initDisplayControls()
+void cExtrasPlayer::initDisplayControls()
 {
     // The same layout as the File screen's browser.
     strControlProperties prop2;
@@ -892,9 +892,9 @@ void cDemoPlayer::initDisplayControls()
     coverLabel = display.createControl<cLabel>(&cover);
 }
 
-void cDemoPlayer::showList()
+void cExtrasPlayer::showList()
 {
-    titleBar->setTitle("Demos");
+    titleBar->setTitle("Extras");
     titleBar->show();
 
     list.start = listCount > 0 ? listPos : 0;
@@ -922,7 +922,7 @@ void cDemoPlayer::showList()
     for (uint8_t i = 0; i < 8; i++)
         display.refreshControl(label[i]);
 
-    display.setControlText(titleLabel, "SD Card /Demos");
+    display.setControlText(titleLabel, "SD Card /Extras");
     display.setControlShow(titleLabel);
     display.refreshControl(titleLabel);
 
@@ -934,7 +934,7 @@ void cDemoPlayer::showList()
     display.synchronizeRefresh();
 }
 
-void cDemoPlayer::moveList(int delta)
+void cExtrasPlayer::moveList(int delta)
 {
     if (listCount == 0 || running)
         return;
@@ -972,8 +972,8 @@ static void functMiniMiddle(uint8_t state)
 static void functCancel() { DP->leave(); }
 static void functShift() { DP->leave(); }
 
-// Input demos get everything; Shift+Pattern leaves.
-static void functDemoButton(uint8_t button, uint8_t state)
+// Input extras get everything; Shift+Pattern leaves.
+static void functExtraButton(uint8_t button, uint8_t state)
 {
     if (state != buttonPress && state != buttonRelease)
         return;
@@ -987,7 +987,7 @@ static void functDemoButton(uint8_t button, uint8_t state)
     pushInput(state == buttonPress ? PTD_INPUT_BUTTON_PRESS : PTD_INPUT_BUTTON_RELEASE, button, 0);
 }
 
-static void functDemoPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
+static void functExtraPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
 {
     if (pad >= 48)
         return;
@@ -997,12 +997,12 @@ static void functDemoPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t v
         pushInput(PTD_INPUT_PAD_RELEASE, pad, 0);
 }
 
-static void functDemoEncoder(int16_t value)
+static void functExtraEncoder(int16_t value)
 {
     pushInput(PTD_INPUT_JOG, 0, value);
 }
 
-void cDemoPlayer::open(ModuleBase* caller)
+void cExtrasPlayer::open(ModuleBase* caller)
 {
     s_caller = caller;
     // Config becomes the previous module: Cancel and Shift go back to it.
@@ -1010,19 +1010,19 @@ void cDemoPlayer::open(ModuleBase* caller)
     mtInterface.activateModule(this, 0);
 }
 
-void cDemoPlayer::leave()
+void cExtrasPlayer::leave()
 {
     eventFunct(eventSwitchToPreviousModule, this, 0, 0);
 }
 
-void cDemoPlayer::start([[maybe_unused]] uint32_t options)
+void cExtrasPlayer::start([[maybe_unused]] uint32_t options)
 {
     moduleRefresh = 1;
     running = false;
     initFailed = false;
     songTimer.hide();
 
-    scanDemos();
+    scanExtras();
     showList();
 
     ip->clearAllButtons();
@@ -1037,50 +1037,50 @@ void cDemoPlayer::start([[maybe_unused]] uint32_t options)
     ip->setPotObj(interfacePot0, functEncoder);
 }
 
-void cDemoPlayer::runSelected()
+void cExtrasPlayer::runSelected()
 {
     if (running || listCount == 0)
         return;
 
     char path[kMaxFilePathLen + 1];
-    snprintf(path, sizeof(path), "/Demos/%s", s_nameList[listPos]);
+    snprintf(path, sizeof(path), "/Extras/%s", s_nameList[listPos]);
 
     const char* error = nullptr;
     if (!load(path, &error))
     {
-        mtPopups.show(0, "Can't run demo", error != nullptr ? error : "Load failed");
+        mtPopups.show(0, "Can't run extra", error != nullptr ? error : "Load failed");
         return;
     }
-    strcpy(demoFolder, "/Demos");
+    strcpy(extraFolder, "/Extras");
 
-    // A demo brings its own music, if any: the song stops and stays stopped.
+    // An extra brings its own music, if any: the song stops and stays stopped.
     protrackerMode.stopPreview();
     if (protrackerMode.isPlaying())
         protrackerMode.togglePlay(false);
 
-    beginDemo();
+    beginExtra();
 }
 
-void cDemoPlayer::beginDemo()
+void cExtrasPlayer::beginExtra()
 {
     // From here on only Shift does anything (the power button is handled
-    // outside the input table and keeps working). Input demos get every
+    // outside the input table and keeps working). Input extras get every
     // button, pad and the jog wheel instead, and are left with Shift+Pattern.
     ip->clearAllButtons();
     ip->clearAllPots();
     ip->clearGlobalPads();
-    s_inputDemo = (header.flags & PTDEMO_FLAG_INPUT) != 0;
+    s_inputExtra = (header.flags & PTEXTRA_FLAG_INPUT) != 0;
     s_inputHead = 0;
     s_inputTail = 0;
     s_shiftDown = false;
-    if (s_inputDemo)
+    if (s_inputExtra)
     {
         for (uint8_t b = 0; b < interfaceButtonsCount; b++)
         {
-            ip->setButtonObj(b, functDemoButton);
+            ip->setButtonObj(b, functExtraButton);
         }
-        ip->setPadsGlobal(functDemoPads);
-        ip->setPotObj(interfacePot0, functDemoEncoder, false);
+        ip->setPadsGlobal(functExtraPads);
+        ip->setPotObj(interfacePot0, functExtraEncoder, false);
     }
     else
     {
@@ -1106,7 +1106,7 @@ void cDemoPlayer::beginDemo()
     running = true;
 }
 
-void cDemoPlayer::stop()
+void cExtrasPlayer::stop()
 {
     moduleRefresh = 0;
 
@@ -1114,7 +1114,7 @@ void cDemoPlayer::stop()
         exitFunc();
     running = false;
     initFailed = false;
-    s_inputDemo = false;
+    s_inputExtra = false;
 
     // The song's replayer gets the output back; the tracker song stays stopped.
     stopMusicOutput();
@@ -1138,9 +1138,9 @@ void cDemoPlayer::stop()
     songTimer.show();
 }
 
-void cDemoPlayer::endForShutdown()
+void cExtrasPlayer::endForShutdown()
 {
-    // The unit is switching off: let the demo save its work, then give the
+    // The unit is switching off: let the extra save its work, then give the
     // screen back so the shutdown screen shows.
     if (!running)
         return;
@@ -1154,13 +1154,13 @@ void cDemoPlayer::endForShutdown()
     leave();
 }
 
-void cDemoPlayer::update()
+void cExtrasPlayer::update()
 {
     if (initFailed)
     {
         initFailed = false;
         leave();
-        mtPopups.show(0, "Can't run demo", "Demo failed to start");
+        mtPopups.show(0, "Can't run extra", "Extra failed to start");
         return;
     }
 
@@ -1175,7 +1175,7 @@ void cDemoPlayer::update()
     renderFrame();
 }
 
-void cDemoPlayer::renderFrame()
+void cExtrasPlayer::renderFrame()
 {
     driver()->beginCoProList();
     API_CMD_DLSTART();

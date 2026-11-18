@@ -2,7 +2,7 @@
 
 A ProTracker (Amiga) mode for the **Polyend Tracker+**, built from the open-source Polyend Tracker CE firmware. It boots straight into a four-channel, 64-row, 31-sample ProTracker 2.3D style editor and player, and loads and saves genuine Amiga `.mod` files. The replayer is ported from [pt2-clone](https://github.com/8bitbubsy/pt2-clone) by Olav Sorensen (BSD 3-Clause, see [`NOTICE.md`](NOTICE.md)).
 
-> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). Interactive demos (host API 3, e.g. asciitracker) are tested on a real Tracker+ too. It is still a beta (0.9.9), so keep the recovery steps below in mind when flashing.
+> **Status: beta, tested on actual Tracker+ hardware.** The firmware runs on a real Tracker+, and the ProTracker core has host-side unit tests (`tests/protracker`). Interactive extras (host API 3, e.g. asciitracker) are tested on a real Tracker+ too. It is still a beta (0.9.9), so keep the recovery steps below in mind when flashing.
 
 This firmware is Tracker+ only. Support for the Original Tracker and Tracker Mini was removed, along with the stock pattern, song, sample editing, instrument, performance and project screens. What is kept: the ProTracker screen, Config, Master, the sample recorder and the sample loader.
 
@@ -12,7 +12,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 * Plays with ProTracker 2.3D semantics: period tables and finetune, vibrato/tremolo tables, funk repeat, CIA tempo quirk, the E0x LED filter, and 20% default stereo separation. Known original quirks are kept on purpose.
 * Reads `M.K.`, `M!K!`, `FLT4`, `4CHN` and `N.T.` modules (6 and 8 channel modules are refused). Writes `M.K.` (or `M!K!` above 64 patterns).
 * Limits follow the .mod format: 4 tracks, 64 rows, 31 samples (8 bit, at most 65534 bytes), patterns 0-99, 128 order slots, the 29 ProTracker effects.
-* Module memory is reserved from external RAM, which makes the stock sample memory about 2.1 MB smaller, and another 2.1 MB for the music of SD card demos.
+* Module memory is reserved from external RAM, which makes the stock sample memory about 2.1 MB smaller, and another 2.1 MB for the music of SD card extras.
 
 ### Screens
 
@@ -25,7 +25,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 | **Sample Edit** | The stock Polyend sample editor on the current sample: Start/End/Zoom selection, Undo, Preview/Apply, a playback line, and the effects Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In, Fade Out and Octave (up/down, Preview, Apply, Restore). |
 | **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, live loop editing while a pad is held and a playback line. |
 | **Sample Rec** | The stock recorder (sources, gain, monitor, crop, undo). **To slot** records into the first free sample slot, **Save** writes a WAV. |
-| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources, **Info > Demos** runs demos from the SD card). |
+| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources, **Info > Extras** runs extras from the SD card). |
 
 Hold **Instr** in the sample editor or the sample parameters to pick another sample with the encoder.
 
@@ -37,11 +37,11 @@ The **Sample Rec** screen records from the inputs as before; after recording, **
 
 Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
-### Demos
+### Extras
 
-**Config > Info > Demos** lists the `.ptdemo` files in `/Demos` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The demo takes over the whole screen and the pads. A song that is playing is stopped first, and a demo can bring its own music: a .mod packed into the demo file, played by the same ProTracker replayer from separate memory, so your song is never touched. While a demo runs only **Shift** does anything: it ends the demo and goes back to Config. Interactive demos (built with the `INPUT` flag, host API 3) are the exception: they get every button, pad and the jog wheel, can save files, and are left with **Shift+Pattern** (hold Shift, press Pattern). Switching off while such a demo runs lets it save its work first.
+**Config > Info > Extras** lists the `.ptextra` files in `/Extras` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The extra takes over the whole screen and the pads. A song that is playing is stopped first, and an extra can bring its own music: a .mod packed into the extra file, played by the same ProTracker replayer from separate memory, so your song is never touched. While an extra runs only **Shift** does anything: it ends the extra and goes back to Config. Interactive extras (built with the `INPUT` flag, host API 3) are the exception: they get every button, pad and the jog wheel, can save files, and are left with **Shift+Pattern** (hold Shift, press Pattern). Switching off while such an extra runs lets it save its work first.
 
-Demos are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`demo-sdk/`](demo-sdk) has the API header, a builder and an example (`demos/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to its own chiptune); see [`demo-sdk/README.md`](demo-sdk/README.md).
+Extras are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`extras-sdk/`](extras-sdk) has the API header, a builder and an example (`examples/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to its own chiptune); see [`extras-sdk/README.md`](extras-sdk/README.md).
 
 Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`themes/`](themes); copy them to `/Themes/` on the SD card. A pixel font, `fonts/PixelAmiga.ptfont`, goes in `/Fonts/`.
 
@@ -57,7 +57,7 @@ Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`
 ├── platforms/imx/          # Tracker+ (i.MX RT1050) HAL, drivers and linker script
 ├── synth/                  # PolySynth headers and precompiled libraries (see License)
 ├── util/                   # Shared utility headers
-├── demo-sdk/               # Host API, builder and example for SD card demos (.ptdemo)
+├── extras-sdk/               # Host API, builder and example for SD card extras (.ptextra)
 ├── tests/protracker/       # Host unit tests
 └── docs/
 ```

@@ -272,7 +272,7 @@ cMenuItem melUsbAudio(menuUsb,
 // Credits & Info
 
 const strItemTypeActionButton creditsSetup{ openCreditsAction, nullptr };
-const strItemTypeActionButton demosSetup{ openDemosAction, nullptr };
+const strItemTypeActionButton extrasSetup{ openExtrasAction, nullptr };
 
 cMenuItem melOpenCredits(menuCredits,
                          "About",
@@ -280,11 +280,11 @@ cMenuItem melOpenCredits(menuCredits,
                          menuTypeItemActionButton,
                          &creditsSetup);
 
-cMenuItem melOpenDemos(menuCredits,
-                       "Demos",
+cMenuItem melOpenExtras(menuCredits,
+                       "Extras",
                        nullptr,
                        menuTypeItemActionButton,
-                       &demosSetup);
+                       &extrasSetup);
 
 
 //==================================================================================================================================================================

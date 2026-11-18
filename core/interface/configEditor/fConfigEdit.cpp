@@ -8,7 +8,7 @@
 #include "core/interfaceMenuPopup.h"
 #include "core/interfacePopups.h"
 #include "core/songTimer.h"
-#include "demoPlayer/demoPlayer.h"
+#include "extrasPlayer/extrasPlayer.h"
 #include "fileManager.h"
 #include "mtAudioEngine.h"
 #include "mtConfig.h"
@@ -1000,9 +1000,9 @@ void openCreditsAction()
     CE->openCredits();
 }
 
-void openDemosAction()
+void openExtrasAction()
 {
-    demoPlayer.open(CE);
+    extrasPlayer.open(CE);
 }
 
 void startFileTransferMode()

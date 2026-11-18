@@ -327,7 +327,7 @@ static void testOversizedSample()
     CHECK(b.mod.sampleData(0)[1000] == (1000 & 0x7F));
 }
 
-// channelHits() counts started notes per channel (demo sync), currentTick() stays below the speed
+// channelHits() counts started notes per channel (extra sync), currentTick() stays below the speed
 static void testHitsAndTick()
 {
     printf("hits and tick\n");

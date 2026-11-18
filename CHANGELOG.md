@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.10 beta]
+
+* The "Demos" feature is now **Extras**: Config > Info > Extras runs programs from `/Extras` on the SD card. Files are `.ptextra` (was `.ptdemo`), the SDK moved from `demo-sdk/` to `extras-sdk/` (`tracker_extra.h`, `ptextra_builder.py`, `PTEXTRA_*` options, example in `examples/`). Old `.ptdemo` files and the `/Demos` folder are not read any more: rebuild them with the new builder.
+
 ## [0.9.9 beta]
 
 * Interactive demos: host API version 3. A demo built with `// PTDEMO_FLAGS: INPUT` gets every button, pad and the jog wheel through `poll_input`, and can save with `write_file`, `list_dir`, `file_exists` and `make_dir`. Such a demo is left with Shift+Pattern instead of Shift. Its `demo_exit` also runs when the unit is switched off, so it can save. RAM_G and SD card calls are now safe in the middle of `demo_frame`. Older firmware refuses API 3 demos with "Needs newer firmware".

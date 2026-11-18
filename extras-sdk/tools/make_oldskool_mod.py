@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Writes demos/oldskool.mod: a short original 4-channel chiptune for the
-example demo. Every sample is synthesised here, so the module is free to use.
+"""Writes examples/oldskool.mod: a short original 4-channel chiptune for the
+example extra. Every sample is synthesised here, so the module is free to use.
 
 Channels: 0 kick/snare, 1 bass, 2 arpeggio/lead, 3 hi-hat.
 Chords Am - F - C - G, one per 16 rows, speed 6 at 125 BPM.
@@ -162,4 +162,4 @@ def write_mod(path):
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
-    write_mod(os.path.join(here, "..", "demos", "oldskool.mod"))
+    write_mod(os.path.join(here, "..", "extras", "oldskool.mod"))

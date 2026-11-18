@@ -1,17 +1,17 @@
-// PTDEMO_NAME: Oldskool
-// PTDEMO_AUTHOR: Tracker CE
-// PTDEMO_SCRATCH: 8192
-// PTDEMO_MOD: oldskool.mod
+// PTEXTRA_NAME: Oldskool
+// PTEXTRA_AUTHOR: Tracker CE
+// PTEXTRA_SCRATCH: 8192
+// PTEXTRA_MOD: oldskool.mod
 //
 // Rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to
 // the music: kick drums flash the copper bars, snares pump the cube, the
 // arpeggio channel swings the scroller.
-// Build:  python3 ptdemo_builder.py demos/oldskool.c -o build/Demos/oldskool.ptdemo
+// Build:  python3 ptextra_builder.py examples/oldskool.c -o build/Extras/oldskool.ptextra
 // (oldskool.mod is made by tools/make_oldskool_mod.py)
 
-#include "tracker_demo.h"
+#include "tracker_extra.h"
 
-static const PtDemoHostApi* H;
+static const PtExtraHostApi* H;
 
 #define DL(word) H->dl(word)
 
@@ -34,7 +34,7 @@ static int fontOk;
 #define FONT_SCALE 2
 
 static const char kScrollText[] =
-  "        *** TRACKER CE DEMO LOADED FROM THE SD CARD ***    "
+  "        *** TRACKER CE EXTRA LOADED FROM THE SD CARD ***    "
   "ROTOZOOMER  -  COPPER BARS  -  VECTOR BALLS  -  SINE SCROLLER    "
   "ALL DRAWN BY THE FT812 FROM ONE DISPLAY LIST PER FRAME    "
   "PRESS SHIFT TO EXIT    GREETINGS TO ALL TRACKER CE HACKERS ...    ";
@@ -42,7 +42,7 @@ static const char kScrollText[] =
 static uint8_t padState[48];
 
 /* music sync: decaying pulses, set when a channel starts a note */
-static PtDemoModState mod;
+static PtExtraModState mod;
 static uint8_t lastHits[4];
 static float kickPulse, snarePulse, arpPulse;
 static uint32_t lastTimeMs;
@@ -52,10 +52,10 @@ static uint32_t read32(const uint8_t* p)
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
-int32_t demo_init(const PtDemoHostApi* host, void* scratch, uint32_t scratch_size)
+int32_t extra_init(const PtExtraHostApi* host, void* scratch, uint32_t scratch_size)
 {
     H = host;
-    if (host->api_version < PTDEMO_API_VERSION || host->bitmap_handle_count < 2 ||
+    if (host->api_version < PTEXTRA_API_VERSION || host->bitmap_handle_count < 2 ||
         scratch_size < TEX_BYTES || host->ramg_size < TEX_BYTES)
     {
         return 1;
@@ -374,7 +374,7 @@ static void syncToMusic(uint32_t time_ms)
         lastHits[c] = mod.hits[c];
 }
 
-void demo_frame(uint32_t time_ms)
+void extra_frame(uint32_t time_ms)
 {
     float t = time_ms * 0.001f;
     syncToMusic(time_ms);
@@ -385,7 +385,7 @@ void demo_frame(uint32_t time_ms)
     pads(t);
 }
 
-void demo_exit(void)
+void extra_exit(void)
 {
     /* the firmware clears the pads and restores the GUI; nothing to free */
 }

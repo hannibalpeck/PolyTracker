@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Polyend Tracker CE demo builder (.ptdemo)
+Polyend Tracker CE extra builder (.ptextra)
 
 Compiles one freestanding C file into a position-independent Cortex-M4F
 Thumb-2 binary (runs on both the original Tracker and Tracker+/Mini) and
-prepends the 128-byte PtDemoHeader from tracker_demo.h.
+prepends the 128-byte PtExtraHeader from tracker_extra.h.
 
 Metadata comes from comments in the source:
-    // PTDEMO_NAME: Oldskool
-    // PTDEMO_AUTHOR: someone
-    // PTDEMO_SCRATCH: 8192          (bytes of working RAM, max 393216)
-    // PTDEMO_FLAGS: IMX_ONLY        (optional; INPUT = gets all buttons/pads/jog,
+    // PTEXTRA_NAME: Oldskool
+    // PTEXTRA_AUTHOR: someone
+    // PTEXTRA_SCRATCH: 8192          (bytes of working RAM, max 393216)
+    // PTEXTRA_FLAGS: IMX_ONLY        (optional; INPUT = gets all buttons/pads/jog,
                                        left with Shift+Pattern, API 3)
-    // PTDEMO_MOD: tune.mod          (optional music, path relative to the source;
-                                       appended to the .ptdemo and played by the firmware)
+    // PTEXTRA_MOD: tune.mod          (optional music, path relative to the source;
+                                       appended to the .ptextra and played by the firmware)
 
 Usage:
-    python3 ptdemo_builder.py demos/oldskool.c -o Demos/oldskool.ptdemo
+    python3 ptextra_builder.py examples/oldskool.c -o Extras/oldskool.ptextra
 """
 
 import argparse
@@ -27,8 +27,8 @@ import subprocess
 import sys
 import tempfile
 
-PTDEMO_MAGIC = 0x4F4D4450  # "PDMO"
-PTDEMO_FORMAT_VERSION = 1
+PTEXTRA_MAGIC = 0x52545850  # "PXTR"
+PTEXTRA_FORMAT_VERSION = 1
 HEADER_SIZE = 128
 API_VERSION = 3
 MOD_TAGS = (b"M.K.", b"M!K!", b"FLT4", b"4CHN")
@@ -75,7 +75,7 @@ def run(cmd):
 def parse_meta(source):
     meta = {}
     for line in source.splitlines():
-        m = re.match(r"^\s*//\s*PTDEMO_(\w+)\s*:\s*(.*)$", line)
+        m = re.match(r"^\s*//\s*PTEXTRA_(\w+)\s*:\s*(.*)$", line)
         if m:
             meta[m.group(1).upper()] = m.group(2).strip()
     return meta
@@ -111,12 +111,12 @@ def build(c_file, out_file, toolchain):
                 sys.exit(f"Unknown flag {token}")
             flags |= FLAG_MAP[token.upper()]
     if scratch > MAX_SCRATCH:
-        sys.exit(f"PTDEMO_SCRATCH {scratch} is over the {MAX_SCRATCH} byte limit")
+        sys.exit(f"PTEXTRA_SCRATCH {scratch} is over the {MAX_SCRATCH} byte limit")
 
     mod = b""
     if meta.get("MOD"):
         mod = read_mod(os.path.join(os.path.dirname(os.path.abspath(c_file)), meta["MOD"]))
-    # API 2 brought the music: a demo that has or drives a module needs it.
+    # API 2 brought the music: an extra that has or drives a module needs it.
     uses_music = bool(mod) or re.search(r"\bmod_(state|play|stop|load)\b", source)
     # API 3 brought input and file writing.
     uses_v3 = (flags & FLAG_MAP["INPUT"]) or re.search(
@@ -126,10 +126,10 @@ def build(c_file, out_file, toolchain):
     sdk_dir = os.path.dirname(os.path.abspath(__file__))
 
     with tempfile.TemporaryDirectory() as tmp:
-        ld = os.path.join(tmp, "demo.ld")
-        obj = os.path.join(tmp, "demo.o")
-        elf = os.path.join(tmp, "demo.elf")
-        binf = os.path.join(tmp, "demo.bin")
+        ld = os.path.join(tmp, "extra.ld")
+        obj = os.path.join(tmp, "extra.o")
+        elf = os.path.join(tmp, "extra.elf")
+        binf = os.path.join(tmp, "extra.bin")
         with open(ld, "w") as f:
             f.write(LINKER_SCRIPT)
 
@@ -152,7 +152,7 @@ def build(c_file, out_file, toolchain):
             sys.exit("Absolute or GOT relocations found - a pointer in initialized data, or a "
                      "non-static global? Make it static / compute it at run time:\n  " + "\n  ".join(bad))
 
-        run([toolchain + "ld", "-T", ld, "-e", "demo_init", "--no-undefined", obj, "-o", elf])
+        run([toolchain + "ld", "-T", ld, "-e", "extra_init", "--no-undefined", obj, "-o", elf])
 
         sections = run([toolchain + "readelf", "-S", "-W", elf])
         m = re.search(r"\.got\s+\S+\s+\S+\s+\S+\s+([0-9a-f]+)", sections)
@@ -169,7 +169,7 @@ def build(c_file, out_file, toolchain):
             if len(parts) == 3:
                 symbols[parts[2]] = int(parts[0], 16)
 
-        for required in ("demo_init", "demo_frame"):
+        for required in ("extra_init", "extra_frame"):
             if required not in symbols:
                 sys.exit(f"{required}() is missing")
 
@@ -188,7 +188,7 @@ def build(c_file, out_file, toolchain):
     limit = MAX_CODE_IMX if flags & FLAG_MAP["IMX_ONLY"] else MAX_CODE_MK66
     if total > limit:
         if limit == MAX_CODE_MK66 and total <= MAX_CODE_IMX:
-            sys.exit(f"Code+bss is {total} bytes: over 32 KB, add '// PTDEMO_FLAGS: IMX_ONLY'")
+            sys.exit(f"Code+bss is {total} bytes: over 32 KB, add '// PTEXTRA_FLAGS: IMX_ONLY'")
         sys.exit(f"Code+bss is {total} bytes, over the {limit} byte limit")
 
     code = code.ljust((len(code) + 3) & ~3, b"\0")  # keep the module 4-byte aligned
@@ -196,8 +196,8 @@ def build(c_file, out_file, toolchain):
 
     header = struct.pack(
         "<IHH32s16sIIIIIIIIII32s",
-        PTDEMO_MAGIC,
-        PTDEMO_FORMAT_VERSION,
+        PTEXTRA_MAGIC,
+        PTEXTRA_FORMAT_VERSION,
         flags,
         name.encode("ascii", "replace")[:31].ljust(32, b"\0"),
         author.encode("ascii", "replace")[:15].ljust(16, b"\0"),
@@ -205,9 +205,9 @@ def build(c_file, out_file, toolchain):
         HEADER_SIZE,
         code_size,
         bss_size,
-        symbols["demo_init"] & ~1,
-        symbols["demo_frame"] & ~1,
-        (symbols["demo_exit"] & ~1) if "demo_exit" in symbols else EXIT_ABSENT,
+        symbols["extra_init"] & ~1,
+        symbols["extra_frame"] & ~1,
+        (symbols["extra_exit"] & ~1) if "extra_exit" in symbols else EXIT_ABSENT,
         mod_offset,
         len(mod),
         required_api,
@@ -225,13 +225,13 @@ def build(c_file, out_file, toolchain):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Build a Polyend Tracker CE .ptdemo")
-    ap.add_argument("source", help="demo C file")
-    ap.add_argument("-o", "--output", help="output .ptdemo (default: Demos/<name>.ptdemo)")
+    ap = argparse.ArgumentParser(description="Build a Polyend Tracker CE .ptextra")
+    ap.add_argument("source", help="extra C file")
+    ap.add_argument("-o", "--output", help="output .ptextra (default: Extras/<name>.ptextra)")
     ap.add_argument("--toolchain", default="arm-none-eabi-", help="toolchain prefix")
     args = ap.parse_args()
     out = args.output or os.path.join(
-        "Demos", os.path.splitext(os.path.basename(args.source))[0] + ".ptdemo")
+        "Extras", os.path.splitext(os.path.basename(args.source))[0] + ".ptextra")
     build(args.source, out, args.toolchain)
 
 

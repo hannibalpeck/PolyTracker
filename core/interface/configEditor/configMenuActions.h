@@ -23,7 +23,7 @@ void setMetronomValues();
 void setSlaveClockCompValue();
 
 void openCreditsAction();
-void openDemosAction();
+void openExtrasAction();
 
 void startFileTransferMode();
 
