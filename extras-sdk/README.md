@@ -1,6 +1,6 @@
 # Tracker CE extras (`.ptextra`)
 
-Full-screen extrascene effects that live on the SD card, not in the firmware.
+Extras are small full-screen programs for the Tracker+ that live on the SD card, not in the firmware: visuals and demoscene effects with their own music, and interactive tools or games that get the buttons, pads and jog wheel. The firmware only holds the loader (**Config > Info > Extras**); each extra is one `.ptextra` file built from a C source with `ptextra_builder.py`.
 
 ## Running an extra
 

@@ -39,9 +39,15 @@ Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
 ### Extras
 
-**Config > Info > Extras** lists the `.ptextra` files in `/Extras` on the SD card (the folder is made the first time). Pick one with the jog wheel or Up/Down and press **Run**. The extra takes over the whole screen and the pads. A song that is playing is stopped first, and an extra can bring its own music: a .mod packed into the extra file, played by the same ProTracker replayer from separate memory, so your song is never touched. While an extra runs only **Shift** does anything: it ends the extra and goes back to Config. Interactive extras (built with the `INPUT` flag, host API 3) are the exception: they get every button, pad and the jog wheel, can save files, and are left with **Shift+Pattern** (hold Shift, press Pattern). Switching off while such an extra runs lets it save its work first.
+Extras are small programs for the Tracker+ that you copy to the SD card and run from the Config menu, without reflashing the firmware. They are how the Tracker can do things that are not tracking: visuals and demoscene-style effects that play their own music, tools such as an Amiga ASCII art editor, even small games. Each extra is one `.ptextra` file, and the firmware only contains the loader.
 
-Extras are not part of the firmware: each is a small file of position-independent ARM code that draws through a host API. [`extras-sdk/`](extras-sdk) has the API header, a builder and an example (`examples/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to its own chiptune); see [`extras-sdk/README.md`](extras-sdk/README.md).
+**Running one.** Copy the `.ptextra` files to `/Extras` on the SD card (the folder is made the first time you open the menu), then go to **Config > Info > Extras**, pick a file with the jog wheel or Up/Down and press **Run**. The extra takes over the whole screen. A song that is playing is stopped first and your song is never touched.
+
+**Two kinds.**
+* *Show extras* (visuals and music) only watch: they can play their own music (a .mod packed into the file, played by the ProTracker replayer from separate memory and available to the extra for syncing effects), and **Shift** ends them.
+* *Interactive extras* (built with the `INPUT` flag, host API 3) also get every button, pad and the jog wheel, and can save files. They are left with **Shift+Pattern** (hold Shift, press Pattern). Switching the Tracker off while one runs lets it save its work first.
+
+**Making one.** An extra is a single C file compiled to small position-independent ARM code that draws through a host API. [`extras-sdk/`](extras-sdk) has the API header, a builder and an example (`examples/oldskool.c`: rotozoomer, copper bars, vector-ball cube and a sine scroller, synced to its own chiptune); see [`extras-sdk/README.md`](extras-sdk/README.md). Extras run with the firmware's own rights, so only use files from people you trust.
 
 Four extra colour themes (ProTracker, Workbench, MonoGreen, MonoAmber) are in [`themes/`](themes); copy them to `/Themes/` on the SD card. A pixel font, `fonts/PixelAmiga.ptfont`, goes in `/Fonts/`.
 
