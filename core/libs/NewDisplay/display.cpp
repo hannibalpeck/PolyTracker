@@ -292,6 +292,44 @@ void cDisplay::loadFont(const CompressedFontData* fontsData, uint8_t fontCount)
     displayDriver->endCoProList();
 }
 
+// Startup / loading splash drawn with code (no bitmap). Used by begin() and the project loading screen.
+void drawSplashArt(bool withVersion)
+{
+    static const uint8_t copper[6][3] = { { 0xE0, 0x30, 0x20 }, { 0xE0, 0x80, 0x20 },
+                                          { 0xE0, 0xC8, 0x20 }, { 0x30, 0xC0, 0x40 },
+                                          { 0x20, 0x90, 0xE0 }, { 0x70, 0x40, 0xE0 } };
+
+    API_BEGIN(RECTS);
+    for (uint8_t i = 0; i < 6; i++)
+    {
+        API_COLOR_RGB(copper[i][0], copper[i][1], copper[i][2]);
+        // top set, left to right order top to bottom
+        API_VERTEX2F(150, 90 + i * 9);
+        API_VERTEX2F(650, 90 + i * 9 + 6);
+        // bottom set mirrored
+        API_VERTEX2F(150, 340 + (5 - i) * 9);
+        API_VERTEX2F(650, 340 + (5 - i) * 9 + 6);
+    }
+    API_END();
+
+    API_COLOR_RGB(0xE0, 0xC8, 0x20);
+    API_CMD_TEXT(400, 55, 29, OPT_CENTER, "Divine Stylers presents");
+
+    API_COLOR_RGB(0xFF, 0xFF, 0xFF);
+    API_CMD_TEXT(400, 235, 31, OPT_CENTER, "PolyTracker");
+
+    API_COLOR_RGB(0xB0, 0xB0, 0xB0);
+    API_CMD_TEXT(400, 410, 27, OPT_CENTER, "ProTracker mode for the Polyend Tracker");
+
+    char verText[24];
+    sprintf(verText, "v%d.%d.%d", FW_VER_MAJOR, FW_VER_MINOR, FW_VER_PATCH);
+    if (withVersion)
+    {
+        API_COLOR_RGB(0x80, 0x80, 0x80);
+        API_CMD_TEXT(400, 440, 26, OPT_CENTER, verText);
+    }
+}
+
 void cDisplay::begin(DisplayDriver* displayDriver, Timer* timer)
 {
     this->displayDriver = displayDriver;
@@ -324,39 +362,7 @@ void cDisplay::begin(DisplayDriver* displayDriver, Timer* timer)
 
     API_VERTEX_FORMAT(0);
 
-    // Splash drawn with code only (copper bars, title, version), no bitmap
-    {
-        static const uint8_t copper[6][3] = { { 0xE0, 0x30, 0x20 }, { 0xE0, 0x80, 0x20 },
-                                              { 0xE0, 0xC8, 0x20 }, { 0x30, 0xC0, 0x40 },
-                                              { 0x20, 0x90, 0xE0 }, { 0x70, 0x40, 0xE0 } };
-
-        API_BEGIN(RECTS);
-        for (uint8_t i = 0; i < 6; i++)
-        {
-            API_COLOR_RGB(copper[i][0], copper[i][1], copper[i][2]);
-            // top set, left to right order top to bottom
-            API_VERTEX2F(150, 90 + i * 9);
-            API_VERTEX2F(650, 90 + i * 9 + 6);
-            // bottom set mirrored
-            API_VERTEX2F(150, 340 + (5 - i) * 9);
-            API_VERTEX2F(650, 340 + (5 - i) * 9 + 6);
-        }
-        API_END();
-
-        API_COLOR_RGB(0xE0, 0xC8, 0x20);
-        API_CMD_TEXT(400, 55, 29, OPT_CENTER, "Divine Stylers presents");
-
-        API_COLOR_RGB(0xFF, 0xFF, 0xFF);
-        API_CMD_TEXT(400, 235, 31, OPT_CENTER, "PolyTracker");
-
-        API_COLOR_RGB(0xB0, 0xB0, 0xB0);
-        API_CMD_TEXT(400, 410, 27, OPT_CENTER, "ProTracker mode for the Polyend Tracker");
-
-        char verText[24];
-        sprintf(verText, "v%d.%d.%d", FW_VER_MAJOR, FW_VER_MINOR, FW_VER_PATCH);
-        API_COLOR_RGB(0x80, 0x80, 0x80);
-        API_CMD_TEXT(400, 440, 26, OPT_CENTER, verText);
-    }
+    drawSplashArt(true);
 
     API_DISPLAY();
     API_CMD_SWAP();

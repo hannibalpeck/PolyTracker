@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.14 beta]
+
+* The project loading screen (shown while the last project loads) uses the same code-drawn splash instead of the Polyend logo.
+
 ## [0.9.13 beta]
 
 * Splash screen: "Divine Stylers presents" above the top copper bars.

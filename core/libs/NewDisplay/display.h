@@ -54,6 +54,8 @@ struct CompressedFontData
 
 class FileSystem;
 
+void drawSplashArt(bool withVersion);
+
 class cDisplay
 {
     friend cDebugLog;
