@@ -343,6 +343,9 @@ void cDisplay::begin(DisplayDriver* displayDriver, Timer* timer)
         }
         API_END();
 
+        API_COLOR_RGB(0xE0, 0xC8, 0x20);
+        API_CMD_TEXT(400, 55, 29, OPT_CENTER, "Divine Stylers presents");
+
         API_COLOR_RGB(0xFF, 0xFF, 0xFF);
         API_CMD_TEXT(400, 235, 31, OPT_CENTER, "PolyTracker");
 
