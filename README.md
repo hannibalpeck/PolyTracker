@@ -25,7 +25,7 @@ This firmware is Tracker+ only. Support for the Original Tracker and Tracker Min
 | **Sample Edit** | The stock Polyend sample editor on the current sample: Start/End/Zoom selection, Undo, Preview/Apply, a playback line, and the effects Normalizer, Crop, Reverse, Amplifier, Overdrive, Delay, Bitcrusher, Chorus, Flanger, Equalizer, Limiter, Compressor, Fade In, Fade Out and Octave (up/down, Preview, Apply, Restore). |
 | **Sample Play** | The sample header: volume, finetune, 1-Shot / Forward loop, loop start, loop end and length, with the loop markers on the waveform, live loop editing while a pad is held and a playback line. |
 | **Sample Rec** | The stock recorder (sources, gain, monitor, crop, undo). **To slot** records into the first free sample slot, **Save** writes a WAV. |
-| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources, **Info > Extras** runs extras from the SD card). |
+| **Config**, **Master** | The stock settings and master screens (no MIDI section; **Info > About** credits the ProTracker and Polyend sources, **Extras** runs extras from the SD card). |
 
 Hold **Instr** in the sample editor or the sample parameters to pick another sample with the encoder.
 
@@ -41,7 +41,7 @@ Details of every screen are in [`docs/protracker.md`](docs/protracker.md).
 
 Extras are small programs for the Tracker+ that you copy to the SD card and run from the Config menu, without reflashing the firmware. They are how the Tracker can do things that are not tracking: visuals and demoscene-style effects that play their own music, tools such as an Amiga ASCII art editor, even small games. Each extra is one `.ptextra` file, and the firmware only contains the loader.
 
-**Running one.** Copy the `.ptextra` files to `/Extras` on the SD card (the folder is made the first time you open the menu), then go to **Config > Info > Extras**, pick a file with the jog wheel or Up/Down and press **Run**. The extra takes over the whole screen. A song that is playing is stopped first and your song is never touched.
+**Running one.** Copy the `.ptextra` files to `/Extras` on the SD card (the folder is made the first time you open the menu), then go to **Config > Extras**, pick a file with the jog wheel or Up/Down and press **Run**. The extra takes over the whole screen. A song that is playing is stopped first and your song is never touched.
 
 **Two kinds.**
 * *Show extras* (visuals and music) only watch: they can play their own music (a .mod packed into the file, played by the ProTracker replayer from separate memory and available to the extra for syncing effects), and **Shift** ends them.

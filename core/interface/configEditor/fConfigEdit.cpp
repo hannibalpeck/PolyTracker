@@ -342,6 +342,10 @@ static void functActionButton(uint8_t button, uint8_t state)
                         CE->changeMenuListPosition(1, -1, 1);
                     }
                 }
+                else if (!CE->submenuShown)
+                {
+                    CE->menuGoIn(); // top-level action entry
+                }
                 else
                 {
                     CE->selectedPlace = 1;
@@ -569,7 +573,7 @@ static void functRight()
         CE->selectedPlace = 1;
         CE->refreshListsColors();
     }
-    else if (CE->selectedPlace == 1)
+    else if (CE->selectedPlace == 1 || (CE->selectedPlace == 0 && !CE->submenuShown))
     {
         CE->menuGoIn();
     }

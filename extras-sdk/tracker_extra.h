@@ -5,7 +5,7 @@
  * Polyend Tracker CE - loadable extras (.ptextra)
  *
  * A .ptextra is a position-independent ARM Thumb-2 binary with a 128-byte
- * header, placed on the SD card under /Extras. Config > Info > Extras opens a
+ * header, placed on the SD card under /Extras. Config > Extras opens a
  * file browser on that folder; the picked extra is loaded into executable RAM
  * (external RAM, executable) and runs full screen until Shift is
  * pressed. Shift is handled by the firmware, so an extra can never lock you in.

@@ -13,7 +13,7 @@
 // and the small host API in extras-sdk/tracker_extra.h; the effects live in the
 // files.
 //
-// Config > Info > Extras opens a list of /Extras/*.ptextra. Run starts the
+// Config > Extras opens a list of /Extras/*.ptextra. Run starts the
 // picked extra full screen; from then on only Shift does anything, and it
 // returns to Config. Extras with PTEXTRA_FLAG_INPUT get all input instead and
 // are left with Shift+Pattern.

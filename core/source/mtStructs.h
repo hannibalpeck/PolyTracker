@@ -70,7 +70,7 @@ const uint32_t TOTAL_EXTERNAL_MEMORY = (64 * 1024 * 1024); // 64 MB
 // Memory reserved for the ProTracker mode (module patterns + 31 sample slots, see core/protracker).
 // External RAM is full, so this comes out of the sample memory below.
 const uint32_t PROTRACKER_POOL_SIZE = 0x220000; // 2.125 MB
-// A second module for the music of SD card extras (Config > Info > Extras), so an extra never touches
+// A second module for the music of SD card extras (Config > Extras), so an extra never touches
 // the song being edited.
 const uint32_t EXTRA_MOD_POOL_SIZE = PROTRACKER_POOL_SIZE;
 const uint32_t SAMPLE_MEMORY_SIZE = ((60 * 1024 - 64) * 1024) - PROTRACKER_POOL_SIZE -

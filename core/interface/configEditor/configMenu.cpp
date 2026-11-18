@@ -17,15 +17,15 @@
 // clang-format off
 
 #ifdef TRACKER_MINI
-constexpr uint8_t baseMenuGroupCount = 7;
+constexpr uint8_t baseMenuGroupCount = 8;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 9;
 #elif defined(PLATFORM_IMX)
-constexpr uint8_t baseMenuGroupCount = 6;
+constexpr uint8_t baseMenuGroupCount = 7;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 12;
 #else
-constexpr uint8_t baseMenuGroupCount = 5;
+constexpr uint8_t baseMenuGroupCount = 6;
 constexpr uint8_t projectMenuGroupCount = 10;
 constexpr uint8_t generalMenuGroupCount = 12;
 #endif
@@ -54,7 +54,11 @@ cMenuGroup menuFirmware(menuBase, "Firmware", 4);
 cMenuGroup menuFunctionButtons(menuBase, "Fn buttons binding", 8);
 #endif
 
-cMenuGroup menuCredits(menuBase, "Info", 2);
+const strItemTypeActionButton extrasSetup{ openExtrasAction, nullptr };
+// top-level action entry (Config > Extras), listed before Info
+cMenuItem melOpenExtras(menuBase, "Extras", nullptr, menuTypeItemActionButton, &extrasSetup);
+
+cMenuGroup menuCredits(menuBase, "Info", 1);
 
 // elementy/////////
 
@@ -272,7 +276,6 @@ cMenuItem melUsbAudio(menuUsb,
 // Credits & Info
 
 const strItemTypeActionButton creditsSetup{ openCreditsAction, nullptr };
-const strItemTypeActionButton extrasSetup{ openExtrasAction, nullptr };
 
 cMenuItem melOpenCredits(menuCredits,
                          "About",
@@ -280,11 +283,6 @@ cMenuItem melOpenCredits(menuCredits,
                          menuTypeItemActionButton,
                          &creditsSetup);
 
-cMenuItem melOpenExtras(menuCredits,
-                       "Extras",
-                       nullptr,
-                       menuTypeItemActionButton,
-                       &extrasSetup);
 
 
 //==================================================================================================================================================================
@@ -453,6 +451,13 @@ bool cConfigEditor::menuGoOut()
 // wejdz do nizszego podmenu
 void cConfigEditor::menuGoIn()
 {
+    // top-level action entry (Extras)
+    if (menuBase.getSelChild()->type == menuTypeItem)
+    {
+        menuBase.executeItem();
+        return;
+    }
+
     // wykonaj akcje na zaznaczonej pozycji wybranej listy
     if (((cMenuGroup*)activeSubmenu)->type == menuTypeGroup)
     {
@@ -578,7 +583,15 @@ void cConfigEditor::refreshConfigMenu()
           3, menuBase.getSelChild()->getNames()[menuBase.getSelChild()->getSelectedItem()]);
     }
 
-    if (menuBase.type == menuTypeItem)
+    if (menuBase.getSelChild()->type == menuTypeItem)
+    {
+        hideSubmenu();
+        changeLabelText(7, "Open");
+        refreshListsColors();
+        display.synchronizeRefresh();
+        return;
+    }
+    else if (menuBase.type == menuTypeItem)
     {
         hideSubmenu();
         return;

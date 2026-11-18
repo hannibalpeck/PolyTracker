@@ -1,11 +1,11 @@
 # Tracker CE extras (`.ptextra`)
 
-Extras are small full-screen programs for the Tracker+ that live on the SD card, not in the firmware: visuals and demoscene effects with their own music, and interactive tools or games that get the buttons, pads and jog wheel. The firmware only holds the loader (**Config > Info > Extras**); each extra is one `.ptextra` file built from a C source with `ptextra_builder.py`.
+Extras are small full-screen programs for the Tracker+ that live on the SD card, not in the firmware: visuals and demoscene effects with their own music, and interactive tools or games that get the buttons, pads and jog wheel. The firmware only holds the loader (**Config > Extras**); each extra is one `.ptextra` file built from a C source with `ptextra_builder.py`.
 
 ## Running an extra
 
 1. Copy `*.ptextra` files to `/Extras` on the SD card (the folder is created the first time you open the menu).
-2. On the Tracker: **Config → Info → Extras**, pick a file with the jog wheel or Up/Down, press **Run** (Cancel goes back).
+2. On the Tracker: **Config → Extras**, pick a file with the jog wheel or Up/Down, press **Run** (Cancel goes back).
 3. **Shift** leaves the extra and returns to Config. Nothing else responds while an extra runs (the power button still works). Interactive extras (see below) are left with **Shift+Pattern** instead.
 
 The firmware stops the current song before an extra starts. An extra can bring its own music (see below).

@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.11 beta]
+
+* **Extras** is now a top-level entry in the Config menu (Config > Extras, between Firmware and Info) instead of Config > Info > Extras.
+
 ## [0.9.10 beta]
 
 * The "Demos" feature is now **Extras**: Config > Info > Extras runs programs from `/Extras` on the SD card. Files are `.ptextra` (was `.ptdemo`), the SDK moved from `demo-sdk/` to `extras-sdk/` (`tracker_extra.h`, `ptextra_builder.py`, `PTEXTRA_*` options, example in `examples/`). Old `.ptdemo` files and the `/Demos` folder are not read any more: rebuild them with the new builder.
