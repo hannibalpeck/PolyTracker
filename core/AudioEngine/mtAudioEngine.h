@@ -11,6 +11,7 @@
 #include "Platform.h"
 #include "SdStream.h"
 #include "SynthVoice.h"
+#include "SynthCapture.h"
 #include "padToBeatNoteConverter.h"
 #include <bitset>
 #include <map>
@@ -54,6 +55,7 @@ class audioEngine
 #ifdef FEATURE_SYNTH
     void connectSynthToMixer(MixerAndFxs<kVoices>* mixerAndFxs, SynthVoice* synth);
     void connectSynthToExportQueue(SynthVoice* synth, ExportQueues* exportQueues);
+    void connectSynthToCapture(SynthVoice* synth, SynthCapture* capture);
     void connectSynthToOutput(SynthVoice* synth, AudioOutput* output);
 #endif
     void connectSpecialInputsToOutput(AudioOutput* output);
@@ -133,6 +135,7 @@ class audioEngine
     void seqSynthFx(uint8_t fx_id, uint8_t fx_val, uint8_t fx_n, uint8_t synthIdx);
     void refreshSynthInstrumentParams(SynthPartSettings& synthSettings, int synthIdx);
     float getSynthVoiceRMS(uint8_t channel, int synthIdx);
+    SynthCapture* getSynthCapture() { return &synthCapture; }
 #endif
     void muteTrack(uint8_t channel, uint8_t state);
     void soloTrack(uint8_t channel, uint8_t state);
@@ -239,6 +242,7 @@ class audioEngine
 
 #ifdef FEATURE_SYNTH
     SynthVoice synthVoice;
+    SynthCapture synthCapture;
     std::optional<float> synthParams[kSynthParts][SynthParam::kSynthParamsCount]
                                     [SynthValuesSource::kSynthValuesSourceCount] = {};
     std::bitset<SynthParam::kSynthParamsCount>

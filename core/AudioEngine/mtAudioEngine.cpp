@@ -140,6 +140,7 @@ audioEngine::audioEngine()
 #ifdef FEATURE_SYNTH
     connectSynthToMixer(&mixerAndFxs, &synthVoice);
     connectSynthToExportQueue(&synthVoice, &exportQueues);
+    connectSynthToCapture(&synthVoice, &synthCapture);
     connectSynthToOutput(&synthVoice, &output);
 #endif
 
@@ -650,6 +651,15 @@ void audioEngine::connectSynthToExportQueue(SynthVoice* synth, ExportQueues* exp
             (mtAudioExport::enStem)((int)mtAudioExport::stem_synth_1 + synthIdx)),
           0));
     }
+}
+
+// Part 0 only: the chiptune screen renders its notes into ProTracker samples
+void audioEngine::connectSynthToCapture(SynthVoice* synth, SynthCapture* capture)
+{
+    connections.push_back(new AudioConnection(
+      synth->getPanningAmplifier(0, SynthVoice::Channels::kLeft), 0, capture, 0));
+    connections.push_back(new AudioConnection(
+      synth->getPanningAmplifier(0, SynthVoice::Channels::kRight), 0, capture, 1));
 }
 
 void audioEngine::connectSynthToOutput(SynthVoice* synth, AudioOutput* output)
