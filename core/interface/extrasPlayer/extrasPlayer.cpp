@@ -801,7 +801,7 @@ static char* s_emptyList[1] = { s_emptyLine };
 static bool isPtextra(const char* name)
 {
     const size_t len = strlen(name);
-    return len > 7 && strcasecmp(name + len - 7, ".ptextra") == 0;
+    return len > 8 && strcasecmp(name + len - 8, ".ptextra") == 0;
 }
 
 void cExtrasPlayer::scanExtras()

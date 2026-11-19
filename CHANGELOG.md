@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.17 beta]
+
+* Fix: Config > Extras listed no files. The .ptextra extension check compared 7 characters instead of 8 (a leftover from the .ptdemo rename), so every file was rejected.
+
 ## [0.9.16 beta]
 
 * The track mixer (2/3) and global mixer (3/3) screens are removed too. Master is now a single volume screen (about 3,000 lines of master/mixer code gone). MIDI CC 71-82 still set the project's track, delay, reverb, dry-mix and line-in volumes, without a screen. The menu popup no longer lists Master sub-modes.
