@@ -2333,6 +2333,11 @@ static void functDeleteInstrumentDeny()
 
 static void functReplaceInstrumentConfirm()
 {
+    // close the "this will replace the instrument" popup first: importing may show its own
+    // message in the same popup, which must not be hidden again afterwards
+    SI->clearInfoPopupHandlerFunctions();
+    SI->hideInfoPopup();
+
     if (SI->explorerNames != nullptr && *SI->explorerNames[SI->selectedFile] != '/')
     {
         SI->sampleType = mtSampleTypeWaveFile;

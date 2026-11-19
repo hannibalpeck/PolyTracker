@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.19 beta]
+
+* Fix: loading a sample into a slot that already had one left the "This action will replace the instrument" popup on screen after the sample was loaded. It is closed before the import now.
+
 ## [0.9.18 beta]
 
 * A "Saving song" message is shown in the middle of the screen while a song is being saved (replaced by "Song saved" afterwards).
