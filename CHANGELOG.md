@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.20 beta]
+
+* Fix: the "Saving song" message was queued but never drawn, because the screen is only redrawn one step after the control queue empties and the save blocks before that. New `display.drawNow()` runs the redraw to the end first, and the message stays up for at least 0.4 s.
+
 ## [0.9.19 beta]
 
 * Fix: loading a sample into a slot that already had one left the "This action will replace the instrument" popup on screen after the sample was loaded. It is closed before the import now.

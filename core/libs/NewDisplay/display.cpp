@@ -1015,6 +1015,23 @@ void cDisplay::processDisplayUpdateImmediate()
     }
 }
 
+// Runs the whole refresh to the end, including the final redraw of the screen, before
+// returning. For use before the CPU is blocked for a while (e.g. writing a file).
+// processDisplayUpdateImmediate() stops once the queue is empty, one step before the screen
+// itself is redrawn.
+void cDisplay::drawNow()
+{
+    for (uint32_t guard = 0; guard < 2000000; guard++)
+    {
+        if (updateStep == 0 && refreshQueueTop == refreshQueueBott && !stopAppend)
+        {
+            break;
+        }
+        update();
+    }
+    displayDriver->awaitCoProEmpty();
+}
+
 bool cDisplay::isControlsRefreshProcessIdle()
 {
     return (updateStep == 0) && (refreshQueueTop == refreshQueueBott);

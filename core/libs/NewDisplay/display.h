@@ -96,6 +96,7 @@ class cDisplay
     uint8_t isIdle();
     void forceAppedStage();
     void processDisplayUpdateImmediate();
+    void drawNow();
     bool isControlsRefreshProcessIdle();
 
     void setControlPosition(hControl handle, int16_t x, int16_t y);

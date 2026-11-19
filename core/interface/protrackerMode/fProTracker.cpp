@@ -7,6 +7,7 @@
 #include <strings.h>
 
 #include "Platform.h"
+#include "elapsedMillis.h"
 #include "cr_section_macros.h"
 #include "mtAudioEngine.h"
 #include "mtPadBoard.h"
@@ -1707,9 +1708,17 @@ bool cProTrackerMode::saveFile(const char* path, const char** error)
 
     // the write blocks the UI, so show the indicator and draw it now
     mtPopups.show(0, "Saving song");
-    display.processDisplayUpdateImmediate();
+    display.drawNow();
+    elapsedMillis savingShown;
 
-    if (!writeModule(path, error))
+    const bool written = writeModule(path, error);
+
+    // a small song saves in a few milliseconds: keep the message readable
+    while (savingShown < 400)
+    {
+    }
+
+    if (!written)
         return false;
 
     snprintf(filePath, sizeof(filePath), "%s", path);
