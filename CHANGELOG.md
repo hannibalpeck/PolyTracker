@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.18 beta]
+
+* A "Saving song" message is shown in the middle of the screen while a song is being saved (replaced by "Song saved" afterwards).
+
 ## [0.9.17 beta]
 
 * Fix: Config > Extras listed no files. The .ptextra extension check compared 7 characters instead of 8 (a leftover from the .ptdemo rename), so every file was rejected.

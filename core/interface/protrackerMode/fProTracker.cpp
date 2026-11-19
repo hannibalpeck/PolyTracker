@@ -1705,6 +1705,10 @@ bool cProTrackerMode::saveFile(const char* path, const char** error)
         module.title[n] = '\0';
     }
 
+    // the write blocks the UI, so show the indicator and draw it now
+    mtPopups.show(0, "Saving song");
+    display.processDisplayUpdateImmediate();
+
     if (!writeModule(path, error))
         return false;
 
