@@ -43,36 +43,12 @@ class cMasterParams : public ModuleBase
     void showMasterScreen();
 
     void changeSelectionInGroup(int16_t value, uint8_t groupNum);
-    void shiftHandler();
     // master
     void showVolume();
-    void showBassBoost();
-    void showStereoBoost();
-    void showSaturationType();
     // delay
-    void showDelayScreen();
-    void showDelayPingPongEnable();
-    void showDelaySyncEnable();
-    void showDelayRate();
-    void showDelayFeedback();
-    void showDelayTime();
-    void showDelayFilterFrequency();
     // reverb
-    void showReverbScreen();
-    void showReverbSize();
-    void showReverbDamp();
-    void showReverbPredelay();
-    void showReverbDiffusion();
     // limiter
-    void showLimiterScreen();
-    void showLimiterAttack();
-    void showLimiterRelease();
-    void showLimiterThreshold();
-    void showLimiterGainReduce();
-    void showLimiterSidechain();
     // EQ
-    void showEqualizerScreen();
-    void showEqualizerBand(uint8_t n);
 
     enum displayMode
     {
@@ -107,19 +83,7 @@ class cMasterParams : public ModuleBase
         lineInIsSolo,
     };
 
-    uint8_t selectedPlaceDelay;
-    uint8_t selectedPlaceReverb;
-    uint8_t selectedPlaceLimiter;
-    uint8_t selectedPlaceEqualizer;
 
-    bool isDelayScreen;
-    bool isDelayScreenBeforeMasterPress;
-    bool isReverbScreen;
-    bool isReverbScreenBeforeMasterPress;
-    bool isLimiterScreen;
-    bool isLimiterScreenBeforeMasterPress;
-    bool isEqualizerScreen;
-    bool isEqualizerScreenBeforeMasterPress;
     uint8_t selectedPlaceBeforeMasterPress;
     bool showMasterVolumeOnHold;
     // mixer
@@ -141,10 +105,6 @@ class cMasterParams : public ModuleBase
     void switchToMaster();
     void switchToMixer();
     void switchToMixerDelayReverb();
-    void switchToDelayScreen();
-    void switchToReverbScreen();
-    void switchToLimiterScreen();
-    void switchToEqualizerScreen();
     void calcLevel(strTrackLevel* level, float value);
     void resetLevel(strTrackLevel* level);
     void resetMixerLevels();
@@ -158,7 +118,6 @@ class cMasterParams : public ModuleBase
     void calcSynthLevels();
 #endif
 
-    void gainReduceHandler();
 
     float calcLevelDecybelValue(uint8_t val);
 
@@ -175,14 +134,6 @@ class cMasterParams : public ModuleBase
 #ifdef FEATURE_SYNTH
     strTrackLevel synthLevel[kSynthParts];
 #endif
-
-    struct strGainReduction
-    {
-        float measureSum = 0;
-        uint8_t measureCounter = 0;
-        float value;
-        float lastValue;
-    } gainReduce;
 
     uint8_t isSolo = 0;
     int8_t soloTrack = -1;
@@ -221,7 +172,6 @@ class cMasterParams : public ModuleBase
     //-----------------------------------------
 
     void setMasterScreenFunct();
-    void setDelayScreenFunct();
     // config
     void changeConfigGroupSelection(int16_t value);
 
@@ -235,27 +185,10 @@ class cMasterParams : public ModuleBase
         void changeBitDepth(int16_t value);*/
     // delay
 
-    void changeDelayPingPongEnable(int16_t val, bool rollListOver = false);
-    void changeDelaySyncEnable(int16_t val, bool rollListOver = false);
-    void changeDelayRate(int16_t val, bool rollListOver = false);
-    void changeDelayTime(int16_t val);
-    void changeDelayFilterFrequency(int16_t val);
-    void changeDelayFeedback(int16_t val);
 
-    void setDefaultDelayPingPongEnable();
-    void setDefaultDelaySyncEnable();
-    void setDefaultDelayRate();
-    void setDefaultDelayTime();
-    void setDefaultDelayFilterFrequency();
-    void setDefaultDelayFeedback();
 
     // reverb
-    void changeReverbSize(int16_t val);
-    void changeReverbDamp(int16_t val);
-    void changeReverbPredelay(int16_t val);
-    void changeReverbDiffusion(int16_t val);
     // equalizer
-    void changeEqualizerBandAdjust(uint8_t n, int16_t val);
 
     // Mixer
     void changeTrackVolume(int16_t val, uint8_t track);
@@ -278,19 +211,10 @@ class cMasterParams : public ModuleBase
     void setDefaultLineInDelaySend();
     void setDefaultLineInReverbSend();
 
-    void setDefaultReverbSize();
-    void setDefaultReverbDamp();
-    void setDefaultReverbPredelay();
-    void setDefaultReverbDiffusion();
 
     // equalizer
-    void setDefaultEqualizerBandAdjust(uint8_t n);
 
     void activateLabelsBorder();
-    void refreshDelayFrame();
-    void refreshReverbFrame();
-    void refreshLimiterFrame();
-    void refreshEqualizerFrame();
 
     void lightUpPadBoard();
 
@@ -300,10 +224,6 @@ class cMasterParams : public ModuleBase
 
     strFrameData frameData;
 
-    strList pingpongEnableData;
-    strList syncEnableData;
-    strList syncRateData;
-    strList limiterSidechainData;
 
 #ifdef FEATURE_SYNTH
     strBarData barData[8 + kSynthParts];
@@ -319,49 +239,6 @@ class cMasterParams : public ModuleBase
         { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0 },
     };
 #endif
-    strList saturationListData;
-
-    const char* const delayPingPongEnable[2] = { (char*)"On", (char*)"Off" };
-
-    const char* const delaySyncEnable[2] = { (char*)"On", (char*)"Off" };
-
-    const char* const delaySyncRates[19] = {
-        (char*)"8",    (char*)"6",    (char*)"4",    (char*)"3",    (char*)"2",
-        (char*)"3/2",  (char*)"1",    (char*)"3/4",  (char*)"1/2",  (char*)"3/8",
-        (char*)"1/3",  (char*)"1/4",  (char*)"3/16", (char*)"1/6",  (char*)"1/8",
-        (char*)"1/12", (char*)"1/16", (char*)"1/24", (char*)"1/32",
-    };
-#ifdef FEATURE_SYNTH
-    const char* const limiterSidechainListTxt[11 + kSynthParts] = {
-        (char*)"Disable",
-        (char*)&mtProject.values.TrackNames[0],
-        (char*)&mtProject.values.TrackNames[1],
-        (char*)&mtProject.values.TrackNames[2],
-        (char*)&mtProject.values.TrackNames[3],
-        (char*)&mtProject.values.TrackNames[4],
-        (char*)&mtProject.values.TrackNames[5],
-        (char*)&mtProject.values.TrackNames[6],
-        (char*)&mtProject.values.TrackNames[7],
-        (char*)"Line in L",
-        (char*)"Line in R",
-        (char*)"Synth 1",
-        (char*)"Synth 2",
-        (char*)"Synth 3"
-    };
-#else
-    const char* const limiterSidechainListTxt[11] = { (char*)"Disable",
-                                                      (char*)&mtProject.values.TrackNames[0],
-                                                      (char*)&mtProject.values.TrackNames[1],
-                                                      (char*)&mtProject.values.TrackNames[2],
-                                                      (char*)&mtProject.values.TrackNames[3],
-                                                      (char*)&mtProject.values.TrackNames[4],
-                                                      (char*)&mtProject.values.TrackNames[5],
-                                                      (char*)&mtProject.values.TrackNames[6],
-                                                      (char*)&mtProject.values.TrackNames[7],
-                                                      (char*)"Line in L",
-                                                      (char*)"Line in R" };
-
-#endif
 
     hControl label[8];
 #ifdef FEATURE_SYNTH
@@ -374,13 +251,8 @@ class cMasterParams : public ModuleBase
     hControl bgLabel;
     hControl frameControl;
 
-    hControl delayPingpongEnableList;
-    hControl delaySyncEnableList;
-    hControl delaySyncRateList;
     hControl trackNameLabel[8];
     hControl trackVolumeBar[8];
-    hControl limiterSidechainList;
-    hControl saturationList;
 
     uint8_t selectedPlace = 0;
 
@@ -397,23 +269,9 @@ class cMasterParams : public ModuleBase
     //----------------------------------
 
     char volumeVal[12];
-    char delayFeedbackVal[4];
-    char delayTimeVal[9];
-    char delayFilterFreqVal[9];
-    char bassBoostVal[4];
-    char stereoBoostVal[4];
 
-    char reverbSizeVal[4];
-    char reverbDampVal[4];
-    char reverbPredelayVal[4];
-    char reverbDiffusionVal[4];
 
-    char limitAttackVal[8];
-    char limitReleaseVal[8];
-    char limitThresholdVal[12];
-    char gainReduceVal[12];
 
-    char eqBandAdjustment[5][12];
 
     //----------------------------------
 

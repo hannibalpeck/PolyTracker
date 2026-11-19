@@ -18,14 +18,6 @@ static const uint16_t framesPlaces[8][4] = {
     { (800 / 8) * 7 + 1, 31, 800 / 8 - 3, 391 },
 };
 
-const char* const saturationListTexts[5] = { "Hard Clip",
-                                             "Soft Clip",
-                                             "Saturate",
-                                             "Overdrive",
-                                             "Drive+"
-
-};
-
 void cMasterParams::initDisplayControls()
 {
 #ifdef FEATURE_SYNTH
@@ -160,177 +152,48 @@ void cMasterParams::initDisplayControls()
     blankSpaceCover[1] = display.createControl<cLabel>(&prop2);
     prop2.x = (800 / 8) * 5 + 2;
     blankSpaceCover[2] = display.createControl<cLabel>(&prop2);
-
-    pingpongEnableData.linesCount = 2;
-    pingpongEnableData.start = 0;
-    pingpongEnableData.length = 2;
-    pingpongEnableData.data = (char**)delayPingPongEnable;
-
-    strControlProperties propPingPong;
-    propPingPong.style = controlStyleBackground |
-                         (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
-    propPingPong.x = (800 / 8) * (0) + 2;
-    propPingPong.y = 29;
-    propPingPong.w = 800 / 8 - 3;
-    propPingPong.h = 394;
-    propPingPong.data = &pingpongEnableData;
-    propPingPong.colors = nullptr;
-    delayPingpongEnableList = display.createControl<cList>(&propPingPong);
-
-    syncEnableData.linesCount = 2;
-    syncEnableData.start = 0;
-    syncEnableData.length = 2;
-    syncEnableData.data = (char**)delaySyncEnable;
-
-    strControlProperties propSyncEnable;
-    propSyncEnable.style =
-      controlStyleBackground |
-      (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
-    propSyncEnable.x = (800 / 8) * (1) + 2;
-    propSyncEnable.y = 29;
-    propSyncEnable.w = 800 / 8 - 3;
-    propSyncEnable.h = 394;
-    propSyncEnable.data = &syncEnableData;
-    propSyncEnable.colors = nullptr;
-    delaySyncEnableList = display.createControl<cList>(&propSyncEnable);
-
-    syncRateData.linesCount = 14;
-    syncRateData.start = 0;
-    syncRateData.length = 19;
-    syncRateData.data = (char**)delaySyncRates;
-
-    strControlProperties propSyncRate;
-    propSyncRate.style = controlStyleBackground |
-                         (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
-    propSyncRate.x = (800 / 8) * (2) + 2;
-    propSyncRate.y = 29;
-    propSyncRate.w = 800 / 8 - 3;
-    propSyncRate.h = 394;
-    propSyncRate.data = &syncRateData;
-    propSyncRate.colors = nullptr;
-    delaySyncRateList = display.createControl<cList>(&propSyncRate);
-
-#ifdef FEATURE_SYNTH
-    limiterSidechainData.linesCount = 11 + kSynthParts;
-    limiterSidechainData.length = 11 + kSynthParts;
-#else
-    limiterSidechainData.linesCount = 11;
-    limiterSidechainData.length = 11;
-#endif
-    limiterSidechainData.start = 0;
-    limiterSidechainData.data = (char**)limiterSidechainListTxt;
-
-    strControlProperties propLimiterSidechain;
-    propLimiterSidechain.style =
-      controlStyleBackground |
-      (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
-    propLimiterSidechain.x = (800 / 8) * (4) + 2;
-    propLimiterSidechain.y = 29;
-    propLimiterSidechain.w = 800 / 8 - 3;
-    propLimiterSidechain.h = 394;
-    propLimiterSidechain.data = &limiterSidechainData;
-    propLimiterSidechain.colors = nullptr;
-    limiterSidechainList = display.createControl<cList>(&propLimiterSidechain);
-
-    saturationListData.linesCount = 5;
-    saturationListData.start = 0;
-    saturationListData.length = 5;
-    saturationListData.data = (char**)saturationListTexts;
-
-    strControlProperties saturationListProperties;
-    saturationListProperties.style =
-      controlStyleBackground |
-      (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
-    saturationListProperties.x = (800 / 8) * (5) + 2;
-    saturationListProperties.y = 29;
-    saturationListProperties.w = 800 / 8 - 3;
-    saturationListProperties.h = 394;
-    saturationListProperties.data = &saturationListData;
-    saturationListProperties.colors = nullptr;
-    saturationList = display.createControl<cList>(&saturationListProperties);
 }
 
 void cMasterParams::showMasterScreen()
 {
-
-    display.setControlHide(delayPingpongEnableList);
-    display.setControlHide(delaySyncEnableList);
-    display.setControlHide(delaySyncRateList);
-    display.setControlHide(limiterSidechainList);
-    display.setControlShow(saturationList);
-
-    display.refreshControl(saturationList);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        barData[i].value = display.getTheme().white;
-    }
+    barData[0].value = display.getTheme().white;
 
     titleBar->show();
     titleBar->setTitle("Master 1/3");
 
     display.setControlText(label[0], "Volume");
-    display.setControlText(label[1], "Reverb");
-    display.setControlText2(label[1], " ");
-    display.setControlText(label[2], "Delay");
-    display.setControlText2(label[2], " ");
-    display.setControlText(label[3], "Limiter");
-    display.setControlText2(label[3], "");
-    display.setControlText(label[4], "EQ");
-    display.setControlText2(label[4], " ");
-    display.setControlText(label[5], "Saturation");
-    display.setControlText2(label[5], " ");
-    display.setControlText(label[6], "Bass Boost");
-    display.setControlText(label[7], "Space");
-    display.setControlText2(label[7], " ");
 
     resizeToDefaultMaster();
 
-    display.setControlColors(barControl[3], display.getTheme().activeBarColors);
-
     for (uint8_t i = 0; i < 8; i++)
     {
-        display.setControlValue(label[i], 1);
-        display.setControlStyle2(label[i],
-                                 controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
-        display.setControlShow(label[i]);
-        display.refreshControl(label[i]);
-
-        if ((i == 0) || (i == 6) || (i == 7))
+        if (i == 0)
         {
+            display.setControlValue(label[i], 1);
+            display.setControlStyle2(label[i],
+                                     controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
+            display.setControlShow(label[i]);
             display.setControlShow(barControl[i]);
         }
         else
         {
+            display.setControlHide(label[i]);
             display.setControlHide(barControl[i]);
         }
+        display.refreshControl(label[i]);
         display.refreshControl(barControl[i]);
     }
-
-    display.setControlValue(label[1], 0);
-    display.setControlValue(label[2], 0);
-    display.setControlValue(label[3], 0);
-    display.setControlValue(label[4], 0);
 
     display.refreshControl(bgLabel);
     display.setControlValue(bgLabel, 255);
 
     showVolume();
-    showSaturationType();
-    showBassBoost();
-    showStereoBoost();
 
-    frameData.placesCount = 8;
-    frameData.startPlace = selectedPlace;
+    frameData.placesCount = 1;
+    frameData.startPlace = 0;
     frameData.places[0] = &framesPlaces[0][0];
-    frameData.places[1] = &framesPlaces[1][0];
-    frameData.places[2] = &framesPlaces[2][0];
-    frameData.places[3] = &framesPlaces[3][0];
-    frameData.places[4] = &framesPlaces[4][0];
-    frameData.places[5] = &framesPlaces[5][0];
-    frameData.places[6] = &framesPlaces[6][0];
-    frameData.places[7] = &framesPlaces[7][0];
 
+    selectedPlace = 0;
     activateLabelsBorder();
 
     resizeBarControl(displayMode::masterValues);
@@ -343,9 +206,9 @@ void cMasterParams::showMasterScreen()
         display.refreshControl(trackVolumeBar[i]);
     }
 
-    // empty space covers
+    // empty space cover over everything right of the volume bar
     display.setControlPosition(blankSpaceCover[0], (800 / 8) * 1 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 8) * 4 - 3, -1);
+    display.setControlSize(blankSpaceCover[0], (800 / 8) * 7 - 4, -1);
     display.setControlShow(blankSpaceCover[0]);
     display.refreshControl(blankSpaceCover[0]);
 
@@ -357,575 +220,7 @@ void cMasterParams::showMasterScreen()
     lightUpPadBoard();
 }
 
-void cMasterParams::showReverbScreen()
-{
-    display.setControlHide(saturationList);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        barData[i].value = display.getTheme().white;
-    }
-
-    titleBar->show();
-    titleBar->setTitle("Master Reverb");
-
-    display.setControlText(label[0], "Size");
-    display.setControlText(label[1], "Damping");
-    display.setControlText(label[2], "Predelay");
-    display.setControlText(label[3], "Diffusion");
-    display.setControlText(label[4], "Line in");
-    display.setControlText(label[5], " ");
-    display.setControlText2(label[5], " ");
-    display.setControlText(label[6], " ");
-    display.setControlText2(label[6], " ");
-    display.setControlText(label[7], "Back");
-    display.setControlText2(label[7], " ");
-
-    resizeToDefaultMaster();
-    resizeBarControl(displayMode::masterValues);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlValue(label[i], 1);
-        display.setControlStyle2(label[i],
-                                 controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
-        display.setControlShow(label[i]);
-        display.refreshControl(label[i]);
-
-        if (i < 5)
-        {
-            display.setControlShow(barControl[i]);
-        }
-        else
-        {
-            display.setControlHide(barControl[i]);
-        }
-        display.refreshControl(barControl[i]);
-    }
-
-    showReverbSize();
-    showReverbDamp();
-    showReverbPredelay();
-    showReverbDiffusion();
-    showLineInReverbSend();
-
-    frameData.placesCount = 5;
-    frameData.startPlace = selectedPlaceReverb;
-    frameData.places[0] = &framesPlaces[0][0];
-    frameData.places[1] = &framesPlaces[1][0];
-    frameData.places[2] = &framesPlaces[2][0];
-    frameData.places[3] = &framesPlaces[3][0];
-    frameData.places[4] = &framesPlaces[4][0];
-    frameData.places[5] = &framesPlaces[5][0];
-    frameData.places[6] = &framesPlaces[6][0];
-    frameData.places[7] = &framesPlaces[7][0];
-
-    refreshReverbFrame();
-
-    display.refreshControl(bgLabel);
-    display.setControlValue(bgLabel, 255); // 0b10011111
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlHide(trackNameLabel[i]);
-        display.refreshControl(trackNameLabel[i]);
-
-        display.setControlHide(trackVolumeBar[i]);
-        display.refreshControl(trackVolumeBar[i]);
-    }
-
-    // empty space covers
-    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 5 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 8) * 3 - 3, -1);
-    display.setControlShow(blankSpaceCover[0]);
-    display.refreshControl(blankSpaceCover[0]);
-
-    display.setControlHide(blankSpaceCover[1]);
-    display.setControlHide(blankSpaceCover[2]);
-
-    display.synchronizeRefresh();
-
-    lightUpPadBoard();
-}
-
-void cMasterParams::showDelayScreen()
-{
-    display.setControlShow(delayPingpongEnableList);
-    display.setControlShow(delaySyncEnableList);
-    display.setControlShow(delaySyncRateList);
-    display.setControlHide(limiterSidechainList);
-    display.setControlHide(saturationList);
-
-    display.refreshControl(delayPingpongEnableList);
-    display.refreshControl(delaySyncEnableList);
-    display.refreshControl(delaySyncRateList);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        barData[i].value = display.getTheme().white;
-    }
-
-    titleBar->show();
-    titleBar->setTitle("Master Delay");
-
-    display.setControlText(label[0], "PingPong");
-    display.setControlText(label[1], "Sync");
-    display.setControlText(label[2], "Rate");
-    display.setControlText(label[3], "Time");
-    display.setControlText(label[4], "Feedback");
-    display.setControlText(label[5], "Filter");
-    display.setControlText(label[6], "Line in");
-    display.setControlText(label[7], "Back");
-    display.setControlText2(label[7], " ");
-
-    resizeToDefaultMaster();
-    resizeBarControl(displayMode::masterValues);
-
-    if (mtProject.values.delayParams & 0b01000000)
-    {
-        display.setControlColors(label[2], display.getTheme().activeLabelsColors);
-        display.setControlColors(delaySyncRateList, display.getTheme().activeListColors);
-        display.setControlColors(label[3], display.getTheme().inactiveLabelsColors);
-        barData[3].value = display.getTheme().white;
-        display.setControlColors(barControl[3], levelBarColors[3]);
-    }
-    else
-    {
-        display.setControlColors(label[3], display.getTheme().activeLabelsColors);
-        barData[3].value = display.getTheme().white;
-        display.setControlColors(barControl[3], levelBarColors[3]);
-        display.setControlColors(label[2], display.getTheme().inactiveLabelsColors);
-        display.setControlColors(delaySyncRateList, display.getTheme().inactiveListColors);
-    }
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlValue(label[i], 1);
-        display.setControlStyle2(label[i],
-                                 controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
-        display.setControlShow(label[i]);
-        display.refreshControl(label[i]);
-
-        if ((i == 3) || (i == 4) || (i == 5) || (i == 6))
-        {
-            display.setControlShow(barControl[i]);
-        }
-        else
-        {
-            display.setControlHide(barControl[i]);
-        }
-        display.refreshControl(barControl[i]);
-    }
-
-    display.refreshControl(bgLabel);
-
-    display.setControlValue(bgLabel, 255); // 0b11111111
-
-    showDelayFeedback();
-    showDelayTime();
-    showDelayPingPongEnable();
-    showDelaySyncEnable();
-    showDelayRate();
-    showDelayFilterFrequency();
-    showLineInDelaySend();
-
-    frameData.placesCount = 7;
-    frameData.startPlace = selectedPlaceDelay;
-    frameData.places[0] = &framesPlaces[0][0];
-    frameData.places[1] = &framesPlaces[1][0];
-    frameData.places[2] = &framesPlaces[2][0];
-    frameData.places[3] = &framesPlaces[3][0];
-    frameData.places[4] = &framesPlaces[4][0];
-    frameData.places[5] = &framesPlaces[5][0];
-    frameData.places[6] = &framesPlaces[6][0];
-    frameData.places[7] = &framesPlaces[7][0];
-
-    refreshDelayFrame();
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlHide(trackVolumeBar[i]);
-        display.refreshControl(trackVolumeBar[i]);
-
-        display.setControlHide(trackNameLabel[i]);
-        display.refreshControl(trackNameLabel[i]);
-    }
-
-    // empty space covers
-    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 7 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 8) * 1 - 3, -1);
-    display.setControlShow(blankSpaceCover[0]);
-    display.refreshControl(blankSpaceCover[0]);
-
-    display.setControlHide(blankSpaceCover[1]);
-    display.setControlHide(blankSpaceCover[2]);
-
-    display.synchronizeRefresh();
-
-    lightUpPadBoard();
-}
-
-void cMasterParams::showReverbSize()
-{
-    sprintf(reverbSizeVal, "%d", (int)(mtProject.values.reverb.size * 100));
-
-    uint8_t displaySizeValue = mtProject.values.reverb.size * 100;
-
-    display.setControlValue(barControl[0], displaySizeValue);
-    display.refreshControl(barControl[0]);
-
-    display.setControlText2(label[0], reverbSizeVal);
-    display.refreshControl(label[0]);
-}
-void cMasterParams::showReverbDamp()
-{
-    sprintf(reverbDampVal, "%d", (int)(mtProject.values.reverb.damp * 100));
-
-    uint8_t displayDampValue = mtProject.values.reverb.damp * 100;
-
-    display.setControlValue(barControl[1], displayDampValue);
-    display.refreshControl(barControl[1]);
-
-    display.setControlText2(label[1], reverbDampVal);
-    display.refreshControl(label[1]);
-}
-void cMasterParams::showReverbPredelay()
-{
-    sprintf(reverbPredelayVal, "%d", (int)(mtProject.values.reverb.predelay * 100));
-
-    uint8_t displayPredelayValue = mtProject.values.reverb.predelay * 100;
-
-    display.setControlValue(barControl[2], displayPredelayValue);
-    display.refreshControl(barControl[2]);
-
-    display.setControlText2(label[2], reverbPredelayVal);
-    display.refreshControl(label[2]);
-}
-void cMasterParams::showReverbDiffusion()
-{
-    uint8_t displayDiffusionValue = (uint8_t)map<int>(
-      mtProject.values.reverb.diffusion * 100, 0, REVERB_DIFFUSION_MAX * 100, 0, 100);
-
-    sprintf(reverbDiffusionVal, "%d", (int)(displayDiffusionValue));
-
-    display.setControlValue(barControl[3], displayDiffusionValue);
-    display.refreshControl(barControl[3]);
-
-    display.setControlText2(label[3], reverbDiffusionVal);
-    display.refreshControl(label[3]);
-}
 //==============================================================================================================
-// limiter
-void cMasterParams::showLimiterScreen()
-{
-    display.setControlHide(delayPingpongEnableList);
-    display.setControlHide(delaySyncEnableList);
-    display.setControlHide(delaySyncRateList);
-    display.setControlShow(limiterSidechainList);
-    display.setControlHide(saturationList);
-
-    display.refreshControl(limiterSidechainList);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        barData[i].value = display.getTheme().white;
-    }
-    barData[3].value = display.getTheme().cyan;
-
-    titleBar->show();
-    titleBar->setTitle("Master Limiter");
-
-    display.setControlText(label[0], "LimiterAtt");
-    display.setControlText(label[1], "LimiterRls");
-    display.setControlText(label[2], "LimiterThr");
-    display.setControlText(label[3], "Gain Reduce");
-    display.setControlText2(label[3], "");
-    display.setControlText(label[4], "Sidechain");
-    display.setControlText2(label[4], " ");
-    display.setControlText(label[5], " ");
-    display.setControlText2(label[5], " ");
-    display.setControlText(label[6], " ");
-    display.setControlText2(label[6], " ");
-    display.setControlText(label[7], "Back");
-    display.setControlText2(label[7], " ");
-
-    resizeToDefaultMaster();
-    resizeBarControl(displayMode::masterValues);
-
-    uint32_t shadow = (display.getTheme().bottomScreenShadow > 0 ? controlStyleBottomShadow : 0);
-    uint32_t gradient = (display.getTheme().barShadow > 0 ? controlStyleGradient : 0);
-
-    display.setControlStyle(barControl[3],
-                            controlStyleReverse_0_100 | controlStyleBackground | shadow | gradient);
-    display.setControlColors(barControl[3], levelBarColors[3]);
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlValue(label[i], 1);
-        display.setControlStyle2(label[i],
-                                 controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
-        display.setControlShow(label[i]);
-        display.refreshControl(label[i]);
-
-        if (i < 4)
-        {
-            display.setControlShow(barControl[i]);
-        }
-        else
-        {
-            display.setControlHide(barControl[i]);
-        }
-        display.refreshControl(barControl[i]);
-    }
-
-    display.setControlValue(label[3], 0);
-    display.refreshControl(bgLabel);
-    display.setControlValue(bgLabel, 255); // 0b10111111
-
-    showLimiterAttack();
-    showLimiterRelease();
-    showLimiterThreshold();
-    showLimiterGainReduce();
-    showLimiterSidechain();
-
-    frameData.placesCount = 5;
-    frameData.startPlace = selectedPlaceLimiter;
-    frameData.places[0] = &framesPlaces[0][0];
-    frameData.places[1] = &framesPlaces[1][0];
-    frameData.places[2] = &framesPlaces[2][0];
-    frameData.places[3] = &framesPlaces[3][0];
-    frameData.places[4] = &framesPlaces[4][0];
-    frameData.places[5] = &framesPlaces[5][0];
-    frameData.places[6] = &framesPlaces[6][0];
-    frameData.places[7] = &framesPlaces[7][0];
-
-    refreshLimiterFrame();
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlHide(trackNameLabel[i]);
-        display.refreshControl(trackNameLabel[i]);
-        display.setControlHide(trackVolumeBar[i]);
-        display.refreshControl(trackVolumeBar[i]);
-    }
-
-    // empty space covers
-    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 5 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 1) * 3 - 3, -1);
-    display.setControlShow(blankSpaceCover[0]);
-    display.refreshControl(blankSpaceCover[0]);
-
-    display.setControlHide(blankSpaceCover[1]);
-    display.setControlHide(blankSpaceCover[2]);
-
-    display.synchronizeRefresh();
-
-    lightUpPadBoard();
-}
-
-void cMasterParams::showLimiterAttack()
-{
-    constexpr uint8_t LIMITER_ATTACK_FIELD_IDX = 0;
-
-    sprintf(limitAttackVal, "%.3fs", (float)(mtProject.values.limiterAttack / 1000.0f));
-
-    uint8_t barValue = (mtProject.values.limiterAttack * 100) / LIMITER_ATTACK_MAX;
-
-    display.setControlValue(barControl[LIMITER_ATTACK_FIELD_IDX], barValue);
-    display.refreshControl(barControl[LIMITER_ATTACK_FIELD_IDX]);
-
-    display.setControlText2(label[LIMITER_ATTACK_FIELD_IDX], limitAttackVal);
-    display.refreshControl(label[LIMITER_ATTACK_FIELD_IDX]);
-}
-
-void cMasterParams::showLimiterRelease()
-{
-    constexpr uint8_t LIMITER_RELEASE_FIELD_IDX = 1;
-
-    sprintf(limitReleaseVal, "%.3fs", (float)(mtProject.values.limiterRelease / 1000.0f));
-
-    uint8_t barValue = (mtProject.values.limiterRelease * 100) / LIMITER_RELEASE_MAX;
-
-    display.setControlValue(barControl[LIMITER_RELEASE_FIELD_IDX], barValue);
-    display.refreshControl(barControl[LIMITER_RELEASE_FIELD_IDX]);
-
-    display.setControlText2(label[LIMITER_RELEASE_FIELD_IDX], limitReleaseVal);
-    display.refreshControl(label[LIMITER_RELEASE_FIELD_IDX]);
-}
-
-void cMasterParams::showLimiterThreshold()
-{
-    constexpr uint8_t LIMITER_THRESHOLD_FIELD_IDX = 2;
-
-    uint8_t percentValue = (mtProject.values.limiterThreshold * 100) / LIMITER_THRESHOLD_MAX;
-
-    float thresholdInDb =
-      20 * log10f((float)limiterThresholdValues[percentValue] / (float)LIMITER_THRESHOLD_MAX);
-
-    sprintf(limitThresholdVal, "%.2f dB", thresholdInDb);
-
-    display.setControlValue(barControl[LIMITER_THRESHOLD_FIELD_IDX], percentValue);
-    display.setControlShow(barControl[LIMITER_THRESHOLD_FIELD_IDX]);
-    display.refreshControl(barControl[LIMITER_THRESHOLD_FIELD_IDX]);
-
-    display.setControlText2(label[LIMITER_THRESHOLD_FIELD_IDX], limitThresholdVal);
-    display.refreshControl(label[LIMITER_THRESHOLD_FIELD_IDX]);
-}
-
-void cMasterParams::showLimiterGainReduce()
-{
-    constexpr uint8_t GAIN_REDUCE_FIELD_IDX = 3;
-
-    //	float gainReduceInDb = 10*log10f(gainReduce.value);
-    //	uint8_t barValue = (gainReduce.value == 0.0f) ? 0 : map(gainReduceInDb,-20.0f, 0.0f, 0.0f,
-    // 100.0f);
-
-    //	sprintf(gainReduceVal,"%.2f dB",gainReduceInDb);
-
-    uint8_t barValue = gainReduce.value * 100;
-
-    display.setControlValue(barControl[GAIN_REDUCE_FIELD_IDX], barValue);
-    display.setControlShow(barControl[GAIN_REDUCE_FIELD_IDX]);
-    display.refreshControl(barControl[GAIN_REDUCE_FIELD_IDX]);
-
-    //	display.setControlText2(label[GAIN_REDUCE_FIELD_IDX], gainReduceVal);
-    //	display.refreshControl(label[GAIN_REDUCE_FIELD_IDX]);
-}
-
-void cMasterParams::showLimiterSidechain()
-{
-    display.setControlValue(limiterSidechainList, mtProject.values.limiterSidechain);
-    display.refreshControl(limiterSidechainList);
-
-    display.setControlText2(label[4], limiterSidechainListTxt[mtProject.values.limiterSidechain]);
-    display.refreshControl(label[4]);
-}
-
-// EQ
-
-void cMasterParams::showEqualizerScreen()
-{
-    display.setControlHide(delayPingpongEnableList);
-    display.setControlHide(delaySyncEnableList);
-    display.setControlHide(delaySyncRateList);
-    display.setControlHide(limiterSidechainList);
-    display.setControlHide(saturationList);
-
-    display.refreshControl(delayPingpongEnableList);
-    display.refreshControl(delaySyncEnableList);
-    display.refreshControl(delaySyncRateList);
-    display.refreshControl(limiterSidechainList);
-    display.refreshControl(saturationList);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        barData[i].value = display.getTheme().white;
-    }
-
-    titleBar->show();
-    titleBar->setTitle("Master EQ");
-
-    display.setControlText(label[0], "115 Hz");
-    display.setControlText(label[1], "330 Hz");
-    display.setControlText(label[2], "990 Hz");
-    display.setControlText(label[3], "3000 Hz");
-    display.setControlText(label[4], "9900 Hz");
-    display.setControlText(label[5], " ");
-    display.setControlText2(label[5], " ");
-    display.setControlText(label[6], " ");
-    display.setControlText2(label[6], " ");
-    display.setControlText(label[7], "Back");
-    display.setControlText2(label[7], " ");
-
-    resizeToDefaultMaster();
-    resizeBarControl(displayMode::masterValues);
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlValue(label[i], 1);
-        display.setControlStyle2(label[i],
-                                 controlStyleCenterX | controlStyleCenterY | controlStyleFont2);
-        display.setControlShow(label[i]);
-        display.refreshControl(label[i]);
-
-        if (i < 5)
-        {
-            display.setControlShow(barControl[i]);
-        }
-        else
-        {
-            display.setControlHide(barControl[i]);
-        }
-        display.refreshControl(barControl[i]);
-    }
-
-    display.refreshControl(bgLabel);
-    display.setControlValue(bgLabel, 255); // 0b10111111
-
-    for (uint8_t band = 0; band < 5; band++)
-    {
-        showEqualizerBand(band);
-    }
-
-    frameData.placesCount = 5;
-    frameData.startPlace = selectedPlaceLimiter;
-    frameData.places[0] = &framesPlaces[0][0];
-    frameData.places[1] = &framesPlaces[1][0];
-    frameData.places[2] = &framesPlaces[2][0];
-    frameData.places[3] = &framesPlaces[3][0];
-    frameData.places[4] = &framesPlaces[4][0];
-    frameData.places[5] = &framesPlaces[5][0];
-    frameData.places[6] = &framesPlaces[6][0];
-    frameData.places[7] = &framesPlaces[7][0];
-
-    refreshEqualizerFrame();
-
-    for (uint8_t i = 0; i < 8; i++)
-    {
-        display.setControlHide(trackNameLabel[i]);
-        display.refreshControl(trackNameLabel[i]);
-        display.setControlHide(trackVolumeBar[i]);
-        display.refreshControl(trackVolumeBar[i]);
-    }
-
-    // empty space covers
-    display.setControlPosition(blankSpaceCover[0], (800 / 8) * 5 + 2, -1);
-    display.setControlSize(blankSpaceCover[0], (800 / 1) * 3 - 3, -1);
-    display.setControlShow(blankSpaceCover[0]);
-    display.refreshControl(blankSpaceCover[0]);
-
-    display.setControlHide(blankSpaceCover[1]);
-    display.setControlHide(blankSpaceCover[2]);
-
-    display.synchronizeRefresh();
-
-    lightUpPadBoard();
-}
-void cMasterParams::showEqualizerBand(uint8_t n)
-{
-    float BAND_ADJUSTMENT_MIN_IN_DB = -12.0f;
-    float BAND_ADJUSTMENT_MAX_IN_DB = 12.0f;
-
-    float selectedBandIndB = map(mtProject.values.eqBandAdjustment[n],
-                                 BAND_ADJUSTMENT_MIN,
-                                 BAND_ADJUSTMENT_MAX,
-                                 BAND_ADJUSTMENT_MIN_IN_DB,
-                                 BAND_ADJUSTMENT_MAX_IN_DB);
-
-    if ((selectedBandIndB < 0.0f) && (selectedBandIndB >= -0.009f))
-        selectedBandIndB = 0.0f;
-
-    sprintf(eqBandAdjustment[n], "%.2f dB", selectedBandIndB);
-
-    uint8_t barValue = map(
-      mtProject.values.eqBandAdjustment[n], BAND_ADJUSTMENT_MIN, BAND_ADJUSTMENT_MAX, 0.0f, 100.0f);
-
-    display.setControlValue(barControl[n], barValue);
-    display.refreshControl(barControl[n]);
-
-    display.setControlText2(label[n], eqBandAdjustment[n]);
-    display.refreshControl(label[n]);
-}
-
 //////////////////////////////////////////////////////////////////////////////
 
 void cMasterParams::activateLabelsBorder()
@@ -934,46 +229,6 @@ void cMasterParams::activateLabelsBorder()
         return;
 
     display.setControlValue(frameControl, selectedPlace);
-    display.setControlShow(frameControl);
-    display.refreshControl(frameControl);
-}
-
-void cMasterParams::refreshDelayFrame()
-{
-    if (selectedPlaceDelay > frameData.placesCount - 1)
-        return;
-
-    display.setControlValue(frameControl, selectedPlaceDelay);
-    display.setControlShow(frameControl);
-    display.refreshControl(frameControl);
-}
-
-void cMasterParams::refreshReverbFrame()
-{
-    if (selectedPlaceReverb > frameData.placesCount - 1)
-        return;
-
-    display.setControlValue(frameControl, selectedPlaceReverb);
-    display.setControlShow(frameControl);
-    display.refreshControl(frameControl);
-}
-
-void cMasterParams::refreshLimiterFrame()
-{
-    if (selectedPlaceLimiter > frameData.placesCount - 1)
-        return;
-
-    display.setControlValue(frameControl, selectedPlaceLimiter);
-    display.setControlShow(frameControl);
-    display.refreshControl(frameControl);
-}
-
-void cMasterParams::refreshEqualizerFrame()
-{
-    if (selectedPlaceEqualizer > frameData.placesCount - 1)
-        return;
-
-    display.setControlValue(frameControl, selectedPlaceEqualizer);
     display.setControlShow(frameControl);
     display.refreshControl(frameControl);
 }
@@ -1021,13 +276,6 @@ void cMasterParams::resizeBarControl(displayMode val)
 
     if (val == displayMode::masterValues)
     {
-        if (!isLimiterScreen)
-        {
-            display.setControlStyle(
-              barControl[3], controlStyleValue_0_100 | controlStyleBackground | shadow | gradient);
-            display.refreshControl(barControl[3]);
-        }
-
         for (uint8_t i = 0; i < 8; i++)
         {
             display.setControlPosition(barControl[i], (800 / 8) * i + 2, 29);
@@ -1161,11 +409,6 @@ void cMasterParams::showVolume()
         return;
     }
 
-    if (isDelayScreen || isReverbScreen || isLimiterScreen || isEqualizerScreen)
-    {
-        return;
-    }
-
     float masterVolumeInDecybels = map((float)(mtConfig.audioCodecConfig.volume / 100.0f),
                                        0.0f,
                                        1.0f,
@@ -1186,174 +429,11 @@ void cMasterParams::showVolume()
     display.refreshControl(label[0]);
 }
 
-void cMasterParams::showSaturationType()
-{
-    display.setControlValue(saturationList, mtProject.values.saturationType);
-    display.refreshControl(saturationList);
-
-    display.setControlText2(label[5], saturationListTexts[mtProject.values.saturationType]);
-    display.refreshControl(label[5]);
-}
-
-void cMasterParams::showBassBoost()
-{
-    sprintf(bassBoostVal, "%d", mtProject.values.bassBoost);
-
-    display.setControlValue(barControl[6], mtProject.values.bassBoost);
-    display.refreshControl(barControl[6]);
-
-    display.setControlText2(label[6], bassBoostVal);
-    display.refreshControl(label[6]);
-}
-
-void cMasterParams::showStereoBoost()
-{
-    uint8_t barValue = (uint8_t)map<int>(mtProject.values.stereoBoost, 0, 8, 0, 100);
-
-    sprintf(stereoBoostVal, "%d", mtProject.values.stereoBoost);
-
-    display.setControlValue(barControl[7], barValue);
-    display.refreshControl(barControl[7]);
-
-    display.setControlText2(label[7], stereoBoostVal);
-    display.refreshControl(label[7]);
-}
-
 // delay
-
-void cMasterParams::showDelayPingPongEnable()
-{
-    bool enable = (mtProject.values.delayParams & (0b10000000));
-
-    if (enable)
-    {
-        display.setControlValue(delayPingpongEnableList, 0);
-        display.refreshControl(delayPingpongEnableList);
-
-        display.setControlText2(label[0], delayPingPongEnable[0]);
-        display.refreshControl(label[0]);
-    }
-    else
-    {
-        display.setControlValue(delayPingpongEnableList, 1);
-        display.refreshControl(delayPingpongEnableList);
-
-        display.setControlText2(label[0], delayPingPongEnable[1]);
-        display.refreshControl(label[0]);
-    }
-}
-void cMasterParams::showDelaySyncEnable()
-{
-    bool enable = (mtProject.values.delayParams & (0b01000000));
-
-    if (enable)
-    {
-        display.setControlValue(delaySyncEnableList, 0);
-        display.refreshControl(delaySyncEnableList);
-
-        display.setControlText2(label[1], delaySyncEnable[0]);
-        display.refreshControl(label[1]);
-
-        display.setControlColors(label[2], display.getTheme().activeLabelsColors);
-        display.setControlColors(delaySyncRateList, display.getTheme().activeListColors);
-        display.setControlColors(label[3], display.getTheme().inactiveLabelsColors);
-        barData[3].value = display.getTheme().grey_22;
-        display.setControlColors(barControl[3], levelBarColors[3]);
-
-        display.refreshControl(label[2]);
-        display.refreshControl(delaySyncRateList);
-        display.refreshControl(label[3]);
-        display.refreshControl(barControl[3]);
-    }
-    else
-    {
-        display.setControlValue(delaySyncEnableList, 1);
-        display.refreshControl(delaySyncEnableList);
-
-        display.setControlText2(label[1], delaySyncEnable[1]);
-        display.refreshControl(label[1]);
-
-        display.setControlColors(label[3], display.getTheme().activeLabelsColors);
-        barData[3].value = display.getTheme().white;
-        display.setControlColors(barControl[3], levelBarColors[3]);
-        display.setControlColors(label[2], display.getTheme().inactiveLabelsColors);
-        display.setControlColors(delaySyncRateList, display.getTheme().inactiveListColors);
-
-        display.refreshControl(label[2]);
-        display.refreshControl(delaySyncRateList);
-        display.refreshControl(label[3]);
-        display.refreshControl(barControl[3]);
-    }
-
-    display.synchronizeRefresh();
-}
-void cMasterParams::showDelayRate()
-{
-    uint8_t rateIdx = (mtProject.values.delayParams & (0b00111111));
-
-    display.setControlValue(delaySyncRateList, rateIdx);
-    display.refreshControl(delaySyncRateList);
-
-    display.setControlText2(label[2], delaySyncRates[rateIdx]);
-    display.refreshControl(label[2]);
-}
-void cMasterParams::showDelayFeedback()
-{
-    sprintf(delayFeedbackVal, "%d", mtProject.values.delayFeedback);
-
-    uint8_t displayFeedbackTime = (uint8_t)map<int>(
-      mtProject.values.delayFeedback, DELAY_FEEDBACK_MIN, DELAY_FEEDBACK_MAX, 0, 100);
-
-    display.setControlValue(barControl[4], displayFeedbackTime);
-    display.refreshControl(barControl[4]);
-
-    display.setControlText2(label[4], delayFeedbackVal);
-    display.refreshControl(label[4]);
-}
-
-void cMasterParams::showDelayTime()
-{
-    sprintf(delayTimeVal, "%d ms", mtProject.values.delayTime);
-
-    uint8_t displayDelayTime = 0;
-
-    if (mtProject.values.delayTime > 500)
-        displayDelayTime =
-          (uint8_t)map<int>(mtProject.values.delayTime, 500, DELAY_TIME_MAX, 50, 100);
-    else if (mtProject.values.delayTime > 100)
-        displayDelayTime = (uint8_t)map<int>(mtProject.values.delayTime, 100, 500, 25, 50);
-    else
-        displayDelayTime = (uint8_t)map<int>(mtProject.values.delayTime, 0, 100, 0, 25);
-
-    display.setControlValue(barControl[3], displayDelayTime);
-    display.refreshControl(barControl[3]);
-
-    display.setControlText2(label[3], delayTimeVal);
-    display.refreshControl(label[3]);
-}
-
-void cMasterParams::showDelayFilterFrequency()
-{
-    sprintf(delayFilterFreqVal, "%d Hz", mtProject.values.delayFilterFrequency);
-
-    int displayedValue = map<int>(
-      mtProject.values.delayFilterFrequency, DELAY_FILTER_FREQ_MIN, DELAY_FILTER_FREQ_MAX, 0, 100);
-
-    display.setControlValue(barControl[5], displayedValue);
-    display.refreshControl(barControl[5]);
-
-    display.setControlText2(label[5], delayFilterFreqVal);
-    display.refreshControl(label[5]);
-}
 
 // mixer
 void cMasterParams::showMixerScreen()
 {
-    display.setControlHide(delayPingpongEnableList);
-    display.setControlHide(delaySyncEnableList);
-    display.setControlHide(delaySyncRateList);
-    display.setControlHide(limiterSidechainList);
-    display.setControlHide(saturationList);
 
     titleBar->show();
 #ifdef FEATURE_SYNTH
@@ -1418,11 +498,6 @@ void cMasterParams::showMixerScreen()
 
 void cMasterParams::showMixerDelayReverbScreen()
 {
-    display.setControlHide(delayPingpongEnableList);
-    display.setControlHide(delaySyncEnableList);
-    display.setControlHide(delaySyncRateList);
-    display.setControlHide(limiterSidechainList);
-    display.setControlHide(saturationList);
 
     titleBar->show();
     titleBar->setTitle("Global Mixer 3/3");

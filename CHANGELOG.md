@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.15 beta]
+
+* Master screen (1/3) only has the Volume control now. The Reverb, Delay, Limiter, EQ, Saturation, Bass Boost and Space screens and their code are removed. The track mixer (2/3) and global mixer (3/3) are unchanged.
+
 ## [0.9.14 beta]
 
 * The project loading screen (shown while the last project loads) uses the same code-drawn splash instead of the Polyend logo.

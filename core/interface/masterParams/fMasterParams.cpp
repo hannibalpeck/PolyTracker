@@ -36,39 +36,11 @@ static void functDelete();
 
 // master
 static void functSelectVolume(uint8_t state);
-static void functSwitchToLimiterScreen();
-static void functSwitchToEqualizerScreen();
-static void functSelectSaturation();
-static void functSelectBassBoost();
-static void functSelectStereoBoost();
 
 // delay
-static void functSwitchToDelayWindow();
-static void functSelectDelaySyncEnable();
-static void functSelectDelayPingpongEnable();
-static void functSelectDelaySyncRate();
-static void functSelectDelayTime();
-static void functSelectDelayFeedback();
-static void functSelectDelayFilter();
-static void functDelayLineIn();
-static void functDelayCancel();
 // reverb
-static void functSwitchToReverbWindow();
-static void functSelectReverbSize();
-static void functSelectReverbDamp();
-static void functSelectReverbPredelay();
-static void functSelectReverbDiffusion();
-static void functReverbLineIn();
-static void functReverbCancel();
 // limiter
-static void functSelectLimiterAttack();
-static void functSelectLimiterRelease();
-static void functSelectLimiterThreshold();
-static void functSelectLimiterSidechain();
-static void functLimiterCancel();
 // equalizer
-static void functSelectEqualizerBand(uint8_t n, uint8_t state);
-static void functEqualizerCancel();
 
 static void functEncoder(int16_t value);
 static void functSwitchModule(uint8_t button);
@@ -91,25 +63,11 @@ static void functSelectSynth3(uint8_t state);
 
 // MASTER EDIT FUNCTIONS
 void changeVolume(int16_t value);
-void changeSaturationType(int16_t value);
-void changeBassBoost(int16_t value);
-void changeStereoBoost(int16_t value);
 
 void setDefaultMasterVolume();
-void setDefaultSaturationType();
-void setDefaultBassBoost();
-void setDefaultStereoBoost();
 
 // limiter screen
-void changeLimiterAttack(int16_t value);
-void changeLimiterRelease(int16_t value);
-void changeLimiterTreshold(int16_t value);
-void changeLimiterSidechain(int16_t value);
 
-void setDefaultLimiterAttack();
-void setDefaultLimiterRelease();
-void setDefaultLimiterTreshold();
-void setDefaultLimiterSidechain();
 
 static void functMiniMiddle(uint8_t state);
 
@@ -156,11 +114,6 @@ void cMasterParams::update()
 #ifdef FEATURE_SYNTH
         calcSynthLevels();
 #endif
-    }
-
-    if ((displayType == displayMode::masterValues) && (isLimiterScreen))
-    {
-        gainReduceHandler();
     }
 
     // gdyby byla taka potrzeba mozna sprobowac tu odswiezac rowniez levele, a obliczac w kazdej
@@ -245,7 +198,6 @@ void cMasterParams::update()
         refreshOtherMixerVolume();
     }
 
-    shiftHandler();
 }
 
 // parametr options - przycisk modulu z ktorego nastapilo wejscie do mastera
@@ -300,16 +252,7 @@ void cMasterParams::start(uint32_t options)
     }
     else if (displayType == displayMode::masterValues)
     {
-        if (isDelayScreen)
-            switchToDelayScreen();
-        else if (isReverbScreen)
-            switchToReverbScreen();
-        else if (isLimiterScreen)
-            switchToLimiterScreen();
-        else if (isEqualizerScreen)
-            switchToEqualizerScreen();
-        else
-            switchToMaster();
+        switchToMaster();
     }
     else if (displayType == cMasterParams::displayMode::mixerDelayReverb)
     {
@@ -317,10 +260,6 @@ void cMasterParams::start(uint32_t options)
     }
 
     displayTypeBeforeMasterPress = displayType;
-    isDelayScreenBeforeMasterPress = isDelayScreen;
-    isReverbScreenBeforeMasterPress = isReverbScreen;
-    isLimiterScreenBeforeMasterPress = isLimiterScreen;
-    isEqualizerScreenBeforeMasterPress = isEqualizerScreen;
     selectedPlaceBeforeMasterPress = selectedPlace;
     showMasterVolumeOnHold = true;
     resetMixerLevels();
@@ -362,20 +301,9 @@ void cMasterParams::setMasterScreenFunct()
     ip->setButtonObj(interfaceButtonDelete, buttonPress, functDelete);
 
     ip->setButtonObj(interfaceButton0, functSelectVolume);
-    ip->setButtonObj(interfaceButton1, buttonPress, functSwitchToReverbWindow);
-    ip->setButtonObj(interfaceButton2, buttonPress, functSwitchToDelayWindow);
-    ip->setButtonObj(interfaceButton3, buttonPress, functSwitchToLimiterScreen);
-    ip->setButtonObj(interfaceButton4, buttonPress, functSwitchToEqualizerScreen);
-    ip->setButtonObj(interfaceButton5, buttonPress, functSelectSaturation);
-    ip->setButtonObj(interfaceButton6, buttonPress, functSelectBassBoost);
-    ip->setButtonObj(interfaceButton7, buttonPress, functSelectStereoBoost);
     ip->setButtonObj(interfaceButtonMiniMiddle, functMiniMiddle);
 
     ip->setPotObj(interfacePot0, functEncoder);
-}
-
-void cMasterParams::setDelayScreenFunct()
-{
 }
 
 void cMasterParams::setKeyboardExportFunctions()
@@ -398,30 +326,6 @@ void cMasterParams::setKeyboardExportFunctions()
 
     ip->setButtonObj(interfaceButtonDelete, buttonPress, functDeleteKeyboard);
     ip->setButtonObj(interfaceButtonInsert, buttonPress, functInsertKeyboard);
-}
-
-void cMasterParams::shiftHandler()
-{
-    if (displayType != cMasterParams::displayMode::masterValues)
-    {
-        return;
-    }
-
-    static bool previousState = buttons->isButtonPressed(interfaceButtonShift);
-
-    if (previousState != buttons->isButtonPressed(interfaceButtonShift))
-    {
-        if (isDelayScreen)
-        {
-            showLineInDelaySend();
-        }
-        else if (isReverbScreen)
-        {
-            showLineInReverbSend();
-        }
-
-        previousState = buttons->isButtonPressed(interfaceButtonShift);
-    }
 }
 
 //==============================================================================================================
@@ -502,64 +406,7 @@ static void functEncoder(int16_t value)
         return;
     }
 
-    if (MP->isDelayScreen)
-    {
-        switch (MP->selectedPlaceDelay)
-        {
-            case 0:
-                MP->changeDelayPingPongEnable(interfaceGlobals.invertValForList ? -value : value);
-                break;
-            case 1:
-                MP->changeDelaySyncEnable(interfaceGlobals.invertValForList ? -value : value);
-                break;
-            case 2: MP->changeDelayRate(interfaceGlobals.invertValForList ? -value : value); break;
-            case 3: MP->changeDelayTime(value); break;
-            case 4: MP->changeDelayFeedback(value); break;
-            case 5: MP->changeDelayFilterFrequency(value); break;
-            case 6: MP->changeLineInDelaySend(value); break;
-            default: break;
-        }
-    }
-    else if (MP->isReverbScreen)
-    {
-        switch (MP->selectedPlaceReverb)
-        {
-            case 0: MP->changeReverbSize(value); break;
-            case 1: MP->changeReverbDamp(value); break;
-            case 2: MP->changeReverbPredelay(value); break;
-            case 3: MP->changeReverbDiffusion(value); break;
-            case 4: MP->changeLineInReverbSend(value); break;
-            default: break;
-        }
-    }
-    else if (MP->isLimiterScreen)
-    {
-        switch (MP->selectedPlaceLimiter)
-        {
-            case 0: changeLimiterAttack(value); break;
-            case 1: changeLimiterRelease(value); break;
-            case 2: changeLimiterTreshold(value); break;
-            case 4:
-                changeLimiterSidechain(interfaceGlobals.invertValForList ? -value : value);
-                break;
-            default: break;
-        }
-    }
-    else if (MP->isEqualizerScreen)
-    {
-        MP->changeEqualizerBandAdjust(MP->selectedPlaceEqualizer, value);
-    }
-    else
-    {
-        switch (MP->selectedPlace)
-        {
-            case 0: changeVolume(value); break;
-            case 5: changeSaturationType(interfaceGlobals.invertValForList ? -value : value); break;
-            case 6: changeBassBoost(value); break;
-            case 7: changeStereoBoost(value); break;
-            default: break;
-        }
-    }
+    changeVolume(value);
 }
 
 static void functLeft()
@@ -573,57 +420,7 @@ static void functLeft()
         return;
     }
 
-    if (MP->isDelayScreen)
-    {
-        if (MP->selectedPlaceDelay > 0)
-            MP->selectedPlaceDelay--;
-
-        if ((MP->selectedPlaceDelay == 2) && !(mtProject.values.delayParams & 0b01000000))
-            MP->selectedPlaceDelay = 1;
-        else if ((MP->selectedPlaceDelay == 3) && (mtProject.values.delayParams & 0b01000000))
-            MP->selectedPlaceDelay = 2;
-
-        MP->refreshDelayFrame();
-    }
-    else if (MP->isReverbScreen)
-    {
-        if (MP->selectedPlaceReverb > 0)
-            MP->selectedPlaceReverb--;
-        MP->refreshReverbFrame();
-    }
-    else if (MP->isLimiterScreen)
-    {
-        if (MP->selectedPlaceLimiter == 4)
-            MP->selectedPlaceLimiter = 2;
-        else if (MP->selectedPlaceLimiter > 0)
-            MP->selectedPlaceLimiter--;
-        MP->refreshLimiterFrame();
-    }
-    else if (MP->isEqualizerScreen)
-    {
-        if (MP->selectedPlaceEqualizer > 0)
-            MP->selectedPlaceEqualizer--;
-        MP->refreshEqualizerFrame();
-    }
-    else
-    {
-        if (MP->selectedPlace > 0)
-        {
-            if (MP->selectedPlace == 5)
-            {
-                MP->selectedPlace = 0;
-            }
-            else if (MP->selectedPlace == 6)
-            {
-                MP->selectedPlace = 5;
-            }
-            else if (MP->selectedPlace == 7)
-            {
-                MP->selectedPlace = 6;
-            }
-        }
-        MP->activateLabelsBorder();
-    }
+    MP->activateLabelsBorder();
 }
 
 static void functRight()
@@ -637,57 +434,7 @@ static void functRight()
         return;
     }
 
-    if (MP->isDelayScreen)
-    {
-        if (MP->selectedPlaceDelay < MP->frameData.placesCount - 1)
-            MP->selectedPlaceDelay++;
-
-        if ((MP->selectedPlaceDelay == 2) && !(mtProject.values.delayParams & 0b01000000))
-            MP->selectedPlaceDelay = 3;
-        else if ((MP->selectedPlaceDelay == 3) && (mtProject.values.delayParams & 0b01000000))
-            MP->selectedPlaceDelay = 4;
-
-        MP->refreshDelayFrame();
-    }
-    else if (MP->isReverbScreen)
-    {
-        if (MP->selectedPlaceReverb < MP->frameData.placesCount - 1)
-            MP->selectedPlaceReverb++;
-        MP->refreshReverbFrame();
-    }
-    else if (MP->isLimiterScreen)
-    {
-        if (MP->selectedPlaceLimiter == 2)
-            MP->selectedPlaceLimiter = 4;
-        else if (MP->selectedPlaceLimiter < MP->frameData.placesCount - 1)
-            MP->selectedPlaceLimiter++;
-        MP->refreshLimiterFrame();
-    }
-    else if (MP->isEqualizerScreen)
-    {
-        if (MP->selectedPlaceEqualizer < MP->frameData.placesCount - 1)
-            MP->selectedPlaceEqualizer++;
-        MP->refreshEqualizerFrame();
-    }
-    else
-    {
-        if (MP->selectedPlace < MP->frameData.placesCount - 1)
-        {
-            if (MP->selectedPlace == 0)
-            {
-                MP->selectedPlace = 5;
-            }
-            else if (MP->selectedPlace == 5)
-            {
-                MP->selectedPlace = 6;
-            }
-            else if (MP->selectedPlace == 6)
-            {
-                MP->selectedPlace = 7;
-            }
-        }
-        MP->activateLabelsBorder();
-    }
+    MP->activateLabelsBorder();
 }
 
 static void functUp()
@@ -741,58 +488,7 @@ static void functUp()
         return;
     }
 
-    if (MP->isDelayScreen)
-    {
-        switch (MP->selectedPlaceDelay)
-        {
-            case 0: MP->changeDelayPingPongEnable(-1); break;
-            case 1: MP->changeDelaySyncEnable(-1); break;
-            case 2: MP->changeDelayRate(-1); break;
-            case 3: MP->changeDelayTime(1); break;
-            case 4: MP->changeDelayFeedback(1); break;
-            case 5: MP->changeDelayFilterFrequency(1); break;
-            case 6: MP->changeLineInDelaySend(1); break;
-            default: break;
-        }
-    }
-    else if (MP->isReverbScreen)
-    {
-        switch (MP->selectedPlaceReverb)
-        {
-            case 0: MP->changeReverbSize(1); break;
-            case 1: MP->changeReverbDamp(1); break;
-            case 2: MP->changeReverbPredelay(1); break;
-            case 3: MP->changeReverbDiffusion(1); break;
-            case 4: MP->changeLineInReverbSend(1); break;
-            default: break;
-        }
-    }
-    else if (MP->isLimiterScreen)
-    {
-        switch (MP->selectedPlaceLimiter)
-        {
-            case 0: changeLimiterAttack(1); break;
-            case 1: changeLimiterRelease(1); break;
-            case 2: changeLimiterTreshold(1); break;
-            case 4: changeLimiterSidechain(-1); break;
-            default: break;
-        }
-    }
-    else if (MP->isEqualizerScreen)
-    {
-        MP->changeEqualizerBandAdjust(MP->selectedPlaceEqualizer, 1);
-    }
-    else
-    {
-        switch (MP->selectedPlace)
-        {
-            case 0: changeVolume(1); break;
-            case 5: changeSaturationType(-1); break;
-            case 6: changeBassBoost(1); break;
-            case 7: changeStereoBoost(1); break;
-            default: break;
-        }
-    }
+    changeVolume(1);
 }
 
 static void functDown()
@@ -845,58 +541,7 @@ static void functDown()
         return;
     }
 
-    if (MP->isDelayScreen)
-    {
-        switch (MP->selectedPlaceDelay)
-        {
-            case 0: MP->changeDelayPingPongEnable(1); break;
-            case 1: MP->changeDelaySyncEnable(1); break;
-            case 2: MP->changeDelayRate(1); break;
-            case 3: MP->changeDelayTime(-1); break;
-            case 4: MP->changeDelayFeedback(-1); break;
-            case 5: MP->changeDelayFilterFrequency(-1); break;
-            case 6: MP->changeLineInDelaySend(-1); break;
-            default: break;
-        }
-    }
-    else if (MP->isReverbScreen)
-    {
-        switch (MP->selectedPlaceReverb)
-        {
-            case 0: MP->changeReverbSize(-1); break;
-            case 1: MP->changeReverbDamp(-1); break;
-            case 2: MP->changeReverbPredelay(-1); break;
-            case 3: MP->changeReverbDiffusion(-1); break;
-            case 4: MP->changeLineInReverbSend(-1); break;
-            default: break;
-        }
-    }
-    else if (MP->isLimiterScreen)
-    {
-        switch (MP->selectedPlaceLimiter)
-        {
-            case 0: changeLimiterAttack(-1); break;
-            case 1: changeLimiterRelease(-1); break;
-            case 2: changeLimiterTreshold(-1); break;
-            case 4: changeLimiterSidechain(1); break;
-            default: break;
-        }
-    }
-    else if (MP->isEqualizerScreen)
-    {
-        MP->changeEqualizerBandAdjust(MP->selectedPlaceEqualizer, -1);
-    }
-    else
-    {
-        switch (MP->selectedPlace)
-        {
-            case 0: changeVolume(-1); break;
-            case 5: changeSaturationType(1); break;
-            case 6: changeBassBoost(-1); break;
-            case 7: changeStereoBoost(-1); break;
-            default: break;
-        }
-    }
+    changeVolume(-1);
 }
 
 static void functDelete()
@@ -950,58 +595,7 @@ static void functDelete()
         return;
     }
 
-    if (MP->isDelayScreen)
-    {
-        switch (MP->selectedPlaceDelay)
-        {
-            case 0: MP->setDefaultDelayPingPongEnable(); break;
-            case 1: MP->setDefaultDelaySyncEnable(); break;
-            case 2: MP->setDefaultDelayRate(); break;
-            case 3: MP->setDefaultDelayTime(); break;
-            case 4: MP->setDefaultDelayFeedback(); break;
-            case 5: MP->setDefaultDelayFilterFrequency(); break;
-            case 6: MP->setDefaultLineInDelaySend(); break;
-            default: break;
-        }
-    }
-    else if (MP->isReverbScreen)
-    {
-        switch (MP->selectedPlaceReverb)
-        {
-            case 0: MP->setDefaultReverbSize(); break;
-            case 1: MP->setDefaultReverbDamp(); break;
-            case 2: MP->setDefaultReverbPredelay(); break;
-            case 3: MP->setDefaultReverbDiffusion(); break;
-            case 4: MP->setDefaultLineInReverbSend(); break;
-            default: break;
-        }
-    }
-    else if (MP->isLimiterScreen)
-    {
-        switch (MP->selectedPlaceLimiter)
-        {
-            case 0: setDefaultLimiterAttack(); break;
-            case 1: setDefaultLimiterRelease(); break;
-            case 2: setDefaultLimiterTreshold(); break;
-            case 4: setDefaultLimiterSidechain(); break;
-            default: break;
-        }
-    }
-    else if (MP->isEqualizerScreen)
-    {
-        MP->setDefaultEqualizerBandAdjust(MP->selectedPlaceEqualizer);
-    }
-    else
-    {
-        switch (MP->selectedPlace)
-        {
-            case 0: setDefaultMasterVolume(); break;
-            case 5: setDefaultSaturationType(); break;
-            case 6: setDefaultBassBoost(); break;
-            case 7: setDefaultStereoBoost(); break;
-            default: break;
-        }
-    }
+    setDefaultMasterVolume();
 }
 
 static void functPlayAction()
@@ -1048,54 +642,6 @@ static void functSelectVolume(uint8_t state)
     MP->activateLabelsBorder();
 }
 
-static void functSwitchToLimiterScreen()
-{
-    MP->switchToLimiterScreen();
-}
-
-static void functSwitchToEqualizerScreen()
-{
-    MP->switchToEqualizerScreen();
-}
-
-static void functSelectSaturation()
-{
-    if (MP->selectedPlace == 5)
-    {
-        if ((int)mtProject.values.saturationType < (int)SaturationType::kSaturationTypeEnd - 1)
-        {
-            mtProject.values.saturationType++;
-        }
-        else
-        {
-            mtProject.values.saturationType = (uint8_t)SaturationType::kSaturationMin;
-        }
-
-        engine.setSaturationType((SaturationType)mtProject.values.saturationType);
-
-        newFileManager.setProjectStructChanged();
-
-        MP->showSaturationType();
-    }
-    else
-    {
-        MP->selectedPlace = 5;
-        MP->activateLabelsBorder();
-    }
-}
-
-static void functSelectBassBoost()
-{
-    MP->selectedPlace = 6;
-    MP->activateLabelsBorder();
-}
-
-static void functSelectStereoBoost()
-{
-    MP->selectedPlace = 7;
-    MP->activateLabelsBorder();
-}
-
 static void functSwitchModule(uint8_t button)
 {
     if (MP->sourceModuleButton == interfaceButtonSampleRec)
@@ -1118,16 +664,7 @@ void cMasterParams::switchScreen()
     }
     else if (displayType == displayMode::mixerDelayReverb)
     {
-        if (isDelayScreen)
-            switchToDelayScreen();
-        else if (isReverbScreen)
-            switchToReverbScreen();
-        else if (isLimiterScreen)
-            switchToLimiterScreen();
-        else if (isEqualizerScreen)
-            switchToEqualizerScreen();
-        else
-            switchToMaster();
+        switchToMaster();
     }
     else if (displayType == cMasterParams::displayMode::mixer)
     {
@@ -1145,16 +682,7 @@ void cMasterParams::returnToScreen()
     }
     else if (displayTypeBeforeMasterPress == displayMode::masterValues)
     {
-        if (isDelayScreenBeforeMasterPress)
-            MP->switchToDelayScreen();
-        else if (isReverbScreenBeforeMasterPress)
-            MP->switchToReverbScreen();
-        else if (isLimiterScreenBeforeMasterPress)
-            MP->switchToLimiterScreen();
-        else if (isEqualizerScreenBeforeMasterPress)
-            MP->switchToEqualizerScreen();
-        else
-            switchToMaster();
+        switchToMaster();
     }
     else if (displayTypeBeforeMasterPress == cMasterParams::displayMode::mixerDelayReverb)
     {
@@ -1167,21 +695,10 @@ void cMasterParams::switchToMaster()
     ip->clearButton(interfaceButtonShift);
 
     ip->setButtonObj(interfaceButton0, functSelectVolume);
-    ip->setButtonObj(interfaceButton1, buttonPress, functSwitchToReverbWindow);
-    ip->setButtonObj(interfaceButton2, buttonPress, functSwitchToDelayWindow);
-    ip->setButtonObj(interfaceButton3, buttonPress, functSwitchToLimiterScreen);
-    ip->setButtonObj(interfaceButton4, buttonPress, functSwitchToEqualizerScreen);
-    ip->setButtonObj(interfaceButton5, buttonPress, functSelectSaturation);
-    ip->setButtonObj(interfaceButton6, buttonPress, functSelectBassBoost);
-    ip->setButtonObj(interfaceButton7, buttonPress, functSelectStereoBoost);
 
     keyboardManager.deactivateKeyboard();
 
     displayType = displayMode::masterValues;
-    isDelayScreen = false;
-    isReverbScreen = false;
-    isLimiterScreen = false;
-    isEqualizerScreen = false;
 
     showMasterScreen();
 }
@@ -1242,281 +759,10 @@ void cMasterParams::switchToMixerDelayReverb()
     showMixerDelayReverbScreen();
 }
 
-void cMasterParams::switchToDelayScreen()
-{
-    ip->clearButtonsRange(interfaceButton0, interfaceButton7);
-    ip->clearButton(interfaceButtonShift);
-
-    ip->setButtonObj(interfaceButton0, buttonPress, functSelectDelayPingpongEnable);
-    ip->setButtonObj(interfaceButton1, buttonPress, functSelectDelaySyncEnable);
-    ip->setButtonObj(interfaceButton2, buttonPress, functSelectDelaySyncRate);
-    ip->setButtonObj(interfaceButton3, buttonPress, functSelectDelayTime);
-    ip->setButtonObj(interfaceButton4, buttonPress, functSelectDelayFeedback);
-    ip->setButtonObj(interfaceButton5, buttonPress, functSelectDelayFilter);
-    ip->setButtonObj(interfaceButton6, buttonPress, functDelayLineIn);
-    ip->setButtonObj(interfaceButton7, buttonPress, functDelayCancel);
-
-    keyboardManager.deactivateKeyboard();
-
-    showDelayScreen();
-
-    displayType = displayMode::masterValues;
-    isDelayScreen = true;
-}
-
-void cMasterParams::switchToReverbScreen()
-{
-    ip->clearButtonsRange(interfaceButton0, interfaceButton7);
-    ip->clearButton(interfaceButtonShift);
-
-    ip->setButtonObj(interfaceButton0, buttonPress, functSelectReverbSize);
-    ip->setButtonObj(interfaceButton1, buttonPress, functSelectReverbDamp);
-    ip->setButtonObj(interfaceButton2, buttonPress, functSelectReverbPredelay);
-    ip->setButtonObj(interfaceButton3, buttonPress, functSelectReverbDiffusion);
-    ip->setButtonObj(interfaceButton4, buttonPress, functReverbLineIn);
-    ip->setButtonObj(interfaceButton7, buttonPress, functReverbCancel);
-
-    keyboardManager.deactivateKeyboard();
-
-    showReverbScreen();
-
-    displayType = displayMode::masterValues;
-    isReverbScreen = true;
-}
-
-void cMasterParams::switchToLimiterScreen()
-{
-    ip->clearButtonsRange(interfaceButton0, interfaceButton7);
-    ip->clearButton(interfaceButtonShift);
-
-    ip->setButtonObj(interfaceButton0, buttonPress, functSelectLimiterAttack);
-    ip->setButtonObj(interfaceButton1, buttonPress, functSelectLimiterRelease);
-    ip->setButtonObj(interfaceButton2, buttonPress, functSelectLimiterThreshold);
-    ip->setButtonObj(interfaceButton4, buttonPress, functSelectLimiterSidechain);
-    ip->setButtonObj(interfaceButton7, buttonPress, functLimiterCancel);
-
-    keyboardManager.deactivateKeyboard();
-
-    showLimiterScreen();
-
-    displayType = displayMode::masterValues;
-    isLimiterScreen = true;
-}
-
-void cMasterParams::switchToEqualizerScreen()
-{
-    ip->clearButtonsRange(interfaceButton0, interfaceButton7);
-    ip->clearButton(interfaceButtonShift);
-
-    ip->setButtonObj(interfaceButton0, functSelectEqualizerBand);
-    ip->setButtonObj(interfaceButton1, functSelectEqualizerBand);
-    ip->setButtonObj(interfaceButton2, functSelectEqualizerBand);
-    ip->setButtonObj(interfaceButton3, functSelectEqualizerBand);
-    ip->setButtonObj(interfaceButton4, functSelectEqualizerBand);
-
-    ip->setButtonObj(interfaceButton7, buttonPress, functEqualizerCancel);
-
-    keyboardManager.deactivateKeyboard();
-
-    showEqualizerScreen();
-
-    displayType = displayMode::masterValues;
-    isEqualizerScreen = true;
-}
-
 // delay
-static void functSwitchToDelayWindow()
-{
-    MP->switchToDelayScreen();
-}
-
-static void functSelectDelayPingpongEnable()
-{
-    if (MP->selectedPlaceDelay == 0) // zmienianie pozycji listy przyciskiem pod ekranem
-    {
-        MP->changeDelayPingPongEnable(1, true);
-    }
-
-    MP->selectedPlaceDelay = 0;
-    MP->refreshDelayFrame();
-}
-
-static void functSelectDelaySyncEnable()
-{
-    if (MP->selectedPlaceDelay == 1) // zmienianie pozycji listy przyciskiem pod ekranem
-    {
-        MP->changeDelaySyncEnable(1, true);
-    }
-
-    MP->selectedPlaceDelay = 1;
-    MP->refreshDelayFrame();
-}
-
-static void functSelectDelaySyncRate()
-{
-    if (!(mtProject.values.delayParams & 0b01000000))
-    {
-        return;
-    }
-
-    if (MP->selectedPlaceDelay == 2) // zmienianie pozycji listy przyciskiem pod ekranem
-    {
-        MP->changeDelayRate(1, true);
-    }
-
-    MP->selectedPlaceDelay = 2;
-    MP->refreshDelayFrame();
-}
-
-static void functSelectDelayTime()
-{
-    if (mtProject.values.delayParams & 0b01000000)
-    {
-        return;
-    }
-    MP->selectedPlaceDelay = 3;
-    MP->refreshDelayFrame();
-}
-
-static void functSelectDelayFeedback()
-{
-    MP->selectedPlaceDelay = 4;
-    MP->refreshDelayFrame();
-}
-
-static void functSelectDelayFilter()
-{
-    MP->selectedPlaceDelay = 5;
-    MP->refreshDelayFrame();
-}
-
-static void functDelayLineIn()
-{
-    if (MP->buttons->isButtonPressed(interfaceButtonShift))
-    {
-        mtProject.values.lineInDelaySendMute = !mtProject.values.lineInDelaySendMute;
-        engine.refreshLineInStreamDelaySend();
-        MP->showLineInDelaySend();
-    }
-    else
-    {
-        MP->selectedPlaceDelay = 6;
-        MP->refreshDelayFrame();
-    }
-}
-
-static void functDelayCancel()
-{
-    MP->switchToMaster();
-}
-
 // reverb
-static void functSwitchToReverbWindow()
-{
-    MP->switchToReverbScreen();
-}
-
-static void functSelectReverbSize()
-{
-    MP->selectedPlaceReverb = 0;
-    MP->refreshReverbFrame();
-}
-
-static void functSelectReverbDamp()
-{
-    MP->selectedPlaceReverb = 1;
-    MP->refreshReverbFrame();
-}
-
-static void functSelectReverbPredelay()
-{
-    MP->selectedPlaceReverb = 2;
-    MP->refreshReverbFrame();
-}
-
-static void functSelectReverbDiffusion()
-{
-    MP->selectedPlaceReverb = 3;
-    MP->refreshReverbFrame();
-}
-
-static void functReverbLineIn()
-{
-    if (MP->buttons->isButtonPressed(interfaceButtonShift))
-    {
-        mtProject.values.lineInReverbSendMute = !mtProject.values.lineInReverbSendMute;
-        engine.refreshLineInStreamReverbSend();
-        MP->showLineInReverbSend();
-    }
-    else
-    {
-        MP->selectedPlaceReverb = 4;
-        MP->refreshReverbFrame();
-    }
-}
-
-static void functReverbCancel()
-{
-    MP->switchToMaster();
-}
-
 // limiter screen
-static void functSelectLimiterAttack()
-{
-    MP->selectedPlaceLimiter = 0;
-    MP->refreshLimiterFrame();
-}
-
-static void functSelectLimiterRelease()
-{
-    MP->selectedPlaceLimiter = 1;
-    MP->refreshLimiterFrame();
-}
-
-static void functSelectLimiterThreshold()
-{
-    MP->selectedPlaceLimiter = 2;
-    MP->refreshLimiterFrame();
-}
-
-static void functSelectLimiterSidechain()
-{
-    if (MP->selectedPlaceLimiter == 4) // zmienianie pozycji listy przyciskiem pod ekranem
-    {
-        mtProject.values.limiterSidechain++;
-        if (mtProject.values.limiterSidechain > LIMITER_SIDECHAIN_MAX)
-            mtProject.values.limiterSidechain = LIMITER_SIDECHAIN_MIN;
-
-        engine.setLimiterSidechain(mtProject.values.limiterSidechain);
-        newFileManager.setProjectStructChanged();
-        MP->showLimiterSidechain();
-        return;
-    }
-
-    MP->selectedPlaceLimiter = 4;
-    MP->refreshLimiterFrame();
-}
-
-static void functLimiterCancel()
-{
-    MP->switchToMaster();
-}
-
 // equalizer
-static void functSelectEqualizerBand(uint8_t n, uint8_t state)
-{
-    if (state == buttonPress)
-    {
-        MP->selectedPlaceEqualizer = n;
-        MP->refreshEqualizerFrame();
-    }
-}
-
-static void functEqualizerCancel()
-{
-    MP->switchToMaster();
-}
-
 void cMasterParams::calcTrackLevel(uint8_t n)
 {
     float localTrackLevel = instrumentPlayer[n].getRMSValue();
@@ -1588,42 +834,6 @@ void cMasterParams::calcDryMixLevel()
         if (localDryMixLevel[i] != -1.0f)
         {
             calcLevel(&dryMixLevel[i], localDryMixLevel[i]);
-        }
-    }
-}
-
-void cMasterParams::gainReduceHandler()
-{
-    constexpr uint8_t MEASURE_NUMBER = 30;
-
-    AudioEffectLimiter* limiter[AudioOutput::OutputChannels::kChannelsCount];
-
-    limiter[AudioOutput::OutputChannels::kLeft] =
-      engine.getAudioOutput()->getLimiter(AudioOutput::OutputChannels::kLeft);
-    limiter[AudioOutput::OutputChannels::kRight] =
-      engine.getAudioOutput()->getLimiter(AudioOutput::OutputChannels::kRight);
-
-    if (limiter[AudioOutput::OutputChannels::kLeft]->isAvailableGainToGet() &&
-        limiter[AudioOutput::OutputChannels::kRight]->isAvailableGainToGet())
-    {
-        float leftGainReduce = limiter[AudioOutput::OutputChannels::kLeft]->getAverageGainChange();
-        float rightGainReduce =
-          limiter[AudioOutput::OutputChannels::kRight]->getAverageGainChange();
-        float localAverageLevel = (leftGainReduce + rightGainReduce) / 2.0f;
-
-        gainReduce.measureSum += localAverageLevel;
-        gainReduce.measureCounter++;
-
-        if (gainReduce.measureCounter == MEASURE_NUMBER)
-        {
-            gainReduce.measureCounter = 0;
-            gainReduce.value = 1.0f - (gainReduce.measureSum / (float)MEASURE_NUMBER);
-            gainReduce.measureSum = 0.0f;
-            if (gainReduce.value != gainReduce.lastValue)
-            {
-                showLimiterGainReduce();
-            }
-            gainReduce.lastValue = gainReduce.value;
         }
     }
 }
@@ -2133,10 +1343,6 @@ static void functSwitchModeMaster(uint8_t state)
     if (state == buttonPress)
     {
         MP->displayTypeBeforeMasterPress = MP->displayType;
-        MP->isDelayScreenBeforeMasterPress = MP->isDelayScreen;
-        MP->isReverbScreenBeforeMasterPress = MP->isReverbScreen;
-        MP->isLimiterScreenBeforeMasterPress = MP->isLimiterScreen;
-        MP->isEqualizerScreenBeforeMasterPress = MP->isEqualizerScreen;
         MP->selectedPlaceBeforeMasterPress = MP->selectedPlace;
 
         MP->sourceModuleButton = interfaceButtonMaster;
@@ -2171,10 +1377,6 @@ static void functSwitchModeMaster(uint8_t state)
             if (!MP->showMasterVolumeOnHold)
             {
                 MP->displayType = MP->displayTypeBeforeMasterPress;
-                MP->isDelayScreen = MP->isDelayScreenBeforeMasterPress;
-                MP->isReverbScreen = MP->isReverbScreenBeforeMasterPress;
-                MP->isLimiterScreen = MP->isLimiterScreenBeforeMasterPress;
-                MP->isEqualizerScreen = MP->isEqualizerScreenBeforeMasterPress;
                 MP->selectedPlace = MP->selectedPlaceBeforeMasterPress;
 
                 if (MP->sourceModuleButton == interfaceButtonSampleRec)
@@ -2210,128 +1412,6 @@ void changeVolume(int16_t value)
     }
 }
 
-void changeLimiterAttack(int16_t value)
-{
-    value *= LIMITER_ATTACK_MAX / 1000;
-
-    if (mtProject.values.limiterAttack + value < LIMITER_ATTACK_MIN)
-        mtProject.values.limiterAttack = LIMITER_ATTACK_MIN;
-    else if (mtProject.values.limiterAttack + value > LIMITER_ATTACK_MAX)
-        mtProject.values.limiterAttack = LIMITER_ATTACK_MAX;
-    else
-        mtProject.values.limiterAttack += value;
-
-    engine.setLimiterAttack(mtProject.values.limiterAttack);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterAttack();
-}
-
-void changeLimiterRelease(int16_t value)
-{
-    value *= (LIMITER_RELEASE_MAX / 1000);
-
-    if (mtProject.values.limiterRelease + value < LIMITER_RELEASE_MIN)
-        mtProject.values.limiterRelease = LIMITER_RELEASE_MIN;
-    else if (mtProject.values.limiterRelease + value > LIMITER_RELEASE_MAX)
-        mtProject.values.limiterRelease = LIMITER_RELEASE_MAX;
-    else
-        mtProject.values.limiterRelease += value;
-
-    engine.setLimiterRelease(mtProject.values.limiterRelease);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterRelease();
-}
-
-void changeLimiterTreshold(int16_t value)
-{
-    int32_t val =
-      value * LIMITER_THRESHOLD_MAX /
-      100; // mnoznik jest na tyle duzy ze przy mocnym pokreceniu iloczyn przekracza 16bit
-
-    if (val > MAX_SIGNED_16BIT)
-        value = MAX_SIGNED_16BIT;
-    else if (val < MIN_SIGNED_16BIT)
-        value = MIN_SIGNED_16BIT;
-    else
-        value = val;
-
-    if (mtProject.values.limiterThreshold + value < LIMITER_THRESHOLD_MIN)
-        mtProject.values.limiterThreshold = LIMITER_THRESHOLD_MIN;
-    else if (mtProject.values.limiterThreshold + value > LIMITER_THRESHOLD_MAX)
-        mtProject.values.limiterThreshold = LIMITER_THRESHOLD_MAX;
-    else
-        mtProject.values.limiterThreshold += value;
-
-    engine.setLimiterThreshold(mtProject.values.limiterThreshold);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterThreshold();
-}
-
-void changeLimiterSidechain(int16_t value)
-{
-    if (mtProject.values.limiterSidechain + value < LIMITER_SIDECHAIN_MIN)
-        mtProject.values.limiterSidechain = LIMITER_SIDECHAIN_MIN;
-    else if (mtProject.values.limiterSidechain + value > LIMITER_SIDECHAIN_MAX)
-        mtProject.values.limiterSidechain = LIMITER_SIDECHAIN_MAX;
-    else
-        mtProject.values.limiterSidechain += value;
-
-    engine.setLimiterSidechain(mtProject.values.limiterSidechain);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterSidechain();
-}
-
-void changeSaturationType(int16_t value)
-{
-    mtProject.values.saturationType = clamp<int>((int)mtProject.values.saturationType + (int)value,
-                                                 (int)SaturationType::kSaturationMin,
-                                                 (int)SaturationType::kSaturationTypeEnd - 1);
-
-    engine.setSaturationType((SaturationType)mtProject.values.saturationType);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showSaturationType();
-}
-
-void changeBassBoost(int16_t value)
-{
-    if (mtProject.values.bassBoost + value > BASS_BOOST_MAX)
-        mtProject.values.bassBoost = BASS_BOOST_MAX;
-    else if (mtProject.values.bassBoost + value < BASS_BOOST_MIN)
-        mtProject.values.bassBoost = BASS_BOOST_MIN;
-    else
-        mtProject.values.bassBoost += value;
-
-    masterEnhancer.changeBassBoost(mtProject.values.bassBoost);
-
-    newFileManager.setProjectStructChanged();
-    MP->showBassBoost();
-}
-
-void changeStereoBoost(int16_t value)
-{
-    if (mtProject.values.stereoBoost + value > STEREO_BOOST_MAX)
-        mtProject.values.stereoBoost = STEREO_BOOST_MAX;
-    else if (mtProject.values.stereoBoost + value < STEREO_BOOST_MIN)
-        mtProject.values.stereoBoost = STEREO_BOOST_MIN;
-    else
-        mtProject.values.stereoBoost += value;
-
-    masterEnhancer.changeStereoBoost(mtProject.values.stereoBoost);
-
-    newFileManager.setProjectStructChanged();
-    MP->showStereoBoost();
-}
-
 void setDefaultMasterVolume()
 {
     // zabezpieczenie przed przypadkowym wysadzeniem glosnikow
@@ -2352,289 +1432,7 @@ void setDefaultMasterVolume()
     MP->showVolume();
 }
 
-void setDefaultSaturationType()
-{
-    mtProject.values.saturationType = SaturationType::kSoftClip;
-
-    engine.setSaturationType((SaturationType)mtProject.values.saturationType);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showSaturationType();
-}
-
-void setDefaultLimiterAttack()
-{
-    mtProject.values.limiterAttack = 100;
-    engine.setLimiterAttack(mtProject.values.limiterAttack);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterAttack();
-}
-void setDefaultLimiterRelease()
-{
-    mtProject.values.limiterRelease = 0.512;
-
-    engine.setLimiterRelease(mtProject.values.limiterRelease);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterRelease();
-}
-void setDefaultLimiterTreshold()
-{
-    mtProject.values.limiterThreshold = LIMITER_THRESHOLD_DEFAULT;
-    engine.setLimiterThreshold(mtProject.values.limiterThreshold);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterThreshold();
-}
-
-void setDefaultLimiterSidechain()
-{
-    mtProject.values.limiterSidechain = LIMITER_SIDECHAIN_DEFAULT;
-    engine.setLimiterSidechain(mtProject.values.limiterSidechain);
-
-    newFileManager.setProjectStructChanged();
-
-    MP->showLimiterSidechain();
-}
-
-void setDefaultBassBoost()
-{
-    mtProject.values.bassBoost = BASS_BOOST_DEFAULT;
-
-    masterEnhancer.changeBassBoost(mtProject.values.bassBoost);
-
-    newFileManager.setProjectStructChanged();
-    MP->showBassBoost();
-}
-void setDefaultStereoBoost()
-{
-    mtProject.values.stereoBoost = STEREO_BOOST_DEFAULT;
-
-    masterEnhancer.changeStereoBoost(mtProject.values.stereoBoost);
-
-    newFileManager.setProjectStructChanged();
-    MP->showStereoBoost();
-}
-
-void cMasterParams::changeDelayPingPongEnable(int16_t val, bool rollListOver)
-{
-    if (val > 0)
-    {
-        if (rollListOver && !(mtProject.values.delayParams >> 7 & 1))
-            mtProject.values.delayParams |= 0b10000000;
-        else
-            mtProject.values.delayParams &= 0b01111111;
-    }
-    else if (val < 0)
-        mtProject.values.delayParams |= 0b10000000;
-
-    engine.setDelayParams(mtProject.values.delayParams);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelayPingPongEnable();
-}
-void cMasterParams::changeDelaySyncEnable(int16_t val, bool rollListOver)
-{
-    if (val > 0)
-    {
-        if (rollListOver && !(mtProject.values.delayParams >> 6 & 1))
-            mtProject.values.delayParams |= 0b01000000;
-        else
-            mtProject.values.delayParams &= 0b10111111;
-    }
-    else if (val < 0)
-        mtProject.values.delayParams |= 0b01000000;
-
-    engine.setDelayParams(mtProject.values.delayParams);
-    if (val > 0 && (mtProject.values.delayParams >> 6 & 1))
-        engine.setDelayTime(mtProject.values.delayTime);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelaySyncEnable();
-}
-void cMasterParams::changeDelayRate(int16_t val, bool rollListOver)
-{
-    uint8_t temp = mtProject.values.delayParams & 0b00111111;
-
-    if (temp + val < 0)
-        temp = 0;
-    else if (temp + val > 18)
-        temp = (rollListOver ? 0 : 18);
-    else
-        temp += val;
-
-    mtProject.values.delayParams &= 0b11000000;
-    mtProject.values.delayParams |= temp;
-
-    engine.setDelayParams(mtProject.values.delayParams);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelayRate();
-}
-void cMasterParams::changeDelayTime(int16_t val)
-{
-    int mult = mtProject.values.delayTime < 100 ? 1 : (mtProject.values.delayTime < 500 ? 10 : 30);
-
-    val *= mult;
-
-    if (mtProject.values.delayTime + val < DELAY_TIME_MIN)
-        mtProject.values.delayTime = DELAY_TIME_MIN;
-    else if (mtProject.values.delayTime + val > DELAY_TIME_MAX)
-        mtProject.values.delayTime = DELAY_TIME_MAX;
-    else
-        mtProject.values.delayTime += val;
-
-    engine.setDelayTime(mtProject.values.delayTime);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelayTime();
-}
-
-void cMasterParams::changeDelayFilterFrequency(int16_t val)
-{
-    val *= 100;
-
-    if (mtProject.values.delayFilterFrequency + val < DELAY_FILTER_FREQ_MIN)
-        mtProject.values.delayFilterFrequency = DELAY_FILTER_FREQ_MIN;
-    else if (mtProject.values.delayFilterFrequency + val > DELAY_FILTER_FREQ_MAX)
-        mtProject.values.delayFilterFrequency = DELAY_FILTER_FREQ_MAX;
-    else
-        mtProject.values.delayFilterFrequency += val;
-
-    engine.setDelayFilterFrequency(mtProject.values.delayFilterFrequency);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelayFilterFrequency();
-}
-
-void cMasterParams::changeDelayFeedback(int16_t val)
-{
-    if (mtProject.values.delayFeedback + val < DELAY_FEEDBACK_MIN)
-        mtProject.values.delayFeedback = DELAY_FEEDBACK_MIN;
-    else if (mtProject.values.delayFeedback + val > DELAY_FEEDBACK_MAX)
-        mtProject.values.delayFeedback = DELAY_FEEDBACK_MAX;
-    else
-        mtProject.values.delayFeedback += val;
-
-    engine.setDelayFeedback(mtProject.values.delayFeedback);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelayFeedback();
-}
-
-void cMasterParams::changeReverbSize(int16_t val)
-{
-    float v = 0.01 * val;
-
-    if (mtProject.values.reverb.size + v > REVERB_SIZE_MAX)
-        mtProject.values.reverb.size = REVERB_SIZE_MAX;
-    else if (mtProject.values.reverb.size + v < REVERB_SIZE_MIN)
-        mtProject.values.reverb.size = REVERB_SIZE_MIN;
-    else
-        mtProject.values.reverb.size += v;
-
-    engine.setReverbSize(mtProject.values.reverb.size);
-
-    showReverbSize();
-}
-void cMasterParams::changeReverbDamp(int16_t val)
-{
-    float v = 0.01 * val;
-
-    if (mtProject.values.reverb.damp + v > REVERB_DAMP_MAX)
-        mtProject.values.reverb.damp = REVERB_DAMP_MAX;
-    else if (mtProject.values.reverb.damp + v < REVERB_DAMP_MIN)
-        mtProject.values.reverb.damp = REVERB_DAMP_MIN;
-    else
-        mtProject.values.reverb.damp += v;
-
-    engine.setReverbDamp(mtProject.values.reverb.damp);
-
-    showReverbDamp();
-
-    newFileManager.setProjectStructChanged();
-}
-void cMasterParams::changeReverbPredelay(int16_t val)
-{
-    float v = 0.01 * val;
-
-    if (mtProject.values.reverb.predelay + v > REVERB_PREDELAY_MAX)
-        mtProject.values.reverb.predelay = REVERB_PREDELAY_MAX;
-    else if (mtProject.values.reverb.predelay + v < REVERB_PREDELAY_MIN)
-        mtProject.values.reverb.predelay = REVERB_PREDELAY_MIN;
-    else
-        mtProject.values.reverb.predelay += v;
-
-    engine.setReverbPredelay(mtProject.values.reverb.predelay);
-
-    showReverbPredelay();
-
-    newFileManager.setProjectStructChanged();
-}
-void cMasterParams::changeReverbDiffusion(int16_t val)
-{
-    float v = 0.0085 * val;
-
-    if (mtProject.values.reverb.diffusion + v > REVERB_DIFFUSION_MAX)
-        mtProject.values.reverb.diffusion = REVERB_DIFFUSION_MAX;
-    else if (mtProject.values.reverb.diffusion + v < REVERB_DIFFUSION_MIN)
-        mtProject.values.reverb.diffusion = REVERB_DIFFUSION_MIN;
-    else
-        mtProject.values.reverb.diffusion += v;
-
-    engine.setReverbDiffusion(mtProject.values.reverb.diffusion);
-
-    showReverbDiffusion();
-
-    newFileManager.setProjectStructChanged();
-}
-
 // equalizer
-void cMasterParams::changeEqualizerBandAdjust(uint8_t n, int16_t val)
-{
-
-    float changeStep = (BAND_ADJUSTMENT_MAX - BAND_ADJUSTMENT_MIN) / 100.0f;
-    float localValue = val * changeStep;
-
-    if (mtProject.values.eqBandAdjustment[n] + localValue > BAND_ADJUSTMENT_MAX)
-    {
-        mtProject.values.eqBandAdjustment[n] = BAND_ADJUSTMENT_MAX;
-    }
-    else if (mtProject.values.eqBandAdjustment[n] + localValue < BAND_ADJUSTMENT_MIN)
-    {
-        mtProject.values.eqBandAdjustment[n] = BAND_ADJUSTMENT_MIN;
-    }
-    else
-    {
-        mtProject.values.eqBandAdjustment[n] += localValue;
-    }
-
-    masterEnhancer.fiveBandsEq.change(mtProject.values.eqBandAdjustment);
-    newFileManager.setProjectStructChanged();
-
-    showEqualizerBand(n);
-}
-
-void cMasterParams::setDefaultEqualizerBandAdjust(uint8_t n)
-{
-    mtProject.values.eqBandAdjustment[n] = BAND_ADJUSTMENT_DEFAULT;
-    masterEnhancer.fiveBandsEq.change(mtProject.values.eqBandAdjustment);
-    newFileManager.setProjectStructChanged();
-
-    showEqualizerBand(n);
-}
-
 // Mixer
 void cMasterParams::changeTrackVolume(int16_t val, uint8_t track)
 {
@@ -2811,93 +1609,6 @@ void cMasterParams::setDefaultLineInReverbSend()
     newFileManager.setProjectStructChanged();
     showLineInReverbSend();
     engine.refreshLineInStreamReverbSend();
-}
-
-void cMasterParams::setDefaultReverbSize()
-{
-    mtProject.values.reverb.size = DEFAULT_REVERB_SIZE;
-    engine.setReverbSize(mtProject.values.reverb.size);
-
-    showReverbSize();
-
-    newFileManager.setProjectStructChanged();
-}
-void cMasterParams::setDefaultReverbDamp()
-{
-    mtProject.values.reverb.damp = DEFAULT_REVERB_DAMP;
-
-    engine.setReverbDamp(mtProject.values.reverb.damp);
-
-    showReverbDamp();
-
-    newFileManager.setProjectStructChanged();
-}
-void cMasterParams::setDefaultReverbPredelay()
-{
-    mtProject.values.reverb.predelay = DEFAULT_REVERB_PREDELAY;
-
-    engine.setReverbPredelay(mtProject.values.reverb.predelay);
-
-    showReverbPredelay();
-
-    newFileManager.setProjectStructChanged();
-}
-void cMasterParams::setDefaultReverbDiffusion()
-{
-    mtProject.values.reverb.diffusion = DEFAULT_REVERB_DIFFUSION;
-
-    engine.setReverbDiffusion(mtProject.values.reverb.diffusion);
-
-    showReverbDiffusion();
-
-    newFileManager.setProjectStructChanged();
-}
-
-void cMasterParams::setDefaultDelayPingPongEnable()
-{
-    mtProject.values.delayParams &= 0b01111111;
-    engine.setDelayParams(mtProject.values.delayParams);
-    newFileManager.setProjectStructChanged();
-    showDelayPingPongEnable();
-}
-void cMasterParams::setDefaultDelaySyncEnable()
-{
-    mtProject.values.delayParams &= 0b10111111;
-    engine.setDelayParams(mtProject.values.delayParams);
-    newFileManager.setProjectStructChanged();
-    showDelaySyncEnable();
-}
-void cMasterParams::setDefaultDelayRate()
-{
-    mtProject.values.delayParams &= 0b11000000;
-    engine.setDelayParams(mtProject.values.delayParams);
-    newFileManager.setProjectStructChanged();
-    showDelayRate();
-}
-void cMasterParams::setDefaultDelayTime()
-{
-    mtProject.values.delayTime = 500;
-    engine.setDelayTime(mtProject.values.delayTime);
-    newFileManager.setProjectStructChanged();
-    showDelayTime();
-}
-
-void cMasterParams::setDefaultDelayFilterFrequency()
-{
-    mtProject.values.delayFilterFrequency = 20000;
-    engine.setDelayFilterFrequency(mtProject.values.delayFilterFrequency);
-    newFileManager.setProjectStructChanged();
-    showDelayFilterFrequency();
-}
-
-void cMasterParams::setDefaultDelayFeedback()
-{
-    mtProject.values.delayFeedback = 50;
-    engine.setDelayFeedback(mtProject.values.delayFeedback);
-
-    newFileManager.setProjectStructChanged();
-
-    showDelayFeedback();
 }
 
 void cMasterParams::lightUpPadBoard()
