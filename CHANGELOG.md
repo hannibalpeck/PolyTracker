@@ -8,9 +8,9 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
-## [0.9.21 beta]
+## [0.9.22 beta]
 
-* New **Chiptune** screen on the **Instrument Parameters** button: the built-in chiptune synth with its six macros, a note and a length. Pads play the synth, **Play** renders one note into the current sample slot (8-bit mono, no loop, normalised, 8287 Hz so it sounds at its natural pitch when triggered at C-3, at most about 3.9 s fits a slot). Delete resets the selected value. Not yet tested on hardware.
+* Removed the Chiptune screen again (0.9.21); the Instrument Parameters button does nothing, as before.
 
 ## [0.9.20 beta]
 

@@ -14,7 +14,6 @@
 #include "protrackerMode/protrackerMode.h"
 #include "protrackerMode/ptFile.h"
 #include "protrackerMode/ptSampleParams.h"
-#include "protrackerMode/ptChiptune.h"
 #include "protrackerMode/ptSong.h"
 #include "sampleEditor/sampleEditor.h"
 #include "sampleImporter/sampleImporter.h"
@@ -64,7 +63,7 @@ const hModule Interface::modules[modulesCount] = {
     nullptr,           // 2  (pattern editor, removed)
     &protrackerSampleParams, // 3  (sample parameters, Sample Play button)
     &protrackerSong,   // 4  (song screen, Song button)
-    &protrackerChiptune, // 5  (chiptune synth, Instrument Parameters button)
+    nullptr,           // 5  (instrument parameters, removed)
     &sampleEditor,     // 6  (sample editor, SampleEdit button)
     &configEditor,     // 7
     &sampleRecorder,   // 8
@@ -74,7 +73,7 @@ const hModule Interface::modules[modulesCount] = {
     &masterParams,     // 12
 };
 
-const uint8_t Interface::modulesButtonsCount = 10;
+const uint8_t Interface::modulesButtonsCount = 9;
 const uint32_t Interface::modulesButtons[][3] = {
     { interfaceButtonMaster, 12, 0 },
     { interfaceButtonSampleRec, 8, 0 },
@@ -85,7 +84,6 @@ const uint32_t Interface::modulesButtons[][3] = {
     { interfaceButtonFile, 0, 0 },
     { interfaceButtonSampleEdit, 6, 0 },
     { interfaceButtonSamplePlay, 3, 0 },
-    { interfaceButtonParams, 5, 0 },
 };
 
 //=======================================================================
