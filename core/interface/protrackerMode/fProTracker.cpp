@@ -1155,6 +1155,13 @@ void cProTrackerMode::setPattern(int value)
         value = protracker::kMaxPatterns - 1;
     viewPattern = value;
     viewPatternPos = editPos;
+
+    // a pattern that is playing: the new pattern is played instead, from its first row
+    if (replayer.isPlaying() && replayer.isPatternMode())
+    {
+        stream->requestPlayPattern(value, 0);
+        lastRow = -1;
+    }
 }
 
 void cProTrackerMode::changePattern(int delta)

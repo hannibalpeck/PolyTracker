@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.28 beta]
+
+* Choosing another pattern (jog wheel, the pattern button on screen or the pads) while a pattern is playing now switches to that pattern and plays it from its first row.
+
 ## [0.9.27 beta]
 
 * File > Info: no white block for empty samples and no flashing while moving through the list (the column text was not handled while the list scrolls). The number column is two digits plus a colon.
