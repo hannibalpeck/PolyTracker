@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.29 beta]
+
+* Switching pattern while a pattern plays now continues from the row the old pattern was on, not from the first row.
+
 ## [0.9.28 beta]
 
 * Choosing another pattern (jog wheel, the pattern button on screen or the pads) while a pattern is playing now switches to that pattern and plays it from its first row.
