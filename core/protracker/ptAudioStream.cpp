@@ -18,6 +18,12 @@ void ProTrackerStream::requestPlayPattern(int pattern, int row)
     command_ = kPlayPattern;
 }
 
+void ProTrackerStream::requestSwitchPattern(int pattern)
+{
+    cmdArgA_ = pattern;
+    command_ = kSwitchPattern;
+}
+
 void ProTrackerStream::requestStop()
 {
     command_ = kStop;
@@ -93,6 +99,7 @@ void ProTrackerStream::update(void)
         {
             case kPlay: replayer_->play(cmdArgA_, cmdArgB_); break;
             case kPlayPattern: replayer_->playPattern(cmdArgA_, cmdArgB_); break;
+            case kSwitchPattern: replayer_->switchPattern(cmdArgA_); break;
             case kStop:
                 replayer_->stop();
                 replayer_->previewStop();

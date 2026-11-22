@@ -32,6 +32,7 @@ class ProTrackerStream : public AudioStream
     // transport requests, applied on the next audio update
     void requestPlay(int position, int row);
     void requestPlayPattern(int pattern, int row);
+    void requestSwitchPattern(int pattern);
     void requestStop();
     // audition a sample (0 based index) at a period, see Replayer::previewStart
     void requestPreview(int sampleIndex, uint16_t period);
@@ -54,6 +55,7 @@ class ProTrackerStream : public AudioStream
         kNone,
         kPlay,
         kPlayPattern,
+        kSwitchPattern,
         kStop,
         kPreview,
         kPreviewStop,

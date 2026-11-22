@@ -405,6 +405,12 @@ void Replayer::playPattern(int pattern, int row)
     startPlayback(true, pattern, 0, row);
 }
 
+void Replayer::switchPattern(int pattern)
+{
+    if (playing_ && patternMode_)
+        modPattern_ = clampInt(pattern, 0, kMaxPatterns - 1);
+}
+
 void Replayer::startPlayback(bool patternMode, int pattern, int position, int row)
 {
     if (mod_ == nullptr || !mod_->isAttached())

@@ -1156,12 +1156,9 @@ void cProTrackerMode::setPattern(int value)
     viewPattern = value;
     viewPatternPos = editPos;
 
-    // a pattern that is playing: the new pattern is played instead, from the row the old one was on
+    // a pattern that is playing carries on with the new pattern from the next row, same speed
     if (replayer.isPlaying() && replayer.isPatternMode())
-    {
-        stream->requestPlayPattern(value, replayer.row());
-        lastRow = -1;
-    }
+        stream->requestSwitchPattern(value);
 }
 
 void cProTrackerMode::changePattern(int delta)

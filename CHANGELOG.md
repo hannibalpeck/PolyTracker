@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.30 beta]
+
+* Switching pattern while a pattern plays no longer restarts playback: the player carries on with the new pattern from the row after the one you see, at the same speed and tempo, and notes that are sounding are not cut off.
+
 ## [0.9.29 beta]
 
 * Switching pattern while a pattern plays now continues from the row the old pattern was on, not from the first row.

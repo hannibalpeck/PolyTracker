@@ -32,6 +32,9 @@ class Replayer
     void play(int position, int row);
     // Pattern mode: loop a single pattern.
     void playPattern(int pattern, int row);
+    // Pattern mode: carry on with another pattern from the next row; speed, tempo and the notes that
+    // sound are left alone.
+    void switchPattern(int pattern);
     void stop();
     bool isPlaying() const { return playing_; }
     bool isPatternMode() const { return patternMode_; }
