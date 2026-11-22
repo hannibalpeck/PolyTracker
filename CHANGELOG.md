@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.23 beta]
+
+* Switching pattern in the pattern screen no longer changes the order list (the song). It only changes which pattern you are viewing and editing; moving to another song position, or opening the Song screen, goes back to the pattern the song has there.
+
 ## [0.9.22 beta]
 
 * Removed the Chiptune screen again (0.9.21); the Instrument Parameters button does nothing, as before.

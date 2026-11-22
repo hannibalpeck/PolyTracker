@@ -1153,8 +1153,8 @@ void cProTrackerMode::setPattern(int value)
         value = 0;
     if (value >= protracker::kMaxPatterns)
         value = protracker::kMaxPatterns - 1;
-    module.order[editPos] = (uint8_t)value;
-    dirty = true;
+    viewPattern = value;
+    viewPatternPos = editPos;
 }
 
 void cProTrackerMode::changePattern(int delta)
@@ -1341,6 +1341,7 @@ void cProTrackerMode::clearSong()
     stream->resume();
 
     editPos = 0;
+    viewPattern = -1;
     trackerPattern.actualStep = 0;
     trackerPattern.actualTrack = 0;
     trackerPattern.selectState = 1;
@@ -1356,6 +1357,7 @@ void cProTrackerMode::newSong()
     stream->resume();
 
     editPos = 0;
+    viewPattern = -1;
     trackerPattern.actualStep = 0;
     trackerPattern.actualTrack = 0;
     trackerPattern.selectState = 1;
@@ -1473,6 +1475,7 @@ bool cProTrackerMode::loadModule(const char* path, const char** error, bool reme
     fs->closeFile(handle);
 
     editPos = 0;
+    viewPattern = -1;
     trackerPattern.actualStep = 0;
     trackerPattern.actualTrack = 0;
     trackerPattern.selectState = 1;

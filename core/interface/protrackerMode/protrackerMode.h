@@ -42,7 +42,14 @@ class cProTrackerMode : public ModuleBase
     virtual void destroyDisplayControls() {}
 
     // ---- song access
-    int currentPattern() const { return module.order[editPos]; }
+    // The pattern shown in the pattern screen. Switching pattern there only changes the view: the order
+    // list (the song) is left alone. The view belongs to one song position and ends when that changes.
+    int currentPattern() const
+    {
+        return (viewPattern >= 0 && viewPatternPos == editPos) ? viewPattern : module.order[editPos];
+    }
+    int viewPattern = -1;
+    int viewPatternPos = -1;
     protracker::Note* cell(int track, int row);
     int sampleIndex() const { return sample - 1; }
 

@@ -256,6 +256,7 @@ void cProTrackerSong::stopPlaying()
 void cProTrackerSong::start(uint32_t)
 {
     moduleRefresh = 1;
+    PT->viewPattern = -1; // the order list is edited here, the pattern screen follows it again
 
     // the song lives in the pattern screen's module; this screen only edits its order list
     PT->stream->setEnabled(true);
