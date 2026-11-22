@@ -344,9 +344,33 @@ Result Module::save(const FileIo& io) const
 
     header[kSongLengthOffset] = songLength;
     header[kSongLengthOffset + 1] = 0x7F; // ProTracker writes 0x7F here
-    memcpy(&header[kOrderOffset], order, kOrderCount);
+    // Patterns that are not in the song but hold notes must be saved too. A file stores as many patterns
+    // as its highest order list entry says, so when such a pattern lies above that entry, its number is
+    // put in the last (unused, past the song length) order slot of the file.
+    uint8_t fileOrder[kOrderCount];
+    memcpy(fileOrder, order, kOrderCount);
+    int usedPatterns = patternCountInOrderList();
+    if (songLength < kOrderCount)
+    {
+        for (int p = kMaxPatterns - 1; p >= usedPatterns; p--)
+        {
+            const uint8_t* data = (const uint8_t*)pattern(p);
+            bool hasData = false;
+            for (int i = 0; i < kPatternBytes && !hasData; i++)
+                hasData = data[i] != 0;
+            if (hasData)
+            {
+                fileOrder[kOrderCount - 1] = (uint8_t)p;
+                break;
+            }
+        }
+    }
+    memcpy(&header[kOrderOffset], fileOrder, kOrderCount);
 
-    int numPatterns = patternCountInOrderList();
+    int numPatterns = 0;
+    for (int i = 0; i < kOrderCount; i++)
+        if (fileOrder[i] + 1 > numPatterns)
+            numPatterns = fileOrder[i] + 1;
     if (numPatterns > kMaxPatterns)
         numPatterns = kMaxPatterns;
 

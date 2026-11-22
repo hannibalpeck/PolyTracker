@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.24 beta]
+
+* Patterns that hold notes but are not in the order list are now saved in the .mod too (the file stays a normal ProTracker module: the highest such pattern number is put in the last, unused order slot).
+
 ## [0.9.23 beta]
 
 * Switching pattern in the pattern screen no longer changes the order list (the song). It only changes which pattern you are viewing and editing; moving to another song position, or opening the Song screen, goes back to the pattern the song has there.
