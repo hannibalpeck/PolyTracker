@@ -23,12 +23,14 @@ class cProTrackerFile : public ModuleBase
         kScreenSave,
         kScreenKeyboard,
         kScreenConfirm,
+        kScreenInfo,
     };
 
     enum KeyboardUse : uint8_t
     {
         kNameFile,
         kNameFolder,
+        kNameSample,
     };
 
     enum Pending : uint8_t
@@ -62,6 +64,10 @@ class cProTrackerFile : public ModuleBase
     void bindBrowser();
     void bindKeyboard();
     void bindConfirm();
+    void showInfo();
+    void bindInfo();
+    void moveInfo(int delta);
+    void fillInfoLines();
 
     // ---- actions
     void openBrowser(Screen screen);
@@ -101,6 +107,13 @@ class cProTrackerFile : public ModuleBase
     FileBrowserData fileBrowserData = {};
     FileBrowser fileBrowser;
     bool browserReady = false;
+
+    // Info screen: the sample slots of the song, with their names
+    int infoSel = 0;
+    char infoText[31][44] = {};
+    char* infoLines[31] = {};
+    uint8_t infoSelTab[31] = {};
+    char infoSummary[48] = {};
     uint8_t exportStage = 0; // 0 idle, 1 waiting for the text to show, 2 rendering
     int exportShown = -1;
     elapsedMillis exportTimer;

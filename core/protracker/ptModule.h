@@ -118,6 +118,10 @@ class Module
 
     // Highest pattern number used in the order list, plus one (what a file has to contain).
     int patternCountInOrderList() const;
+    // the order list as it is written to a file and how many patterns the file holds (patterns that are
+    // not in the song but have notes are included, see save())
+    int patternsToSave(uint8_t fileOrder[kOrderCount]) const;
+    uint32_t fileSize() const; // size of the .mod that save() writes
 
     Result load(const FileIo& io);
     Result save(const FileIo& io) const;

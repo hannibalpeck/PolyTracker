@@ -13,6 +13,7 @@
 
 #include "core/interfacePopups.h"
 #include "core/songTimer.h"
+#include "ptSamples.h"
 #include "protrackerMode/protrackerMode.h"
 
 cProTrackerFile protrackerFile;
@@ -35,6 +36,7 @@ static void functClearSong();
 static void functOpen();
 static void functSave();
 static void functSaveAs();
+static void functInfo();
 static void functExportWav();
 static void functEnter();
 static void functCancel();
@@ -175,10 +177,11 @@ void cProTrackerFile::showMain()
     display.setControlText2(label[2], "Song");
     display.setControlText(label[3], "Save");
     display.setControlText(label[4], "Save As");
+    display.setControlText(label[5], "Info");
     display.setControlText(label[6], "Export");
     display.setControlText2(label[6], "WAV");
     for (uint8_t i = 0; i < 8; i++)
-        display.setControlValue(label[i], i == 0 || i == 1 || i == 2 || i == 3 || i == 4 || i == 6 ? 1 : 0);
+        display.setControlValue(label[i], i == 0 || i == 1 || i == 2 || i == 3 || i == 4 || i == 5 || i == 6 ? 1 : 0);
     refreshLabelsNow();
 
     display.setControlValue(bgLabel, 255);
@@ -203,6 +206,7 @@ void cProTrackerFile::showBrowser(bool reloadList)
     projectList.selectTab = (uint8_t*)fileBrowserData.selectionList;
     projectList.data = fileBrowserData.browserList;
 
+    display.setControlSize(fileListControl, 297, -1);
     if (reloadList)
         display.setControlData(fileListControl, &projectList);
     display.setControlColors(fileListControl, display.getTheme().projectActiveListColors);
@@ -344,6 +348,7 @@ void cProTrackerFile::bindMain()
     ip->setButtonObj(interfaceButton2, buttonPress, functClearSong);
     ip->setButtonObj(interfaceButton3, buttonPress, functSave);
     ip->setButtonObj(interfaceButton4, buttonPress, functSaveAs);
+    ip->setButtonObj(interfaceButton5, buttonPress, functInfo);
     ip->setButtonObj(interfaceButton6, buttonPress, functExportWav);
     bindModuleButtons();
 }
@@ -624,6 +629,17 @@ void cProTrackerFile::actKeyboardConfirm()
     size_t len = strlen(name);
     while (len > 0 && name[len - 1] == ' ')
         name[--len] = '\0';
+
+    if (keyboardUse == kNameSample)
+    {
+        keyboardManager.deactivateKeyboard();
+        protracker::setSlotName(PT->module, infoSel, name);
+        PT->dirty = true;
+        showInfo();
+        bindInfo();
+        return;
+    }
+
     if (len == 0)
         return;
 
@@ -856,6 +872,14 @@ static void functEnter()
 
 static void functCancel()
 {
+    if (F->screen == cProTrackerFile::kScreenKeyboard && F->keyboardUse == cProTrackerFile::kNameSample)
+    {
+        F->keyboardManager.deactivateKeyboard();
+        F->showInfo();
+        F->bindInfo();
+        return;
+    }
+
     if (F->screen == cProTrackerFile::kScreenKeyboard)
     {
         F->keyboardManager.deactivateKeyboard();
@@ -993,6 +1017,123 @@ static void functConfirmNo()
 static void functConfirmCancel()
 {
     F->actConfirmCancel();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Info: file size, used sample slots and their names (editable)
+// ---------------------------------------------------------------------------------------------
+void cProTrackerFile::fillInfoLines()
+{
+    int used = 0;
+    for (int i = 0; i < protracker::kSampleCount; i++)
+    {
+        const protracker::Sample& s = PT->module.samples[i];
+        if (s.length > 0)
+            used++;
+        if (s.length > 0)
+            snprintf(infoText[i], sizeof(infoText[i]), "%02d  %s   %.1f KB", i + 1, s.name, s.length / 1024.0f);
+        else
+            snprintf(infoText[i], sizeof(infoText[i]), "%02d  %s", i + 1, s.name[0] != '\0' ? s.name : "-");
+        infoLines[i] = infoText[i];
+    }
+
+    const uint32_t size = PT->module.fileSize();
+    snprintf(infoSummary, sizeof(infoSummary), "%.1f KB   %d/%d samples", size / 1024.0f, used,
+             protracker::kSampleCount);
+}
+
+void cProTrackerFile::showInfo()
+{
+    screen = kScreenInfo;
+    keyboardManager.deactivateKeyboard();
+    mtPopups.hideInfoPopup();
+
+    fillInfoLines();
+    if (infoSel < 0)
+        infoSel = 0;
+    if (infoSel >= protracker::kSampleCount)
+        infoSel = protracker::kSampleCount - 1;
+
+    titleBar->show(true);
+    titleBar->setTitle("File - Info");
+    titleBar->showRightLabel(true);
+    titleBar->setRightLabel(infoSummary);
+
+    projectList.start = infoSel;
+    projectList.length = protracker::kSampleCount;
+    projectList.linesCount = 13;
+    projectList.selectionActive = 0;
+    projectList.selectTab = infoSelTab;
+    projectList.data = infoLines;
+
+    display.setControlData(fileListControl, &projectList);
+    display.setControlSize(fileListControl, 797, -1);
+    display.setControlColors(fileListControl, display.getTheme().projectActiveListColors);
+    display.setControlShow(fileListControl);
+    display.refreshControl(fileListControl);
+
+    display.setControlHide(browserLabelControl);
+    display.setControlHide(blankSpaceCover);
+
+    resetLabels();
+    display.setControlText(label[0], "Rename");
+    display.setControlText(label[6], "Back");
+    refreshLabelsNow();
+
+    display.setControlValue(bgLabel, 255);
+    display.refreshControl(bgLabel);
+    display.synchronizeRefresh();
+}
+
+void cProTrackerFile::moveInfo(int delta)
+{
+    infoSel += delta;
+    if (infoSel < 0)
+        infoSel = 0;
+    if (infoSel >= protracker::kSampleCount)
+        infoSel = protracker::kSampleCount - 1;
+    display.setControlValue(fileListControl, infoSel);
+    display.refreshControl(fileListControl);
+}
+
+static void functInfoRename()
+{
+    F->keyboardUse = cProTrackerFile::kNameSample;
+    F->keyboardManager.fillName(PT->module.samples[F->infoSel].name);
+    F->keyboardManager.activateKeyboard(22);
+    F->showKeyboard("Rename");
+    F->bindKeyboard();
+}
+
+static void functInfoBack()
+{
+    F->showMain();
+    F->bindMain();
+}
+
+static void functInfo()
+{
+    F->infoSel = PT->sample - 1;
+    F->showInfo();
+    F->bindInfo();
+}
+
+void cProTrackerFile::bindInfo()
+{
+    ip->clearAllButtons();
+    ip->clearAllPots();
+    ip->clearGlobalPads();
+
+    ip->setButtonObj(interfaceButton0, buttonPress, functInfoRename);
+    ip->setButtonObj(interfaceButton6, buttonPress, functInfoBack);
+    ip->setButtonObj(interfaceButtonUp, buttonPress, []() { F->moveInfo(-1); });
+    ip->setButtonObj(interfaceButtonDown, buttonPress, []() { F->moveInfo(1); });
+    ip->setButtonObj(interfaceButtonMiniMiddle, [](uint8_t state) {
+        if (state == buttonPress)
+            functInfoRename();
+    });
+    ip->setPotObj(interfacePot0, [](int16_t value) { F->moveInfo(interfaceGlobals.invertValForList ? -value : value); });
+    bindModuleButtons();
 }
 
 #endif // PLATFORM_IMX

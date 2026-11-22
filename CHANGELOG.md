@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.25 beta]
+
+* File screen: new **Info** button next to Save As. It shows the size the .mod will have, how many of the 31 sample slots are used and the list of all slots with their names and sizes. **Rename** (or the middle button) edits a sample name with the on-screen keyboard.
+
 ## [0.9.24 beta]
 
 * Patterns that hold notes but are not in the order list are now saved in the .mod too (the file stays a normal ProTracker module: the highest such pattern number is put in the last, unused order slot).

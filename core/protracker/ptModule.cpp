@@ -142,6 +142,45 @@ int Module::patternCountInOrderList() const
     return highest + 1;
 }
 
+// Patterns that are not in the song but hold notes must be saved too. A file stores as many patterns
+// as its highest order list entry says, so when such a pattern lies above that entry, its number is
+// put in the last (unused, past the song length) order slot of the file.
+int Module::patternsToSave(uint8_t fileOrder[kOrderCount]) const
+{
+    memcpy(fileOrder, order, kOrderCount);
+    const int usedPatterns = patternCountInOrderList();
+    if (songLength < kOrderCount)
+    {
+        for (int p = kMaxPatterns - 1; p >= usedPatterns; p--)
+        {
+            const uint8_t* data = (const uint8_t*)pattern(p);
+            bool hasData = false;
+            for (uint32_t i = 0; i < kPatternBytes && !hasData; i++)
+                hasData = data[i] != 0;
+            if (hasData)
+            {
+                fileOrder[kOrderCount - 1] = (uint8_t)p;
+                break;
+            }
+        }
+    }
+
+    int numPatterns = 0;
+    for (int i = 0; i < kOrderCount; i++)
+        if (fileOrder[i] + 1 > numPatterns)
+            numPatterns = fileOrder[i] + 1;
+    return numPatterns > kMaxPatterns ? kMaxPatterns : numPatterns;
+}
+
+uint32_t Module::fileSize() const
+{
+    uint8_t fileOrder[kOrderCount];
+    uint32_t size = kHeaderBytes + (uint32_t)patternsToSave(fileOrder) * kPatternBytes;
+    for (int i = 0; i < kSampleCount; i++)
+        size += samples[i].length;
+    return size;
+}
+
 void Module::fixSample(int index)
 {
     Sample& s = samples[index];
@@ -344,33 +383,10 @@ Result Module::save(const FileIo& io) const
 
     header[kSongLengthOffset] = songLength;
     header[kSongLengthOffset + 1] = 0x7F; // ProTracker writes 0x7F here
-    // Patterns that are not in the song but hold notes must be saved too. A file stores as many patterns
-    // as its highest order list entry says, so when such a pattern lies above that entry, its number is
-    // put in the last (unused, past the song length) order slot of the file.
     uint8_t fileOrder[kOrderCount];
-    memcpy(fileOrder, order, kOrderCount);
-    int usedPatterns = patternCountInOrderList();
-    if (songLength < kOrderCount)
-    {
-        for (int p = kMaxPatterns - 1; p >= usedPatterns; p--)
-        {
-            const uint8_t* data = (const uint8_t*)pattern(p);
-            bool hasData = false;
-            for (int i = 0; i < kPatternBytes && !hasData; i++)
-                hasData = data[i] != 0;
-            if (hasData)
-            {
-                fileOrder[kOrderCount - 1] = (uint8_t)p;
-                break;
-            }
-        }
-    }
+    int numPatterns = patternsToSave(fileOrder);
     memcpy(&header[kOrderOffset], fileOrder, kOrderCount);
 
-    int numPatterns = 0;
-    for (int i = 0; i < kOrderCount; i++)
-        if (fileOrder[i] + 1 > numPatterns)
-            numPatterns = fileOrder[i] + 1;
     if (numPatterns > kMaxPatterns)
         numPatterns = kMaxPatterns;
 
