@@ -289,7 +289,24 @@ void cList::update()
 
             char** row_text = (list->data + rowIdx);
 
-            if (row_text != nullptr)
+            if (row_text != nullptr && list->columnCount > 0)
+            {
+                const char* seg = *row_text;
+                for (uint8_t col = 0; col < list->columnCount && seg != nullptr; col++)
+                {
+                    const char* end = strchr(seg, '\t');
+                    const size_t segLen = end != nullptr ? (size_t)(end - seg) : strlen(seg);
+                    const bool right = (list->columnRight >> col) & 1;
+                    API_CMD_TEXT(x_pos + list->columnX[col],
+                                 y_pos + (i * h_row),
+                                 font->handle,
+                                 (right ? OPT_RIGHTX : 0) | OPT_CENTERY,
+                                 seg,
+                                 segLen);
+                    seg = end != nullptr ? end + 1 : nullptr;
+                }
+            }
+            else if (row_text != nullptr)
             {
                 char* text = *row_text;
                 size_t textMaxWidth = list->lineWidthMax;

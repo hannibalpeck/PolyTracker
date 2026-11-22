@@ -199,6 +199,7 @@ void cProTrackerFile::showBrowser(bool reloadList)
 {
     titleBar->setTitle(screen == kScreenSave ? "File - Save Song" : "File - Open Song");
 
+    projectList.columnCount = 0;
     projectList.start = fileBrowserData.browserListPosition;
     projectList.length = fileBrowserData.browserListLength;
     projectList.linesCount = 13;
@@ -1031,9 +1032,9 @@ void cProTrackerFile::fillInfoLines()
         if (s.length > 0)
             used++;
         if (s.length > 0)
-            snprintf(infoText[i], sizeof(infoText[i]), "%02d  %s   %.1f KB", i + 1, s.name, s.length / 1024.0f);
+            snprintf(infoText[i], sizeof(infoText[i]), "%02d\t%s\t%.1f KB", i + 1, s.name, s.length / 1024.0f);
         else
-            snprintf(infoText[i], sizeof(infoText[i]), "%02d  %s", i + 1, s.name[0] != '\0' ? s.name : "-");
+            snprintf(infoText[i], sizeof(infoText[i]), "%02d\t%s\t", i + 1, s.name);
         infoLines[i] = infoText[i];
     }
 
@@ -1065,6 +1066,11 @@ void cProTrackerFile::showInfo()
     projectList.selectionActive = 0;
     projectList.selectTab = infoSelTab;
     projectList.data = infoLines;
+    projectList.columnCount = 3;
+    projectList.columnRight = 1 << 2;
+    projectList.columnX[0] = 0;
+    projectList.columnX[1] = 56;
+    projectList.columnX[2] = 700;
 
     display.setControlData(fileListControl, &projectList);
     display.setControlSize(fileListControl, 797, -1);

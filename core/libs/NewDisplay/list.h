@@ -28,6 +28,12 @@ struct strList
     uint16_t lineWidthMax = 0;
     uint16_t lineTextLenMax = 0;
 
+    // Optional columns: a row text is split at '\t' characters and part k is drawn columnX[k] pixels
+    // from the left text edge (right aligned when bit k of columnRight is set). 0 = plain rows.
+    uint8_t columnCount = 0;
+    uint8_t columnRight = 0;
+    uint16_t columnX[4] = {};
+
     char** data;
 };
 
