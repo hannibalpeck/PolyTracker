@@ -1032,9 +1032,9 @@ void cProTrackerFile::fillInfoLines()
         if (s.length > 0)
             used++;
         if (s.length > 0)
-            snprintf(infoText[i], sizeof(infoText[i]), "%02d\t%s\t%.1f KB", i + 1, s.name, s.length / 1024.0f);
+            snprintf(infoText[i], sizeof(infoText[i]), "%02d:\t%s\t%.1f KB", i + 1, s.name, s.length / 1024.0f);
         else
-            snprintf(infoText[i], sizeof(infoText[i]), "%02d\t%s\t", i + 1, s.name);
+            snprintf(infoText[i], sizeof(infoText[i]), "%02d:\t%s\t", i + 1, s.name);
         infoLines[i] = infoText[i];
     }
 
@@ -1069,7 +1069,7 @@ void cProTrackerFile::showInfo()
     projectList.columnCount = 3;
     projectList.columnRight = 1 << 2;
     projectList.columnX[0] = 0;
-    projectList.columnX[1] = 56;
+    projectList.columnX[1] = 50;
     projectList.columnX[2] = 700;
 
     display.setControlData(fileListControl, &projectList);

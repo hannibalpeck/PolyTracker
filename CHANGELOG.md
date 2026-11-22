@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.27 beta]
+
+* File > Info: no white block for empty samples and no flashing while moving through the list (the column text was not handled while the list scrolls). The number column is two digits plus a colon.
+
 ## [0.9.26 beta]
 
 * File > Info is now a table with three columns: slot number, sample name (at most 22 characters, the ProTracker limit, also enforced when renaming) and sample size.

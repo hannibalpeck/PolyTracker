@@ -12,6 +12,30 @@
 #define TEXT_SCROLL_FONT_WIDTH_CORRECTION                                                          \
     (-2) // strFont::width has to be corrected to be used for stride calculation
 
+// A row of a list with columns: the text is split at '\t' and every part is drawn at its column.
+// Rows of a plain list are drawn as before.
+static void drawListRow(const strList* list, int16_t x, int16_t y, int16_t fontHandle, uint16_t style, const char* text)
+{
+    if (list->columnCount == 0)
+    {
+        API_CMD_TEXT(x, y, fontHandle, style | OPT_CENTERY, text, list->lineTextLenMax);
+        return;
+    }
+
+    const char* seg = text;
+    for (uint8_t col = 0; col < list->columnCount && seg != nullptr; col++)
+    {
+        const char* end = strchr(seg, '\t');
+        const size_t segLen = end != nullptr ? (size_t)(end - seg) : strlen(seg);
+        if (segLen > 0) // an empty text must not be drawn
+        {
+            const bool right = (list->columnRight >> col) & 1;
+            API_CMD_TEXT(x + list->columnX[col], y, fontHandle, (right ? OPT_RIGHTX : 0) | OPT_CENTERY, seg, segLen);
+        }
+        seg = end != nullptr ? end + 1 : nullptr;
+    }
+}
+
 cList::cList(strControlProperties* properties)
   : cDisplayControl(controlIdList, 1)
 {
@@ -290,22 +314,7 @@ void cList::update()
             char** row_text = (list->data + rowIdx);
 
             if (row_text != nullptr && list->columnCount > 0)
-            {
-                const char* seg = *row_text;
-                for (uint8_t col = 0; col < list->columnCount && seg != nullptr; col++)
-                {
-                    const char* end = strchr(seg, '\t');
-                    const size_t segLen = end != nullptr ? (size_t)(end - seg) : strlen(seg);
-                    const bool right = (list->columnRight >> col) & 1;
-                    API_CMD_TEXT(x_pos + list->columnX[col],
-                                 y_pos + (i * h_row),
-                                 font->handle,
-                                 (right ? OPT_RIGHTX : 0) | OPT_CENTERY,
-                                 seg,
-                                 segLen);
-                    seg = end != nullptr ? end + 1 : nullptr;
-                }
-            }
+                drawListRow(list, x_pos, y_pos + (i * h_row), font->handle, textStyle, *row_text);
             else if (row_text != nullptr)
             {
                 char* text = *row_text;
@@ -534,12 +543,7 @@ void cList::update()
                         API_COLOR(colors[4]);
                     }
 
-                    API_CMD_TEXT(x_pos,
-                                 y_pos + (i * h_row),
-                                 font->handle,
-                                 textStyle | OPT_CENTERY,
-                                 *(list->data + rowIdx),
-                                 list->lineTextLenMax);
+                    drawListRow(list, x_pos, y_pos + (i * h_row), font->handle, textStyle, *(list->data + rowIdx));
 
                     //					if(list->icon.useSpecialIcons)
                     //					{
@@ -583,12 +587,7 @@ void cList::update()
                         API_COLOR(colors[4]);
                     }
 
-                    API_CMD_TEXT(x_pos,
-                                 y_pos + (i * h_row),
-                                 font->handle,
-                                 textStyle | OPT_CENTERY,
-                                 *(list->data + rowIdx),
-                                 list->lineTextLenMax);
+                    drawListRow(list, x_pos, y_pos + (i * h_row), font->handle, textStyle, *(list->data + rowIdx));
 
                     //					if(list->icon.useSpecialIcons)
                     //					{
@@ -628,12 +627,7 @@ void cList::update()
                     API_COLOR(colors[4]);
                 }
 
-                API_CMD_TEXT(x_pos,
-                             y_pos + (i * h_row),
-                             font->handle,
-                             textStyle | OPT_CENTERY,
-                             *(list->data + rowIdx),
-                             list->lineTextLenMax);
+                drawListRow(list, x_pos, y_pos + (i * h_row), font->handle, textStyle, *(list->data + rowIdx));
 
                 if (list->icon.useSpecialIcons)
                 {
