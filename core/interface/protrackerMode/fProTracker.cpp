@@ -63,6 +63,7 @@ constexpr uint32_t kInstrPopupDelayMs = 180;
 // ---------------------------------------------------------------------------------------------
 static void functSwitchModule(uint8_t button);
 static void functPattern(uint8_t state);
+static void showPatternLeds(bool clearFirst);
 static void functPlayAction();
 static void functRecAction();
 static void functNote(uint8_t state);
@@ -317,6 +318,14 @@ void cProTrackerMode::update()
 {
     if (!initialised)
         return;
+
+    // the pattern pad lights are put on again now and then, in case something else switched them off
+    static elapsedMillis patternLedTimer;
+    if (patternHeld && patternLedTimer > 200)
+    {
+        patternLedTimer = 0;
+        showPatternLeds(false);
+    }
 
     // popups open when Note or Instr is held for a moment
     for (uint8_t i = 0; i < 3; i++)
@@ -1750,9 +1759,10 @@ static void functSwitchModule(uint8_t button)
 
 // While Pattern is held the pads are the patterns: a lit pad holds notes (like the stock firmware),
 // the pad of the pattern that is shown is lit brighter (also when that pattern is empty).
-static void showPatternLeds()
+static void showPatternLeds(bool clearFirst)
 {
-    padsBacklight.clearGlobalPads(1, 1, 1);
+    if (clearFirst)
+        padsBacklight.clearGlobalPads(1, 1, 1);
     const int shown = PT->currentPattern();
     for (int p = 0; p < 48 && p < protracker::kMaxPatterns; p++)
     {
@@ -1776,7 +1786,7 @@ static void functPattern(uint8_t state)
 
     PT->patternHeld = (state == buttonPress);
     if (PT->patternHeld)
-        showPatternLeds();
+        showPatternLeds(true);
     else
         padsBacklight.clearGlobalPads(1, 1, 1);
     PT->refreshEditState();
@@ -2294,7 +2304,7 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
         else if (place == 2)
             PT->setEditStep(pad);
         if (PT->patternHeld)
-            showPatternLeds();
+            showPatternLeds(true);
         PT->refreshEditState();
         return;
     }

@@ -8,6 +8,11 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.34 beta]
+
+* The version number shown in Config > Info was stale (it showed 0.9.30 in 0.9.32): the build did not recompile the files that hold the version when only the version changed. The build now does.
+* The pattern pad lights are re-applied every 0.2 s while Pattern is held.
+
 ## [0.9.33 beta]
 
 * The splash screen and the loading screen no longer show a version number (the one in the middle was out of date, the one in the corner is not needed). The version is still in Config > Info.

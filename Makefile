@@ -33,6 +33,9 @@ plus:
 	@echo " Building ProTracker for Tracker+ (IMX) - $(EDITION_NAME) $(PLUS_VER_MAJOR).$(PLUS_VER_MINOR).$(PLUS_VER_PATCH) ($(BUILD_TAG))"
 	@echo "=================================================================="
 	@rm -f "$(IMX_DIR)/build-PLUS/obj/source/PlatformImpl.o"
+	@# the version is a -D flag, which make does not track: when it changes, rebuild what uses it
+	@if [ "$$(cat "$(OUT_DIR)/.fwver" 2>/dev/null)" != "$(PLUS_POSTFIX)" ]; then \
+		touch "$(CORE_DIR)/source/mtStructs.h"; mkdir -p "$(OUT_DIR)"; echo "$(PLUS_POSTFIX)" > "$(OUT_DIR)/.fwver"; fi
 	$(MAKE) -C "$(CORE_DIR)" -j$(NPROC) build \
 		TOOLCHAIN="$(TOOLCHAIN)" \
 		PLATFORM=IMX PRODUCT=PLUS \
