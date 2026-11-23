@@ -362,11 +362,9 @@ void cProTrackerSong::refreshList()
     display.setControlValue(songPlayerControl, selected());
     display.refreshControl(songPlayerControl);
 
-    char title[40];
-    snprintf(title, sizeof(title), "Song  Slot %d/%d  Pattern %02d", selected() + 1, length(),
-             PT->module.order[selected()]);
-    titleBar->setTitle(title);
-    titleBar->setRightLabel(PT->dirty ? "*" : "");
+    // the title bar stays empty here (it held a text from a local buffer, which showed as garbage)
+    titleBar->setTitle("");
+    titleBar->setRightLabel("");
 }
 
 void cProTrackerSong::refreshTempo()
