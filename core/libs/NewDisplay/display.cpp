@@ -321,13 +321,7 @@ void drawSplashArt(bool withVersion)
     API_COLOR_RGB(0xB0, 0xB0, 0xB0);
     API_CMD_TEXT(400, 410, 27, OPT_CENTER, "ProTracker mode for the Polyend Tracker");
 
-    char verText[24];
-    sprintf(verText, "v%d.%d.%d", FW_VER_MAJOR, FW_VER_MINOR, FW_VER_PATCH);
-    if (withVersion)
-    {
-        API_COLOR_RGB(0x80, 0x80, 0x80);
-        API_CMD_TEXT(400, 440, 26, OPT_CENTER, verText);
-    }
+    (void)withVersion; // the splash shows no version number any more
 }
 
 void cDisplay::begin(DisplayDriver* displayDriver, Timer* timer)

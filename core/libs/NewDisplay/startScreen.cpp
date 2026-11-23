@@ -124,11 +124,6 @@ void cStartScreen::update()
     {
         API_CMD_TEXT(textX, textY, textFont, OPT_CENTER, text);
     }
-    if (data != nullptr)
-    {
-        API_CMD_TEXT(10, 457, textFont, 0, "v");
-        API_CMD_TEXT(22, 457, textFont, 0, data);
-    }
 
     API_RESTORE_CONTEXT();
 }
