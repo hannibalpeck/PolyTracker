@@ -1749,7 +1749,7 @@ static void functSwitchModule(uint8_t button)
 }
 
 // While Pattern is held the pads are the patterns: a lit pad holds notes (like the stock firmware),
-// the pad of the pattern that is shown also gets the front light.
+// the pad of the pattern that is shown is lit brighter (also when that pattern is empty).
 static void showPatternLeds()
 {
     padsBacklight.clearGlobalPads(1, 1, 1);
@@ -1760,9 +1760,10 @@ static void showPatternLeds()
         bool hasData = false;
         for (uint32_t i = 0; i < protracker::kPatternBytes && !hasData; i++)
             hasData = data[i] != 0;
-        if (hasData)
-            padsBacklight.setBackLayer(1, mtConfig.values.padsLightBack, p);
+        // the front layer is the one that is bright enough to see (the back layer is very dim)
         if (p == shown)
+            padsBacklight.setFrontLayer(1, (uint8_t)clamp<int>(mtConfig.values.padsLightFront * 4, 1, 255), p);
+        else if (hasData)
             padsBacklight.setFrontLayer(1, mtConfig.values.padsLightFront, p);
     }
 }

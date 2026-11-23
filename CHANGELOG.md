@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.32 beta]
+
+* The pattern pad lights (Pattern held) use the bright pad layer; they were too dim to see before. The pad of the pattern you are viewing is brighter still.
+
 ## [0.9.31 beta]
 
 * While the Pattern button is held, the pad lights show which patterns contain notes: pad 1 (top left) is pattern 1, pad 2 the next one, and so on, like the stock firmware. The pad of the pattern you are looking at lights up brighter.
