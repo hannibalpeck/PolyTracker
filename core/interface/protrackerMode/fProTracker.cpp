@@ -513,9 +513,9 @@ void cProTrackerMode::refreshHeldValues()
 
 void cProTrackerMode::refreshLabels()
 {
-    static const char* const kPage0[8] = { "Pattern", "Position", "Step jump", "Copy",
-                                           "Paste",   "Copy",     "Paste",     "More" };
-    static const char* const kPage0b[8] = { "", "", "", "Track", "Track", "Pattern", "Pattern", "" };
+    static const char* const kPage0[8] = { "Pattern", "Step jump", "Copy", "Paste",
+                                           "Copy",    "Paste",     "",     "More" };
+    static const char* const kPage0b[8] = { "", "", "Track", "Track", "Pattern", "Pattern", "", "" };
     static const char* const kPage1[8] = { "Preview", "Undo", "Redo", "", "", "", "", "More" };
     static const char* const kPage1b[8] = { "", "", "", "", "", "", "", "" };
 
@@ -536,12 +536,12 @@ void cProTrackerMode::refreshLabels()
         {
             text = kPage0[i];
             text2 = kPage0b[i];
-            if (i < 3)
-                text2 = s_text2[i];
+            if (i < 2)
+                text2 = s_text2[i == 0 ? 0 : 2]; // the pattern and the step jump values
 
-            if (i >= 3 && i <= 6)
+            if (i >= 2 && i <= 5)
             {
-                const bool copy = (i == 3 || i == 5);
+                const bool copy = (i == 2 || i == 4);
                 colors = (copy || editMode) ? display.getTheme().activeButtonLabelsColors
                                             : display.getTheme().inactiveButtonLabelsColors;
                 data = &labelDataRed;
@@ -605,7 +605,8 @@ void cProTrackerMode::activateLabelsBorder()
         return;
     }
 
-    display.setControlValue(frameControl, selectedPlace);
+    // places: 0 pattern, 1 position (not on a key any more), 2 step jump; the keys are F1 and F2
+    display.setControlValue(frameControl, selectedPlace == 2 ? 1 : selectedPlace);
     display.setControlShow(frameControl);
     display.refreshControl(frameControl);
 }
@@ -2225,14 +2226,15 @@ static void functActionButton(uint8_t button, uint8_t state)
     if (state == buttonHold)
         return; // a long press is still the same press
 
-    // Pattern, Position and Step jump are held while the arrows, the encoder or the pads change them
-    if (button <= 2 && PT->page == 0)
+    // Pattern (F1) and Step jump (F2) are held while the arrows, the encoder or the pads change them
+    if (button <= 1 && PT->page == 0)
     {
+        const int8_t place = (button == 0) ? 0 : 2;
         if (state == buttonPress)
         {
-            PT->selectedPlace = (int8_t)button;
+            PT->selectedPlace = place;
         }
-        else if (PT->selectedPlace == (int8_t)button)
+        else if (PT->selectedPlace == place)
         {
             PT->selectedPlace = -1;
         }
@@ -2259,13 +2261,13 @@ static void functActionButton(uint8_t button, uint8_t state)
     {
         switch (button)
         {
-            case 3: PT->copyTrack(); break;
-            case 4:
+            case 2: PT->copyTrack(); break;
+            case 3:
                 if (PT->editMode)
                     PT->pasteTrack();
                 break;
-            case 5: PT->copyPattern(); break;
-            case 6:
+            case 4: PT->copyPattern(); break;
+            case 5:
                 if (PT->editMode)
                     PT->pastePattern();
                 break;

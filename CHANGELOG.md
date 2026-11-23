@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.37 beta]
+
+* The Position function key is gone. The bottom keys of the first page are now Pattern, Step jump, Copy Track, Paste Track, Copy Pattern, Paste Pattern, an empty key and More. Song position is set on the Song screen.
+
 ## [0.9.36 beta]
 
 * Song screen: the title bar is empty now. The text in the top left was handed to the screen from a temporary buffer, so it turned into garbage after selecting a pattern; the "*" in the top right is gone too (warnings still show there for a moment).
