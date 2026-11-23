@@ -1748,6 +1748,25 @@ static void functSwitchModule(uint8_t button)
     PT->eventFunct(eventSwitchModule, PT, &button, 0);
 }
 
+// While Pattern is held the pads are the patterns: a lit pad holds notes (like the stock firmware),
+// the pad of the pattern that is shown also gets the front light.
+static void showPatternLeds()
+{
+    padsBacklight.clearGlobalPads(1, 1, 1);
+    const int shown = PT->currentPattern();
+    for (int p = 0; p < 48 && p < protracker::kMaxPatterns; p++)
+    {
+        const uint8_t* data = (const uint8_t*)PT->module.pattern(p);
+        bool hasData = false;
+        for (uint32_t i = 0; i < protracker::kPatternBytes && !hasData; i++)
+            hasData = data[i] != 0;
+        if (hasData)
+            padsBacklight.setBackLayer(1, mtConfig.values.padsLightBack, p);
+        if (p == shown)
+            padsBacklight.setFrontLayer(1, mtConfig.values.padsLightFront, p);
+    }
+}
+
 // Pattern held: arrows and the encoder pick the pattern of the current position
 static void functPattern(uint8_t state)
 {
@@ -1755,6 +1774,10 @@ static void functPattern(uint8_t state)
         return;
 
     PT->patternHeld = (state == buttonPress);
+    if (PT->patternHeld)
+        showPatternLeds();
+    else
+        padsBacklight.clearGlobalPads(1, 1, 1);
     PT->refreshEditState();
 }
 
@@ -2269,6 +2292,8 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
             PT->setPosition(pad);
         else if (place == 2)
             PT->setEditStep(pad);
+        if (PT->patternHeld)
+            showPatternLeds();
         PT->refreshEditState();
         return;
     }
