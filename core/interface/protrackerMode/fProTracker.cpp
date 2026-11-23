@@ -514,9 +514,9 @@ void cProTrackerMode::refreshHeldValues()
 void cProTrackerMode::refreshLabels()
 {
     static const char* const kPage0[8] = { "Pattern", "Step jump", "Copy", "Paste",
-                                           "Copy",    "Paste",     "",     "More" };
+                                           "Copy",    "Paste",     "Undo", "More" };
     static const char* const kPage0b[8] = { "", "", "Track", "Track", "Pattern", "Pattern", "", "" };
-    static const char* const kPage1[8] = { "Preview", "Undo", "Redo", "", "", "", "", "More" };
+    static const char* const kPage1[8] = { "Preview", "Redo", "", "", "", "", "", "More" };
     static const char* const kPage1b[8] = { "", "", "", "", "", "", "", "" };
 
     if (shiftMuteView)
@@ -539,7 +539,7 @@ void cProTrackerMode::refreshLabels()
             if (i < 2)
                 text2 = s_text2[i == 0 ? 0 : 2]; // the pattern and the step jump values
 
-            if (i >= 2 && i <= 5)
+            if (i >= 2 && i <= 6)
             {
                 const bool copy = (i == 2 || i == 4);
                 colors = (copy || editMode) ? display.getTheme().activeButtonLabelsColors
@@ -2271,6 +2271,10 @@ static void functActionButton(uint8_t button, uint8_t state)
                 if (PT->editMode)
                     PT->pastePattern();
                 break;
+            case 6:
+                if (PT->editMode)
+                    PT->undo();
+                break;
             default: break;
         }
     }
@@ -2287,10 +2291,6 @@ static void functActionButton(uint8_t button, uint8_t state)
                 break;
             }
             case 1:
-                if (PT->editMode)
-                    PT->undo();
-                break;
-            case 2:
                 if (PT->editMode)
                     PT->redo();
                 break;

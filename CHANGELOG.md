@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.38 beta]
+
+* Undo moved to the empty key (F7) on the first page; Redo is now the second key on the More page, next to Preview.
+
 ## [0.9.37 beta]
 
 * The Position function key is gone. The bottom keys of the first page are now Pattern, Step jump, Copy Track, Paste Track, Copy Pattern, Paste Pattern, an empty key and More. Song position is set on the Song screen.
