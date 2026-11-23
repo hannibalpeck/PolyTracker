@@ -8,6 +8,10 @@ All notable changes to the **Polyend Tracker Community Edition (CE)** firmware a
 
 * Four extra colour themes in `themes/` and an Amiga-style pixel font `fonts/PixelAmiga.ptfont` (no firmware change).
 
+## [0.9.35 beta]
+
+* The pad lights now follow the **Pattern**, **Position** and **Step jump** function keys (F1-F3), not the real Pattern button: holding F1 lights the pads of the patterns with notes (the shown pattern brighter), F2 the pad of the current song position, F3 the pad of the current step. The lights go out when the key is released.
+
 ## [0.9.34 beta]
 
 * The version number shown in Config > Info was stale (it showed 0.9.30 in 0.9.32): the build did not recompile the files that hold the version when only the version changed. The build now does.

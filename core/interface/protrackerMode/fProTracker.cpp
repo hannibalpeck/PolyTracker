@@ -63,7 +63,7 @@ constexpr uint32_t kInstrPopupDelayMs = 180;
 // ---------------------------------------------------------------------------------------------
 static void functSwitchModule(uint8_t button);
 static void functPattern(uint8_t state);
-static void showPatternLeds(bool clearFirst);
+static void showPlaceLeds(bool clearFirst);
 static void functPlayAction();
 static void functRecAction();
 static void functNote(uint8_t state);
@@ -319,12 +319,12 @@ void cProTrackerMode::update()
     if (!initialised)
         return;
 
-    // the pattern pad lights are put on again now and then, in case something else switched them off
+    // the pad lights of a held Pattern, Position or Step jump key are put on again now and then, in case something else switched them off
     static elapsedMillis patternLedTimer;
-    if (patternHeld && patternLedTimer > 200)
+    if (selectedPlace >= 0 && patternLedTimer > 200)
     {
         patternLedTimer = 0;
-        showPatternLeds(false);
+        showPlaceLeds(false);
     }
 
     // popups open when Note or Instr is held for a moment
@@ -1757,24 +1757,41 @@ static void functSwitchModule(uint8_t button)
     PT->eventFunct(eventSwitchModule, PT, &button, 0);
 }
 
-// While Pattern is held the pads are the patterns: a lit pad holds notes (like the stock firmware),
-// the pad of the pattern that is shown is lit brighter (also when that pattern is empty).
-static void showPatternLeds(bool clearFirst)
+// While Pattern, Position or Step jump (function keys 1-3) is held the pads are its values, and they
+// light up like in the stock firmware: with Pattern a lit pad holds notes (the pad of the pattern that
+// is shown is brighter, also when it is empty), with Position the pad of the current song position
+// and with Step jump the pad of the current step.
+static void showPlaceLeds(bool clearFirst)
 {
     if (clearFirst)
         padsBacklight.clearGlobalPads(1, 1, 1);
-    const int shown = PT->currentPattern();
-    for (int p = 0; p < 48 && p < protracker::kMaxPatterns; p++)
+
+    const uint8_t bright = (uint8_t)clamp<int>(mtConfig.values.padsLightFront * 4, 1, 255);
+
+    if (PT->selectedPlace == 0)
     {
-        const uint8_t* data = (const uint8_t*)PT->module.pattern(p);
-        bool hasData = false;
-        for (uint32_t i = 0; i < protracker::kPatternBytes && !hasData; i++)
-            hasData = data[i] != 0;
-        // the front layer is the one that is bright enough to see (the back layer is very dim)
-        if (p == shown)
-            padsBacklight.setFrontLayer(1, (uint8_t)clamp<int>(mtConfig.values.padsLightFront * 4, 1, 255), p);
-        else if (hasData)
-            padsBacklight.setFrontLayer(1, mtConfig.values.padsLightFront, p);
+        const int shown = PT->currentPattern();
+        for (int p = 0; p < 48 && p < protracker::kMaxPatterns; p++)
+        {
+            const uint8_t* data = (const uint8_t*)PT->module.pattern(p);
+            bool hasData = false;
+            for (uint32_t i = 0; i < protracker::kPatternBytes && !hasData; i++)
+                hasData = data[i] != 0;
+            if (p == shown)
+                padsBacklight.setFrontLayer(1, bright, p);
+            else if (hasData)
+                padsBacklight.setFrontLayer(1, mtConfig.values.padsLightFront, p);
+        }
+    }
+    else if (PT->selectedPlace == 1)
+    {
+        if (PT->editPos >= 0 && PT->editPos < 48)
+            padsBacklight.setFrontLayer(1, bright, PT->editPos);
+    }
+    else if (PT->selectedPlace == 2)
+    {
+        if (PT->editStep >= 0 && PT->editStep < 48)
+            padsBacklight.setFrontLayer(1, bright, PT->editStep);
     }
 }
 
@@ -1785,10 +1802,6 @@ static void functPattern(uint8_t state)
         return;
 
     PT->patternHeld = (state == buttonPress);
-    if (PT->patternHeld)
-        showPatternLeds(true);
-    else
-        padsBacklight.clearGlobalPads(1, 1, 1);
     PT->refreshEditState();
 }
 
@@ -2223,6 +2236,10 @@ static void functActionButton(uint8_t button, uint8_t state)
         {
             PT->selectedPlace = -1;
         }
+        if (PT->selectedPlace >= 0)
+            showPlaceLeds(true);
+        else
+            padsBacklight.clearGlobalPads(1, 1, 1);
         PT->activateLabelsBorder();
         PT->refreshEditState();
         return;
@@ -2303,8 +2320,8 @@ static void functPads(uint8_t pad, uint8_t state, [[maybe_unused]] int16_t velo)
             PT->setPosition(pad);
         else if (place == 2)
             PT->setEditStep(pad);
-        if (PT->patternHeld)
-            showPatternLeds(true);
+        if (PT->selectedPlace >= 0)
+            showPlaceLeds(true);
         PT->refreshEditState();
         return;
     }
